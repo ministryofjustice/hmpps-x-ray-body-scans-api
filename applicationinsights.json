@@ -1,6 +1,6 @@
 {
   "role": {
-    "name": "hmpps-template-kotlin"
+    "name": "hmpps-x-ray-body-scans-api"
   },
   "customDimensions": {
     "service.version": "${BUILD_NUMBER}"

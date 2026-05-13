@@ -1,9 +1,9 @@
 services:
-  hmpps-template-kotlin:
-    image: ghcr.io/ministryofjustice/hmpps-template-kotlin:latest
+  hmpps-x-ray-body-scans-api:
+    image: ghcr.io/ministryofjustice/hmpps-x-ray-body-scans-api:latest
     networks:
       - hmpps
-    container_name: hmpps-template-kotlin
+    container_name: hmpps-x-ray-body-scans-api
     ports:
       - "8080:8080"
     healthcheck:
