@@ -15,7 +15,6 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScan
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.CreateScanResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.ScanService
 import java.time.LocalDate
-import java.util.UUID
 
 class ScanResourceIntTest : IntegrationTestBase() {
 
@@ -24,6 +23,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
 
   private val prisonerNumber = "A1234BC"
   private val scanDate: LocalDate = LocalDate.now().minusDays(1)
+  private val id: Long = 1234L
 
   @Nested
   inner class CreateScan {
@@ -33,12 +33,12 @@ class ScanResourceIntTest : IntegrationTestBase() {
 
       @Test
       fun `returns 201 and created scan when request is valid`() {
-        val expectedId = UUID.fromString("8f3c1e7a-2b4d-4e5f-9a1b-7c8d9e0f1a2b")
+        val expectedId = 1234L
         val request = CreateScanRequest(scanDate = scanDate)
         whenever(scanService.createScan(eq(prisonerNumber), any()))
           .thenReturn(
             CreateScanResponse(
-              id = expectedId,
+              id = id,
               prisonerNumber = prisonerNumber,
               scanDate = scanDate,
             ),
@@ -67,7 +67,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
         whenever(scanService.createScan(eq(prisonerNumber), any()))
           .thenReturn(
             CreateScanResponse(
-              id = UUID.randomUUID(),
+              id = id,
               prisonerNumber = prisonerNumber,
               scanDate = today,
             ),
