@@ -37,7 +37,7 @@ class ScanResource(
 
   @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE])
   @ResponseStatus(HttpStatus.CREATED)
-  @PreAuthorize("hasRole('ROLE_SOMETHING')")
+  @PreAuthorize("hasRole('ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW')")
   @Operation(
     summary = "Create an x-ray body scan for a prisoner",
     description = "Creates a new x-ray body scan record for the given prisoner.",
