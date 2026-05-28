@@ -3,12 +3,12 @@ package uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.scan.repositor
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest
 import org.springframework.test.context.ActiveProfiles
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanEntity
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanRepository
 import java.time.LocalDate
 import java.time.LocalDateTime
-import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest
 
 @DataJpaTest
 @ActiveProfiles("test")
