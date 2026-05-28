@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScanRequest
-import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.CreateScanResponse
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.ScanService
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 
@@ -96,7 +96,7 @@ class ScanResource(
     )
     prisonerNumber: String,
     @Valid @RequestBody request: CreateScanRequest,
-  ): ResponseEntity<CreateScanResponse> = ResponseEntity
+  ): ResponseEntity<ScanResponse> = ResponseEntity
     .status(HttpStatus.CREATED)
     .body(scanService.createScan(prisonerNumber, request))
 }

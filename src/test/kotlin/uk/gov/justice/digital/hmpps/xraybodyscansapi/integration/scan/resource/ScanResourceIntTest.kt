@@ -12,7 +12,7 @@ import org.springframework.http.MediaType
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScanRequest
-import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.CreateScanResponse
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.ScanService
 import java.time.LocalDate
 
@@ -37,7 +37,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
         val request = CreateScanRequest(scanDate = scanDate)
         whenever(scanService.createScan(eq(prisonerNumber), any()))
           .thenReturn(
-            CreateScanResponse(
+            ScanResponse(
               id = id,
               prisonerNumber = prisonerNumber,
               scanDate = scanDate,
@@ -66,7 +66,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
         val request = CreateScanRequest(scanDate = today)
         whenever(scanService.createScan(eq(prisonerNumber), any()))
           .thenReturn(
-            CreateScanResponse(
+            ScanResponse(
               id = id,
               prisonerNumber = prisonerNumber,
               scanDate = today,

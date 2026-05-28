@@ -3,8 +3,8 @@ package uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response
 import io.swagger.v3.oas.annotations.media.Schema
 import java.time.LocalDate
 
-@Schema(description = "Response model for successful x-ray body scan creations")
-data class CreateScanResponse(
+@Schema(description = "Response model for an x-ray body scan, may be nested in another response model")
+data class ScanResponse(
   @Schema(
     description = "Unique identifier for the created scan",
     example = "123456789",
