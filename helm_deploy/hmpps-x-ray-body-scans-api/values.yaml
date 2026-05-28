@@ -37,6 +37,11 @@ generic-service:
   namespace_secrets:
     hmpps-x-ray-body-scans-api-application-insights:
       APPLICATIONINSIGHTS_CONNECTION_STRING: "APPLICATIONINSIGHTS_CONNECTION_STRING"
+    rds-postgresql-instance-output:
+      RDS_INSTANCE_ENDPOINT: "rds_instance_endpoint"
+      DATABASE_NAME: "database_name"
+      DATABASE_USERNAME: "database_username"
+      DATABASE_PASSWORD: "database_password"
 
   allowlist:
     groups:
