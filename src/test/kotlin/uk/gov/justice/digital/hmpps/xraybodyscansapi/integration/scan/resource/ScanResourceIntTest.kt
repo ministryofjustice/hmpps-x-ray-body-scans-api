@@ -46,7 +46,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
 
         webTestClient.post()
           .uri("/v1/prisoner/$prisonerNumber/scan")
-          .headers(setAuthorisation(roles = listOf("ROLE_SOMETHING")))
+          .headers(setAuthorisation(roles = listOf("ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW")))
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue(request)
           .exchange()
@@ -75,7 +75,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
 
         webTestClient.post()
           .uri("/v1/prisoner/$prisonerNumber/scan")
-          .headers(setAuthorisation(roles = listOf("ROLE_SOMETHING")))
+          .headers(setAuthorisation(roles = listOf("ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW")))
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue(request)
           .exchange()
@@ -94,7 +94,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
 
         webTestClient.post()
           .uri("/v1/prisoner/$prisonerNumber/scan")
-          .headers(setAuthorisation(roles = listOf("ROLE_SOMETHING")))
+          .headers(setAuthorisation(roles = listOf("ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW")))
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue(CreateScanRequest(scanDate = futureDate))
           .exchange()
@@ -114,7 +114,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
       fun `returns 400 when the scanDate is malformed`() {
         webTestClient.post()
           .uri("/v1/prisoner/$prisonerNumber/scan")
-          .headers(setAuthorisation(roles = listOf("ROLE_SOMETHING")))
+          .headers(setAuthorisation(roles = listOf("ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW")))
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue("""{"scanDate":"not-a-date"}""")
           .exchange()
@@ -134,7 +134,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
       fun `returns 400 when the scanDate is missing`() {
         webTestClient.post()
           .uri("/v1/prisoner/$prisonerNumber/scan")
-          .headers(setAuthorisation(roles = listOf("ROLE_SOMETHING")))
+          .headers(setAuthorisation(roles = listOf("ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW")))
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue("{}")
           .exchange()
@@ -155,7 +155,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
       fun `returns 400 when the prisonerNumber is malformed or missing`() {
         webTestClient.post()
           .uri("/v1/prisoner/RUBBISH/scan")
-          .headers(setAuthorisation(roles = listOf("ROLE_SOMETHING")))
+          .headers(setAuthorisation(roles = listOf("ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW")))
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue(CreateScanRequest(scanDate = scanDate))
           .exchange()
@@ -175,7 +175,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
       fun `returns 400 when the body is missing`() {
         webTestClient.post()
           .uri("/v1/prisoner/$prisonerNumber/scan")
-          .headers(setAuthorisation(roles = listOf("ROLE_SOMETHING")))
+          .headers(setAuthorisation(roles = listOf("ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW")))
           .contentType(MediaType.APPLICATION_JSON)
           .exchange()
           .expectStatus().isBadRequest
