@@ -6,7 +6,7 @@ import java.time.LocalDate
 @Schema(description = "Response model for an x-ray body scan, may be nested in another response model")
 data class ScanResponse(
   @Schema(
-    description = "Unique identifier for the created scan",
+    description = "Unique identifier for the scan",
     example = "123456789",
   )
   val id: Long,
