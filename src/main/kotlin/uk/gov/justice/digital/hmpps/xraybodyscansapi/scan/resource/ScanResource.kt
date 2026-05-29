@@ -28,7 +28,7 @@ import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
   description = "Endpoints for managing prisoner x-ray body scans.",
 )
 @RequestMapping(
-  value = ["/v1/prisoner/{prisonerNumber}/scan"],
+  value = ["/prisoner/{prisonerNumber}/scan"],
   produces = [MediaType.APPLICATION_JSON_VALUE],
 )
 class ScanResource(

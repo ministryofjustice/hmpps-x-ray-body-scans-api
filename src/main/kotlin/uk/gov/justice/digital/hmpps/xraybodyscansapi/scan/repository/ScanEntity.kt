@@ -11,7 +11,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 
 @Entity
-@Table(name = "scans")
+@Table(name = "scan")
 class ScanEntity(
 
   @Id

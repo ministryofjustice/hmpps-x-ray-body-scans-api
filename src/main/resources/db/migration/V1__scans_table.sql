@@ -1,7 +1,7 @@
 
-CREATE TABLE IF NOT EXISTS scans (
+CREATE TABLE IF NOT EXISTS scan (
     id BIGSERIAL PRIMARY KEY,
     prisoner_number VARCHAR(7) NOT NULL,
     scan_date DATE NOT NULL
-    created_At TIMESTAMP NOT NULL DEFAULT NOW()
+    created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );

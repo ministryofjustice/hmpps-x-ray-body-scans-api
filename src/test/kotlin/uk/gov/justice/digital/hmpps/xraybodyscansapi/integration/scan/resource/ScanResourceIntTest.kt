@@ -45,7 +45,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
           )
 
         webTestClient.post()
-          .uri("/v1/prisoner/$prisonerNumber/scan")
+          .uri("/prisoner/$prisonerNumber/scan")
           .headers(setAuthorisation(roles = listOf("ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW")))
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue(request)
@@ -74,7 +74,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
           )
 
         webTestClient.post()
-          .uri("/v1/prisoner/$prisonerNumber/scan")
+          .uri("/prisoner/$prisonerNumber/scan")
           .headers(setAuthorisation(roles = listOf("ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW")))
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue(request)
@@ -93,7 +93,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
         val futureDate = LocalDate.now().plusDays(1)
 
         webTestClient.post()
-          .uri("/v1/prisoner/$prisonerNumber/scan")
+          .uri("/prisoner/$prisonerNumber/scan")
           .headers(setAuthorisation(roles = listOf("ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW")))
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue(CreateScanRequest(scanDate = futureDate))
@@ -113,7 +113,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
       @Test
       fun `returns 400 when the scanDate is malformed`() {
         webTestClient.post()
-          .uri("/v1/prisoner/$prisonerNumber/scan")
+          .uri("/prisoner/$prisonerNumber/scan")
           .headers(setAuthorisation(roles = listOf("ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW")))
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue("""{"scanDate":"not-a-date"}""")
@@ -133,7 +133,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
       @Test
       fun `returns 400 when the scanDate is missing`() {
         webTestClient.post()
-          .uri("/v1/prisoner/$prisonerNumber/scan")
+          .uri("/prisoner/$prisonerNumber/scan")
           .headers(setAuthorisation(roles = listOf("ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW")))
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue("{}")
@@ -154,7 +154,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
       @Test
       fun `returns 400 when the prisonerNumber is malformed or missing`() {
         webTestClient.post()
-          .uri("/v1/prisoner/RUBBISH/scan")
+          .uri("/prisoner/RUBBISH/scan")
           .headers(setAuthorisation(roles = listOf("ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW")))
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue(CreateScanRequest(scanDate = scanDate))
@@ -174,7 +174,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
       @Test
       fun `returns 400 when the body is missing`() {
         webTestClient.post()
-          .uri("/v1/prisoner/$prisonerNumber/scan")
+          .uri("/prisoner/$prisonerNumber/scan")
           .headers(setAuthorisation(roles = listOf("ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW")))
           .contentType(MediaType.APPLICATION_JSON)
           .exchange()
@@ -193,7 +193,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
       @Test
       fun `returns 401 when the token is missing`() {
         webTestClient.post()
-          .uri("/v1/prisoner/$prisonerNumber/scan")
+          .uri("/prisoner/$prisonerNumber/scan")
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue(CreateScanRequest(scanDate = scanDate))
           .exchange()
@@ -205,7 +205,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
       @Test
       fun `returns 403 when the token doesn't have the right role`() {
         webTestClient.post()
-          .uri("/v1/prisoner/$prisonerNumber/scan")
+          .uri("/prisoner/$prisonerNumber/scan")
           .headers(setAuthorisation(roles = listOf("ROLE_WHATEVER")))
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue(CreateScanRequest(scanDate = scanDate))
@@ -218,7 +218,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
       @Test
       fun `returns 403 when the token has no role`() {
         webTestClient.post()
-          .uri("/v1/prisoner/$prisonerNumber/scan")
+          .uri("/prisoner/$prisonerNumber/scan")
           .headers(setAuthorisation(roles = listOf()))
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue(CreateScanRequest(scanDate = scanDate))
