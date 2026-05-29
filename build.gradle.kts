@@ -14,6 +14,16 @@ dependencies {
     implementation("org.webjars:swagger-ui:5.32.2")
   }
 
+  // Persistence
+  implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+  runtimeOnly("org.flywaydb:flyway-database-postgresql")
+  runtimeOnly("org.postgresql:postgresql")
+  implementation("org.springframework.boot:spring-boot-starter-flyway")
+  runtimeOnly("org.flywaydb:flyway-database-postgresql")
+  implementation("com.h2database:h2") // Here in case you want to run locally using h2
+  testImplementation("com.h2database:h2") // Tests use h2
+  testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
+
   testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:2.2.0")
   testImplementation("org.springframework.boot:spring-boot-starter-webflux-test")
   testImplementation("org.wiremock:wiremock-standalone:3.13.2")

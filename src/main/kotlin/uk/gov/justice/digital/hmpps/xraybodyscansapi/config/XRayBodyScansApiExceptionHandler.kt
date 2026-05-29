@@ -7,9 +7,11 @@ import org.springframework.http.HttpStatus.FORBIDDEN
 import org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR
 import org.springframework.http.HttpStatus.NOT_FOUND
 import org.springframework.http.ResponseEntity
+import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.security.access.AccessDeniedException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
+import org.springframework.web.method.annotation.HandlerMethodValidationException
 import org.springframework.web.servlet.resource.NoResourceFoundException
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 
@@ -58,6 +60,46 @@ class XRayBodyScansApiExceptionHandler {
         developerMessage = e.message,
       ),
     ).also { log.error("Unexpected exception", e) }
+
+  @ExceptionHandler(HandlerMethodValidationException::class)
+  fun handleHandlerMethodValidationException(
+    e: HandlerMethodValidationException,
+  ): ResponseEntity<ErrorResponse> {
+    val message = e.parameterValidationResults
+      .flatMap { it.resolvableErrors }
+      .mapNotNull { it.defaultMessage }
+      .joinToString("; ")
+      .ifBlank { "Validation failure" }
+
+    log.info("Validation exception: {}", message)
+
+    return ResponseEntity
+      .status(BAD_REQUEST)
+      .body(
+        ErrorResponse(
+          status = BAD_REQUEST,
+          userMessage = "Validation failure",
+          developerMessage = message,
+        ),
+      )
+  }
+
+  @ExceptionHandler(HttpMessageNotReadableException::class)
+  fun handleHttpMessageNotReadableException(
+    e: HttpMessageNotReadableException,
+  ): ResponseEntity<ErrorResponse> {
+    log.info("Could not read HTTP message: {}", e.message)
+
+    return ResponseEntity
+      .status(BAD_REQUEST)
+      .body(
+        ErrorResponse(
+          status = BAD_REQUEST,
+          userMessage = "Malformed request body",
+          developerMessage = e.message,
+        ),
+      )
+  }
 
   private companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
