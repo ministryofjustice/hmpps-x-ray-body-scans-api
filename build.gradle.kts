@@ -19,7 +19,6 @@ dependencies {
   runtimeOnly("org.flywaydb:flyway-database-postgresql")
   runtimeOnly("org.postgresql:postgresql")
   implementation("org.springframework.boot:spring-boot-starter-flyway")
-  runtimeOnly("org.flywaydb:flyway-database-postgresql")
   implementation("com.h2database:h2") // Here in case you want to run locally using h2
   testImplementation("com.h2database:h2") // Tests use h2
   testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
