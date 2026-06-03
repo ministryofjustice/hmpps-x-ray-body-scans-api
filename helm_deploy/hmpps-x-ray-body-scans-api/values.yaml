@@ -35,6 +35,8 @@ generic-service:
   #     [name of environment variable as seen by app]: [key of kubernetes secret to load]
 
   namespace_secrets:
+    hmpps-x-ray-body-scans-api:
+      SENTRY_DSN: "SENTRY_DSN"
     hmpps-x-ray-body-scans-api-application-insights:
       APPLICATIONINSIGHTS_CONNECTION_STRING: "APPLICATIONINSIGHTS_CONNECTION_STRING"
     rds-postgresql-instance-output:

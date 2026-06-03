@@ -6,6 +6,7 @@ generic-service:
     host: x-ray-body-scans-api.hmpps.service.justice.gov.uk
 
   env:
+    SENTRY_ENVIRONMENT: prod
     HMPPS_AUTH_URL: "https://sign-in.hmpps.service.justice.gov.uk/auth"
 
 # CloudPlatform AlertManager receiver to route prometheus alerts to slack
