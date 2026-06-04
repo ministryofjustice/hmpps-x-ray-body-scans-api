@@ -14,7 +14,7 @@ dependencies {
   // OpenAPI
   implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3")
   constraints {
-    implementation("org.webjars:swagger-ui:5.32.2")
+    implementation("org.webjars:swagger-ui:5.32.6")
   }
 
   // Persistence
