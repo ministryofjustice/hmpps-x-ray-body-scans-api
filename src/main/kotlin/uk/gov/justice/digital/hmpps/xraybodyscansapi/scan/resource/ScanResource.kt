@@ -75,7 +75,7 @@ class ScanResource(
       ),
       ApiResponse(
         responseCode = "403",
-        description = "Forbidden. Token does not have the ROLE_SOMETHING role.",
+        description = "Forbidden. Token does not have the role ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW.",
         content = [
           Content(
             mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -119,7 +119,7 @@ class ScanResource(
       ),
       ApiResponse(
         responseCode = "400",
-        description = "Invalid request. Check the prisoner number and date parameters.",
+        description = "Invalid request. Check the prisoner number and dates.",
         content = [Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = Schema(implementation = ErrorResponse::class))],
       ),
       ApiResponse(
@@ -129,7 +129,7 @@ class ScanResource(
       ),
       ApiResponse(
         responseCode = "403",
-        description = "Forbidden. Token does not have the required role.",
+        description = "Forbidden. Token does not have the role ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW.",
         content = [Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = Schema(implementation = ErrorResponse::class))],
       ),
       ApiResponse(
