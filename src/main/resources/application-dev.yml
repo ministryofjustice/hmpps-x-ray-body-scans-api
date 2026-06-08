@@ -1,8 +1,12 @@
-hmpps-auth:
-  url: "http://localhost:8090/auth"
+api:
+  hmpps-auth:
+    base-url: "https://sign-in-dev.hmpps.service.justice.gov.uk/auth"
+  prison-api:
+    base-url: "https://prison-api-dev.prison.service.justice.gov.uk"
 
-prison-api:
-  url: "http://localhost:8091"
+client:
+  id: ${CLIENT_ID}
+  secret: ${CLIENT_SECRET}
 
 springdoc:
   api-docs:

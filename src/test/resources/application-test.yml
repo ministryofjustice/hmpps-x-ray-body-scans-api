@@ -5,11 +5,13 @@ management.endpoint:
   health.cache.time-to-live: 0
   info.cache.time-to-live: 0
 
-hmpps-auth:
-  url: "http://localhost:8090/auth"
+api:
+  hmpps-auth.base-url: http://localhost:8090/auth
+  prison-api.base-url: http://localhost:8091
 
-prison-api:
-  url: "http://localhost:8091"
+client:
+  id: someid
+  secret: somesecret
 
 springdoc:
   api-docs:
