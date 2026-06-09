@@ -45,10 +45,7 @@ class ScanService(
     fromStartDate: LocalDate,
     toStartDate: LocalDate,
   ): List<ScanCountResponse> {
-    val nomisCounts = prisonApiClient
-      .countNomisScans(prisonerNumbers, fromStartDate, toStartDate)
-      .associate { it.offenderNo to it.size }
-
+    val nomisCounts = getNomisScanCounts(prisonerNumbers, fromStartDate, toStartDate)
     val dpsCounts = scanRepository
       .findByPrisonerNumberInAndScanDateBetween(prisonerNumbers, fromStartDate, toStartDate)
       .groupingBy { it.prisonerNumber }
@@ -65,4 +62,16 @@ class ScanService(
       )
     }
   }
+
+  private fun getNomisScanCounts(
+    prisonerNumbers: List<String>,
+    fromStartDate: LocalDate,
+    toStartDate: LocalDate,
+  ): Map<String, Int> = prisonApiClient
+    .getScanCareNeeds(prisonerNumbers)
+    .associate { res ->
+      res.offenderNo to res.personalCareNeeds.count { bscan ->
+        bscan.startDate != null && !bscan.startDate.isBefore(fromStartDate) && !bscan.startDate.isAfter(toStartDate)
+      }
+    }
 }

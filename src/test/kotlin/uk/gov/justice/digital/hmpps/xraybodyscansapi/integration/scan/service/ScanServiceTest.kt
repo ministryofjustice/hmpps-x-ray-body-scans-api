@@ -9,7 +9,8 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.PrisonApiClient
-import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.response.CountNomisScansResponse
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.response.PersonalCareNeed
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.response.PersonalCareNeedsResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScanRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanCountResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanEntity
@@ -61,14 +62,24 @@ class ScanServiceTest {
     private val toStartDate: LocalDate = LocalDate.parse("2026-02-01")
 
     @Test
-    fun `returns correct counts for a list of prisoners`() {
+    fun `returns correct counts for a list of prisoners, filtering nomis scans by date range`() {
       val prisonerNumbers = listOf("A1234BC", "B1234AC")
 
-      whenever(prisonApiClient.countNomisScans(prisonerNumbers, fromStartDate, toStartDate))
+      whenever(prisonApiClient.getScanCareNeeds(prisonerNumbers))
         .thenReturn(
           listOf(
-            CountNomisScansResponse(offenderNo = "A1234BC", size = 2),
-            CountNomisScansResponse(offenderNo = "B1234AC", size = 1),
+            PersonalCareNeedsResponse(
+              offenderNo = "A1234BC",
+              personalCareNeeds = listOf(
+                bscan("2026-01-01"),
+                bscan("2026-01-02"),
+                bscan("2025-12-31"),
+              ),
+            ),
+            PersonalCareNeedsResponse(
+              offenderNo = "B1234AC",
+              personalCareNeeds = listOf(bscan("2026-01-03")),
+            ),
           ),
         )
       whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(prisonerNumbers, fromStartDate, toStartDate))
@@ -93,20 +104,17 @@ class ScanServiceTest {
     fun `returns count for a single prisoner`() {
       val prisonerNumber = "A1234BC"
 
-      whenever(prisonApiClient.countNomisScans(listOf(prisonerNumber), fromStartDate, toStartDate))
+      whenever(prisonApiClient.getScanCareNeeds(listOf(prisonerNumber)))
         .thenReturn(
           listOf(
-            CountNomisScansResponse(offenderNo = "A1234BC", size = 2),
+            PersonalCareNeedsResponse(
+              offenderNo = "A1234BC",
+              personalCareNeeds = listOf(bscan("2026-01-01"), bscan("2026-01-02")),
+            ),
           ),
         )
       whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(listOf(prisonerNumber), fromStartDate, toStartDate))
-        .thenReturn(
-          listOf(
-            scanEntity("A1234BC"),
-            scanEntity("A1234BC"),
-            scanEntity("A1234BC"),
-          ),
-        )
+        .thenReturn(listOf(scanEntity("A1234BC"), scanEntity("A1234BC"), scanEntity("A1234BC")))
 
       val result = scanService.countScans(prisonerNumber, fromStartDate, toStartDate)
 
@@ -119,8 +127,15 @@ class ScanServiceTest {
     fun `defaults missing counts to zero`() {
       val prisonerNumbers = listOf("A1234BC", "B1234AC", "C1234AB")
 
-      whenever(prisonApiClient.countNomisScans(prisonerNumbers, fromStartDate, toStartDate))
-        .thenReturn(listOf(CountNomisScansResponse(offenderNo = "A1234BC", size = 4)))
+      whenever(prisonApiClient.getScanCareNeeds(prisonerNumbers))
+        .thenReturn(
+          listOf(
+            PersonalCareNeedsResponse(
+              offenderNo = "A1234BC",
+              personalCareNeeds = listOf(bscan("2026-01-10"), bscan("2026-01-02"), bscan("2026-01-03"), bscan("2026-01-04")),
+            ),
+          ),
+        )
       whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(prisonerNumbers, fromStartDate, toStartDate))
         .thenReturn(listOf(scanEntity("B1234AC"), scanEntity("B1234AC")))
 
@@ -132,6 +147,14 @@ class ScanServiceTest {
         ScanCountResponse(prisonerNumber = "C1234AB", nomisCount = 0, dpsCount = 0, totalCount = 0),
       )
     }
+
+    private fun bscan(startDate: String) = PersonalCareNeed(
+      personalCareNeedId = 1,
+      problemType = "BSCAN",
+      problemCode = "xyz",
+      problemStatus = "xyz",
+      startDate = LocalDate.parse(startDate),
+    )
 
     private fun scanEntity(prisonerNumber: String) = ScanEntity(
       prisonerNumber = prisonerNumber,

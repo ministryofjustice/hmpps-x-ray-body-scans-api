@@ -48,9 +48,9 @@ class PrisonApiMockServer : WireMockServer(WIREMOCK_PORT) {
     )
   }
 
-  fun stubCountNomisScans(body: String) {
+  fun stubGetScanCareNeeds(body: String) {
     stubFor(
-      post(urlPathEqualTo("/api/bookings/offenderNo/personal-care-needs/count"))
+      post(urlPathEqualTo("/api/bookings/offenderNo/personal-care-needs"))
         .willReturn(
           aResponse()
             .withHeader("Content-Type", "application/json")
@@ -60,9 +60,9 @@ class PrisonApiMockServer : WireMockServer(WIREMOCK_PORT) {
     )
   }
 
-  fun stubCountNomisScansError(status: Int) {
+  fun stubGetScanCareNeedsError(status: Int) {
     stubFor(
-      post(urlPathEqualTo("/api/bookings/offenderNo/personal-care-needs/count"))
+      post(urlPathEqualTo("/api/bookings/offenderNo/personal-care-needs"))
         .willReturn(
           aResponse()
             .withHeader("Content-Type", "application/json")
