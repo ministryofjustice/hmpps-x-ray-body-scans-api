@@ -20,10 +20,10 @@ class ScanEntity(
   val id: Long? = null,
 
   @Column(name = "prisoner_number", nullable = false)
-  val prisonerNumber: String,
+  val prisonerNumber: String = "",
 
   @Column(name = "scan_date", nullable = false)
-  val scanDate: LocalDate,
+  val scanDate: LocalDate = LocalDate.EPOCH,
 
   @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)
