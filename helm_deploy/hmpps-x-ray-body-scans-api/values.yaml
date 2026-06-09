@@ -38,6 +38,7 @@ generic-service:
     hmpps-x-ray-body-scans-api-client-creds:
       CLIENT_ID: "API_CLIENT_ID"
       CLIENT_SECRET: "API_CLIENT_SECRET"
+    hmpps-x-ray-body-scans-api:
       SENTRY_DSN: "SENTRY_DSN"
     hmpps-x-ray-body-scans-api-application-insights:
       APPLICATIONINSIGHTS_CONNECTION_STRING: "APPLICATIONINSIGHTS_CONNECTION_STRING"
