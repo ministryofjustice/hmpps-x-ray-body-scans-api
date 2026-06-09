@@ -4,10 +4,6 @@ api:
   prison-api:
     base-url: "https://prison-api-dev.prison.service.justice.gov.uk"
 
-client:
-  id: ${CLIENT_ID}
-  secret: ${CLIENT_SECRET}
-
 springdoc:
   api-docs:
     enabled: true

@@ -21,8 +21,8 @@ spring:
         registration:
           hmpps-x-ray-body-scans-api:
             provider: hmpps-auth
-            client-id: ${client.id}
-            client-secret: ${client.secret}
+            client-id: ${CLIENT_ID}
+            client-secret: ${CLIENT_SECRET}
             authorization-grant-type: client_credentials
             scope: read
         provider:
