@@ -28,12 +28,11 @@ class ScanRepositoryTest {
     val saved = scanRepository.save(
       ScanEntity(prisonerNumber = prisonerNumber, scanDate = scanDate),
     )
-    assertThat(saved.id).isNotNull()
     assertThat(saved.id).isGreaterThan(0L)
     assertThat(saved.createdAt).isNotNull()
     assertThat(saved.createdAt).isBetween(before, after)
 
-    val found = scanRepository.findById(saved.id!!).orElseThrow()
+    val found = scanRepository.findById(saved.id).orElseThrow()
     assertThat(found.prisonerNumber).isEqualTo(prisonerNumber)
     assertThat(found.scanDate).isEqualTo(scanDate)
   }

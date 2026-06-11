@@ -26,7 +26,7 @@ class ScanService(
     )
 
     return ScanResponse(
-      id = saved.id!!,
+      id = saved.id,
       prisonerNumber = saved.prisonerNumber,
       scanDate = saved.scanDate,
     )

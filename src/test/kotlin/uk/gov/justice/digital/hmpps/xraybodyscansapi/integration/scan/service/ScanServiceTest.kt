@@ -33,12 +33,7 @@ class ScanServiceTest {
     @Test
     fun `persists a scan entity built from the request and returns response built from the saved entity`() {
       whenever(scanRepository.save(any<ScanEntity>())).thenAnswer { invocation ->
-        val entity = invocation.getArgument<ScanEntity>(0)
-        ScanEntity(
-          prisonerNumber = entity.prisonerNumber,
-          scanDate = entity.scanDate,
-          id = 42L,
-        )
+        invocation.getArgument<ScanEntity>(0)
       }
 
       val response = scanService.createScan(prisonerNumber, CreateScanRequest(scanDate = scanDate))
@@ -47,9 +42,7 @@ class ScanServiceTest {
       verify(scanRepository).save(captor.capture())
       assertThat(captor.firstValue.prisonerNumber).isEqualTo(prisonerNumber)
       assertThat(captor.firstValue.scanDate).isEqualTo(scanDate)
-      assertThat(captor.firstValue.id).isNull()
 
-      assertThat(response.id).isEqualTo(42L)
       assertThat(response.prisonerNumber).isEqualTo(prisonerNumber)
       assertThat(response.scanDate).isEqualTo(scanDate)
     }

@@ -13,19 +13,18 @@ import java.time.LocalDateTime
 @Entity
 @Table(name = "scan")
 class ScanEntity(
+  @Column(name = "prisoner_number", nullable = false)
+  val prisonerNumber: String,
 
+  @Column(name = "scan_date", nullable = false)
+  val scanDate: LocalDate,
+) {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   @Column(name = "id", nullable = false, updatable = false)
-  val id: Long? = null,
-
-  @Column(name = "prisoner_number", nullable = false)
-  val prisonerNumber: String = "",
-
-  @Column(name = "scan_date", nullable = false)
-  val scanDate: LocalDate = LocalDate.EPOCH,
+  val id: Long = 0
 
   @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)
-  val createdAt: LocalDateTime? = null,
-)
+  val createdAt: LocalDateTime = LocalDateTime.now()
+}
