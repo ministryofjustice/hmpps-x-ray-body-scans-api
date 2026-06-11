@@ -15,12 +15,19 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: ${hmpps-auth.url}/.well-known/jwks.json
+          jwk-set-uri: ${api.hmpps-auth.base-url}/.well-known/jwks.json
 
       client:
+        registration:
+          hmpps-x-ray-body-scans-api:
+            provider: hmpps-auth
+            client-id: ${CLIENT_ID}
+            client-secret: ${CLIENT_SECRET}
+            authorization-grant-type: client_credentials
+            scope: read
         provider:
           hmpps-auth:
-            token-uri: ${hmpps-auth.url}/oauth/token
+            token-uri: ${api.hmpps-auth.base-url}/oauth/token
   http:
     codecs:
       max-in-memory-size: 10MB

@@ -105,3 +105,6 @@ class XRayBodyScansApiExceptionHandler {
     private val log = LoggerFactory.getLogger(this::class.java)
   }
 }
+
+// In case we want to handle them differently later down the line:
+class DownstreamServiceException(message: String, cause: Throwable) : Exception(message, cause)

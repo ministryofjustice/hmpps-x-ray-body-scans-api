@@ -35,6 +35,9 @@ generic-service:
   #     [name of environment variable as seen by app]: [key of kubernetes secret to load]
 
   namespace_secrets:
+    hmpps-x-ray-body-scans-api-client-creds:
+      CLIENT_ID: "API_CLIENT_ID"
+      CLIENT_SECRET: "API_CLIENT_SECRET"
     hmpps-x-ray-body-scans-api:
       SENTRY_DSN: "SENTRY_DSN"
     hmpps-x-ray-body-scans-api-application-insights:
