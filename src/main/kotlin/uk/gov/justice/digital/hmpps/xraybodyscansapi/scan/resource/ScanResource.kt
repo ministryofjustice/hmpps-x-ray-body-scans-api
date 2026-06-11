@@ -111,7 +111,9 @@ class ScanResource(
   @PreAuthorize("hasRole('ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW')")
   @Operation(
     summary = "Count x-ray body scans for a prisoner",
-    description = "Returns the total number of x-ray body scans for the given prisoner.",
+    description = "Returns the total number of x-ray body scans for the given prisoner. " +
+      "If the prisoner is not found, the count will default to zero. " +
+      "Ensure the prisoner exists prior to use.",
     responses = [
       ApiResponse(
         responseCode = "200",
