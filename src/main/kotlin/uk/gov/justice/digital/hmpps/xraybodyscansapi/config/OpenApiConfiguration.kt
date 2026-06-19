@@ -36,7 +36,7 @@ class OpenApiConfiguration(
       listOf(),
     )
     .info(
-      Info().title("HMPPS X Ray Body Scans Api").version(version)
+      Info().title("HMPPS X-ray Body Scans API").version(version)
         .contact(Contact().name("HMPPS Digital Studio").email("feedback@digital.justice.gov.uk")),
     )
     .components(
