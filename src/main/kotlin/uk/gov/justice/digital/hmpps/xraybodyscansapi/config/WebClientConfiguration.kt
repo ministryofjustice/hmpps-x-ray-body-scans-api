@@ -20,11 +20,11 @@ import java.time.Duration
 
 @Configuration
 class WebClientConfiguration(
-  @Value("\${api.hmpps-auth.base-url}") private val hmppsAuthBaseUri: String,
-  @Value("\${api.hmpps-auth.health-timeout:20s}") private val hmppsAuthHealthTimeout: Duration,
-  @Value("\${api.prison-api.base-url}") private val prisonApiBaseUri: String,
-  @Value("\${api.prison-api.timeout:30s}") private val prisonApiTimeout: Duration,
-  @Value("\${api.prison-api.health-timeout:20s}") private val prisonApiHealthTimeout: Duration,
+  @Value($$"${api.hmpps-auth.base-url}") private val hmppsAuthBaseUri: String,
+  @Value($$"${api.hmpps-auth.health-timeout:20s}") private val hmppsAuthHealthTimeout: Duration,
+  @Value($$"${api.prison-api.base-url}") private val prisonApiBaseUri: String,
+  @Value($$"${api.prison-api.timeout:30s}") private val prisonApiTimeout: Duration,
+  @Value($$"${api.prison-api.health-timeout:20s}") private val prisonApiHealthTimeout: Duration,
 ) {
   @Bean
   fun hmppsAuthHealthWebClient(builder: Builder): WebClient = builder.healthWebClient(hmppsAuthBaseUri, hmppsAuthHealthTimeout)
