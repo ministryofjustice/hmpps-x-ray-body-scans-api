@@ -18,7 +18,7 @@ import org.springframework.context.annotation.Configuration
 @Configuration
 class OpenApiConfiguration(
   buildProperties: BuildProperties,
-  @Value("\${api.hmpps-auth.base-url}") val oauthUrl: String,
+  @Value($$"${api.hmpps-auth.base-url}") val oauthUrl: String,
 ) {
   private val version: String = buildProperties.version!!
 
@@ -36,7 +36,7 @@ class OpenApiConfiguration(
       listOf(),
     )
     .info(
-      Info().title("HMPPS X Ray Body Scans Api").version(version)
+      Info().title("HMPPS X-ray Body Scans API").version(version)
         .contact(Contact().name("HMPPS Digital Studio").email("feedback@digital.justice.gov.uk")),
     )
     .components(

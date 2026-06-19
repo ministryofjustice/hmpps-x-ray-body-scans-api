@@ -1,5 +1,5 @@
 info.app:
-  name: HMPPS X Ray Body Scans Api
+  name: HMPPS X-ray Body Scans API
   version: 1.0
 
 spring:
