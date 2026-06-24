@@ -230,4 +230,9 @@ class ScanResourceIntTest : IntegrationTestBase() {
       }
     }
   }
+
+  @Nested
+  inner class CountScans {
+    // TODO: role and payload tests
+  }
 }
