@@ -45,18 +45,15 @@ class XRayBodyScansApiExceptionHandler {
     ).also { log.info("No resource found exception: {}", e.message) }
 
   @ExceptionHandler(HttpRequestMethodNotSupportedException::class)
-  fun handleMethodNotAllowedException(e: HttpRequestMethodNotSupportedException): ResponseEntity<ErrorResponse> {
-    log.info("Method not allowed: {}", e.message)
-    return ResponseEntity
-      .status(METHOD_NOT_ALLOWED)
-      .body(
-        ErrorResponse(
-          status = METHOD_NOT_ALLOWED,
-          userMessage = "Method not allowed: ${e.message}",
-          developerMessage = e.message,
-        ),
-      )
-  }
+  fun handleMethodNotAllowedException(e: HttpRequestMethodNotSupportedException): ResponseEntity<ErrorResponse> = ResponseEntity
+    .status(METHOD_NOT_ALLOWED)
+    .body(
+      ErrorResponse(
+        status = METHOD_NOT_ALLOWED,
+        userMessage = "Method not allowed: ${e.message}",
+        developerMessage = e.message,
+      ),
+    ).also { log.info("Method not allowed: {}", e.message) }
 
   @ExceptionHandler(AccessDeniedException::class)
   fun handleAccessDeniedException(e: AccessDeniedException): ResponseEntity<ErrorResponse> = ResponseEntity
@@ -88,8 +85,6 @@ class XRayBodyScansApiExceptionHandler {
     } else {
       "Parameter ${e.name} must be of type ${type.typeName}"
     }
-
-    log.info("Validation exception: {}", message)
     return ResponseEntity
       .status(BAD_REQUEST)
       .body(
@@ -98,7 +93,7 @@ class XRayBodyScansApiExceptionHandler {
           userMessage = "Validation failure: $message",
           developerMessage = e.message,
         ),
-      )
+      ).also { log.info("Validation exception: {}", message) }
   }
 
   @ExceptionHandler(MethodArgumentNotValidException::class)
@@ -111,16 +106,15 @@ class XRayBodyScansApiExceptionHandler {
       }
       "$field: ${it.defaultMessage}"
     }
-    log.debug("MethodArgumentNotValidException caught: {}", message)
     return ResponseEntity
       .status(BAD_REQUEST)
       .body(
         ErrorResponse(
           status = BAD_REQUEST,
-          userMessage = "Validation Failure: $message",
+          userMessage = "Validation failure: $message",
           developerMessage = message,
         ),
-      )
+      ).also { log.info("MethodArgumentNotValidException exception: {}", message) }
   }
 
   @ExceptionHandler(HandlerMethodValidationException::class)
@@ -133,8 +127,6 @@ class XRayBodyScansApiExceptionHandler {
       .joinToString("; ")
       .ifBlank { "Validation failure" }
 
-    log.info("Validation exception: {}", message)
-
     return ResponseEntity
       .status(BAD_REQUEST)
       .body(
@@ -143,25 +135,21 @@ class XRayBodyScansApiExceptionHandler {
           userMessage = "Validation failure",
           developerMessage = message,
         ),
-      )
+      ).also { log.info("Validation exception: {}", message) }
   }
 
   @ExceptionHandler(HttpMessageNotReadableException::class)
   fun handleHttpMessageNotReadableException(
     e: HttpMessageNotReadableException,
-  ): ResponseEntity<ErrorResponse> {
-    log.info("Could not read HTTP message: {}", e.message)
-
-    return ResponseEntity
-      .status(BAD_REQUEST)
-      .body(
-        ErrorResponse(
-          status = BAD_REQUEST,
-          userMessage = "Malformed request body",
-          developerMessage = e.message,
-        ),
-      )
-  }
+  ): ResponseEntity<ErrorResponse> = ResponseEntity
+    .status(BAD_REQUEST)
+    .body(
+      ErrorResponse(
+        status = BAD_REQUEST,
+        userMessage = "Malformed request body",
+        developerMessage = e.message,
+      ),
+    ).also { log.info("Could not read HTTP message: {}", e.message) }
 
   private companion object {
     private val log = LoggerFactory.getLogger(this::class.java)
