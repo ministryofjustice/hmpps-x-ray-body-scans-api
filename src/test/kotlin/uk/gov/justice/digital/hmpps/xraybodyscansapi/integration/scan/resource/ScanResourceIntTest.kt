@@ -1,10 +1,10 @@
 package uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.scan.resource
 
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 import org.junit.jupiter.params.provider.ValueSource
@@ -204,43 +204,17 @@ class ScanResourceIntTest : IntegrationTestBase() {
         verifyNoInteractions(scanService)
       }
 
-      @Test
-      fun `returns 401 when the token is missing`() {
+      @DisplayName("endpoint is protected")
+      @TestFactory
+      fun `endpoint is protected`() = endpointIsProtected(
         webTestClient.post()
           .uri("/prisoner/$prisonerNumber/scan")
-          .contentType(MediaType.APPLICATION_JSON)
-          .bodyValue(CreateScanRequest(scanDate = scanDate))
-          .exchange()
-          .expectStatus().isUnauthorized
-
-        verifyNoInteractions(scanService)
-      }
-
-      @Test
-      fun `returns 403 when the token doesn't have the right role`() {
-        webTestClient.post()
-          .uri("/prisoner/$prisonerNumber/scan")
-          .headers(setAuthorisation(roles = listOf("ROLE_WHATEVER")))
-          .contentType(MediaType.APPLICATION_JSON)
-          .bodyValue(CreateScanRequest(scanDate = scanDate))
-          .exchange()
-          .expectStatus().isForbidden
-
-        verifyNoInteractions(scanService)
-      }
-
-      @Test
-      fun `returns 403 when the token has no role`() {
-        webTestClient.post()
-          .uri("/prisoner/$prisonerNumber/scan")
-          .headers(setAuthorisation(roles = listOf()))
-          .contentType(MediaType.APPLICATION_JSON)
-          .bodyValue(CreateScanRequest(scanDate = scanDate))
-          .exchange()
-          .expectStatus().isForbidden
-
-        verifyNoInteractions(scanService)
-      }
+          .bodyValue(CreateScanRequest(scanDate = scanDate)),
+        requiresWriteRole = true,
+        afterEach = {
+          verifyNoInteractions(scanService)
+        },
+      )
     }
   }
 
@@ -334,28 +308,15 @@ class ScanResourceIntTest : IntegrationTestBase() {
     @Nested
     @DisplayName("Sad paths")
     inner class SadPath {
-      @BeforeEach
-      fun forbidCallToScanSerice() {
-        whenever(scanService.countScans(any<String>(), any<LocalDate>(), any<LocalDate>()))
-          .thenThrow(RuntimeException("scanService.countScans() should not be called"))
-      }
-
-      @Test
-      fun `returns 401 when the token is missing`() {
+      @DisplayName("endpoint is protected")
+      @TestFactory
+      fun `endpoint is protected`() = endpointIsProtected(
         webTestClient.get()
-          .uri("/prisoner/$prisonerNumber/scan/count")
-          .exchange()
-          .expectStatus().isUnauthorized
-      }
-
-      @Test
-      fun `returns 403 when the token doesn't have a read role`() {
-        webTestClient.get()
-          .uri("/prisoner/$prisonerNumber/scan/count")
-          .headers(setAuthorisation(roles = listOf("ROLE_PRISONER_SEARCH")))
-          .exchange()
-          .expectStatus().isForbidden
-      }
+          .uri("/prisoner/$prisonerNumber/scan/count"),
+        afterEach = {
+          verifyNoInteractions(scanService)
+        },
+      )
 
       @ParameterizedTest(name = "returns 400 for invalid date filters: from {0} to {1}")
       @CsvSource(
@@ -379,6 +340,8 @@ class ScanResourceIntTest : IntegrationTestBase() {
           .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
           .exchange()
           .expectStatus().isBadRequest
+
+        verifyNoInteractions(scanService)
       }
 
       // TODO: future dates 400?
