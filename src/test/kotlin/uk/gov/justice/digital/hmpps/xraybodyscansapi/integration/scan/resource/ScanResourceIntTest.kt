@@ -1,8 +1,12 @@
 package uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.scan.resource
 
-import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestFactory
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
+import org.junit.jupiter.params.provider.ValueSource
 import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.verify
@@ -10,12 +14,18 @@ import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
 import org.springframework.http.MediaType
 import org.springframework.test.context.bean.override.mockito.MockitoBean
+import org.springframework.test.json.JsonCompareMode
+import org.springframework.web.util.UriComponentsBuilder
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScanRequest
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanCountResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.ScanService
 import java.time.LocalDate
 
+@DisplayName("X-ray body scans resource")
 class ScanResourceIntTest : IntegrationTestBase() {
 
   @MockitoBean
@@ -26,9 +36,11 @@ class ScanResourceIntTest : IntegrationTestBase() {
   private val id: Long = 1234L
 
   @Nested
+  @DisplayName("Create a scan endpoint")
   inner class CreateScan {
 
     @Nested
+    @DisplayName("Happy paths")
     inner class HappyPath {
 
       @Test
@@ -46,7 +58,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
 
         webTestClient.post()
           .uri("/prisoner/$prisonerNumber/scan")
-          .headers(setAuthorisation(roles = listOf("ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW")))
+          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW)))
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue(request)
           .exchange()
@@ -75,7 +87,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
 
         webTestClient.post()
           .uri("/prisoner/$prisonerNumber/scan")
-          .headers(setAuthorisation(roles = listOf("ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW")))
+          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW)))
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue(request)
           .exchange()
@@ -86,6 +98,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
     }
 
     @Nested
+    @DisplayName("Sad paths")
     inner class SadPath {
 
       @Test
@@ -94,18 +107,14 @@ class ScanResourceIntTest : IntegrationTestBase() {
 
         webTestClient.post()
           .uri("/prisoner/$prisonerNumber/scan")
-          .headers(setAuthorisation(roles = listOf("ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW")))
+          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW)))
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue(CreateScanRequest(scanDate = futureDate))
           .exchange()
-          .expectStatus().isBadRequest
-          .expectBody()
-          .jsonPath("$.userMessage").value<String> {
-            assertThat(it).isEqualTo("Validation failure")
-          }
-          .jsonPath("$.developerMessage").value<String> {
-            assertThat(it).contains("scanDate must be today or in the past")
-          }
+          .expectErrorResponse(
+            userMessageContains = "Validation failure",
+            developerMessageContains = "scanDate must be today or in the past",
+          )
 
         verifyNoInteractions(scanService)
       }
@@ -114,18 +123,14 @@ class ScanResourceIntTest : IntegrationTestBase() {
       fun `returns 400 when the scanDate is malformed`() {
         webTestClient.post()
           .uri("/prisoner/$prisonerNumber/scan")
-          .headers(setAuthorisation(roles = listOf("ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW")))
+          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW)))
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue("""{"scanDate":"not-a-date"}""")
           .exchange()
-          .expectStatus().isBadRequest
-          .expectBody()
-          .jsonPath("$.userMessage").value<String> {
-            assertThat(it).contains("Malformed request body")
-          }
-          .jsonPath("$.developerMessage").value<String> {
-            assertThat(it).contains("Failed to deserialize `java.time.LocalDate")
-          }
+          .expectErrorResponse(
+            userMessageContains = "Malformed request body",
+            developerMessageContains = "Failed to deserialize `java.time.LocalDate`",
+          )
 
         verifyNoInteractions(scanService)
       }
@@ -134,19 +139,14 @@ class ScanResourceIntTest : IntegrationTestBase() {
       fun `returns 400 when the scanDate is missing`() {
         webTestClient.post()
           .uri("/prisoner/$prisonerNumber/scan")
-          .headers(setAuthorisation(roles = listOf("ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW")))
+          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW)))
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue("{}")
           .exchange()
-          .expectStatus().isBadRequest
-          .expectBody()
-          .jsonPath("$.userMessage").value<String> {
-            assertThat(it).contains("Malformed request body")
-          }
-          .jsonPath("$.developerMessage").value<String> {
-            assertThat(it).contains("JSON property scanDate")
-            assertThat(it).contains("missing")
-          }
+          .expectErrorResponse(
+            userMessageContains = "Malformed request body",
+            developerMessageContains = "JSON property scanDate",
+          )
 
         verifyNoInteractions(scanService)
       }
@@ -155,18 +155,14 @@ class ScanResourceIntTest : IntegrationTestBase() {
       fun `returns 400 when the prisonerNumber is malformed or missing`() {
         webTestClient.post()
           .uri("/prisoner/RUBBISH/scan")
-          .headers(setAuthorisation(roles = listOf("ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW")))
+          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW)))
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue(CreateScanRequest(scanDate = scanDate))
           .exchange()
-          .expectStatus().isBadRequest
-          .expectBody()
-          .jsonPath("$.userMessage").value<String> {
-            assertThat(it).contains("Validation failure")
-          }
-          .jsonPath("$.developerMessage").value<String> {
-            assertThat(it).isEqualTo("prisonerNumber must be in the right form, e.g. A1234BC.")
-          }
+          .expectErrorResponse(
+            userMessageContains = "Validation failure",
+            developerMessageContains = "prisonerNumber must be in the right form, e.g. A1234BC.",
+          )
 
         verifyNoInteractions(scanService)
       }
@@ -175,58 +171,162 @@ class ScanResourceIntTest : IntegrationTestBase() {
       fun `returns 400 when the body is missing`() {
         webTestClient.post()
           .uri("/prisoner/$prisonerNumber/scan")
-          .headers(setAuthorisation(roles = listOf("ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW")))
+          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW)))
           .contentType(MediaType.APPLICATION_JSON)
           .exchange()
-          .expectStatus().isBadRequest
-          .expectBody()
-          .jsonPath("$.userMessage").value<String> {
-            assertThat(it).contains("Malformed request body")
-          }
-          .jsonPath("$.developerMessage").value<String> {
-            assertThat(it).contains("Required request body is missing")
-          }
+          .expectErrorResponse(
+            userMessageContains = "Malformed request body",
+            developerMessageContains = "Required request body is missing",
+          )
 
         verifyNoInteractions(scanService)
       }
 
-      @Test
-      fun `returns 401 when the token is missing`() {
+      @DisplayName("endpoint is protected")
+      @TestFactory
+      fun `endpoint is protected`() = endpointIsProtected(
         webTestClient.post()
           .uri("/prisoner/$prisonerNumber/scan")
-          .contentType(MediaType.APPLICATION_JSON)
-          .bodyValue(CreateScanRequest(scanDate = scanDate))
+          .bodyValue(CreateScanRequest(scanDate = scanDate)),
+        requiresWriteRole = true,
+        afterEach = {
+          verifyNoInteractions(scanService)
+        },
+      )
+    }
+  }
+
+  @Nested
+  @DisplayName("Get scan counts endpoint")
+  inner class CountScans {
+    @Nested
+    @DisplayName("Happy paths")
+    inner class HappyPath {
+      @ParameterizedTest(name = "returns scan counts for date filters: from {0} to {1}")
+      @CsvSource(
+        value = [
+          "           |           ",
+          "2026-06-24 |           ",
+          "           | 2026-06-24",
+          "2026-05-24 | 2026-06-24",
+        ],
+        delimiter = '|',
+      )
+      fun `returns scans with date filters`(fromStartDate: String?, toStartDate: String?) {
+        val url = UriComponentsBuilder.fromPath("/prisoner/$prisonerNumber/scan/count")
+
+        val fromStartDate = if (fromStartDate != null) {
+          url.queryParam("fromStartDate", fromStartDate)
+          LocalDate.parse(fromStartDate)
+        } else {
+          LocalDate.parse("2026-01-01")
+        }
+        val toStartDate = if (toStartDate != null) {
+          url.queryParam("toStartDate", toStartDate)
+          LocalDate.parse(toStartDate)
+        } else {
+          LocalDate.now()
+        }
+
+        whenever(scanService.countScans(eq(prisonerNumber), eq(fromStartDate), eq(toStartDate)))
+          .thenReturn(
+            ScanCountResponse(
+              prisonerNumber = prisonerNumber,
+              nomisCount = 4,
+              dpsCount = 2,
+              totalCount = 6,
+            ),
+          )
+
+        webTestClient.get()
+          .uri(url.toUriString())
+          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
           .exchange()
-          .expectStatus().isUnauthorized
+          .expectStatus().isOk
+          .expectBody().json(
+            // language=json
+            """
+            {
+              "prisonerNumber": "$prisonerNumber",
+              "nomisCount": 4,
+              "dpsCount": 2,
+              "totalCount": 6
+            }
+            """,
+            JsonCompareMode.STRICT,
+          )
+      }
+
+      @ParameterizedTest(name = "permits role {0}")
+      @ValueSource(
+        strings = [
+          ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO,
+          ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW,
+        ],
+      )
+      fun `permits role`(role: String) {
+        whenever(scanService.countScans(eq(prisonerNumber), any<LocalDate>(), any<LocalDate>()))
+          .thenReturn(
+            ScanCountResponse(
+              prisonerNumber = prisonerNumber,
+              nomisCount = 4,
+              dpsCount = 2,
+              totalCount = 6,
+            ),
+          )
+
+        webTestClient.get()
+          .uri("/prisoner/$prisonerNumber/scan/count")
+          .headers(setAuthorisation(roles = listOf(role)))
+          .exchange()
+          .expectStatus().isOk
+      }
+    }
+
+    @Nested
+    @DisplayName("Sad paths")
+    inner class SadPath {
+      @DisplayName("endpoint is protected")
+      @TestFactory
+      fun `endpoint is protected`() = endpointIsProtected(
+        webTestClient.get()
+          .uri("/prisoner/$prisonerNumber/scan/count"),
+        afterEach = {
+          verifyNoInteractions(scanService)
+        },
+      )
+
+      @ParameterizedTest(name = "returns 400 for invalid date filters: from {0} to {1}")
+      @CsvSource(
+        value = [
+          "yesterday |        ",
+          "          | June   ",
+          "2025      | 2026-01",
+        ],
+        delimiter = '|',
+      )
+      fun `returns 400 for invalid date filters`(fromStartDate: String?, toStartDate: String?) {
+        val url = UriComponentsBuilder.fromPath("/prisoner/$prisonerNumber/scan/count")
+        fromStartDate?.let {
+          url.queryParam("fromStartDate", it)
+        }
+        toStartDate?.let {
+          url.queryParam("toStartDate", it)
+        }
+        webTestClient.get()
+          .uri(url.toUriString())
+          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
+          .exchange()
+          .expectErrorResponse(
+            userMessageContains = "Validation failure",
+            developerMessageContains = "Failed to convert value",
+          )
 
         verifyNoInteractions(scanService)
       }
 
-      @Test
-      fun `returns 403 when the token doesn't have the right role`() {
-        webTestClient.post()
-          .uri("/prisoner/$prisonerNumber/scan")
-          .headers(setAuthorisation(roles = listOf("ROLE_WHATEVER")))
-          .contentType(MediaType.APPLICATION_JSON)
-          .bodyValue(CreateScanRequest(scanDate = scanDate))
-          .exchange()
-          .expectStatus().isForbidden
-
-        verifyNoInteractions(scanService)
-      }
-
-      @Test
-      fun `returns 403 when the token has no role`() {
-        webTestClient.post()
-          .uri("/prisoner/$prisonerNumber/scan")
-          .headers(setAuthorisation(roles = listOf()))
-          .contentType(MediaType.APPLICATION_JSON)
-          .bodyValue(CreateScanRequest(scanDate = scanDate))
-          .exchange()
-          .expectStatus().isForbidden
-
-        verifyNoInteractions(scanService)
-      }
+      // TODO: future dates 400?
+      // TODO: to is after from 400?
     }
   }
 }

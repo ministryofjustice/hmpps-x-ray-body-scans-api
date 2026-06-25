@@ -1,13 +1,17 @@
 package uk.gov.justice.digital.hmpps.xraybodyscansapi.integration
 
+import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.context.SpringBootTest.WebEnvironment.RANDOM_PORT
 import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTestClient
 import org.springframework.http.HttpHeaders
+import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.wiremock.HmppsAuthApiExtension
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.wiremock.HmppsAuthApiExtension.Companion.hmppsAuth
 import uk.gov.justice.hmpps.test.kotlin.auth.JwtAuthorisationHelper
@@ -32,5 +36,74 @@ abstract class IntegrationTestBase {
 
   protected fun stubPingWithResponse(status: Int) {
     hmppsAuth.stubHealthPing(status)
+  }
+
+  protected fun endpointIsProtected(
+    /** This request should be successful given properly authorised token (valid url and payload) */
+    request: WebTestClient.RequestHeadersSpec<*>,
+    requiresWriteRole: Boolean = false,
+    afterEach: (() -> Unit)? = null,
+  ): List<DynamicTest> = buildList {
+    val request = request.header("Content-Type", "application/json")
+
+    add(
+      DynamicTest.dynamicTest("returns 401 given no authority") {
+        request
+          .header(HttpHeaders.AUTHORIZATION)
+          .exchange()
+          .expectStatus().isUnauthorized
+        afterEach?.invoke()
+      },
+    )
+
+    add(
+      DynamicTest.dynamicTest("returns 403 given no roles") {
+        request
+          .headers(setAuthorisation())
+          .exchange()
+          .expectStatus().isForbidden
+        afterEach?.invoke()
+      },
+    )
+
+    if (requiresWriteRole) {
+      add(
+        DynamicTest.dynamicTest("returns 403 given no write role") {
+          request
+            .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO, "ROLE_PRISONER_SEARCH")))
+            .exchange()
+            .expectStatus().isForbidden
+          afterEach?.invoke()
+        },
+      )
+    } else {
+      add(
+        DynamicTest.dynamicTest("returns 403 given no read role") {
+          request
+            .headers(setAuthorisation(roles = listOf("ROLE_PRISONER_SEARCH")))
+            .exchange()
+            .expectStatus().isForbidden
+          afterEach?.invoke()
+        },
+      )
+    }
+  }
+
+  fun WebTestClient.ResponseSpec.expectErrorResponse(
+    status: HttpStatus = HttpStatus.BAD_REQUEST,
+    userMessageContains: String,
+    developerMessageContains: String,
+  ) {
+    expectStatus().isEqualTo(status)
+    expectBody()
+      .jsonPath("status").isEqualTo(status.value())
+      .jsonPath("errorCode").isEqualTo(null)
+      .jsonPath("moreInfo").isEqualTo(null)
+      .jsonPath("userMessage").value<String> {
+        assertThat(it).contains(userMessageContains)
+      }
+      .jsonPath("developerMessage").value<String> {
+        assertThat(it).contains(developerMessageContains)
+      }
   }
 }

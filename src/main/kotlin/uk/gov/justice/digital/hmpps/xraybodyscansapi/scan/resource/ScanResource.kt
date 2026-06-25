@@ -12,7 +12,6 @@ import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
-import org.springframework.security.access.prepost.PreAuthorize
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
@@ -21,6 +20,10 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.RequireReadRole
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.RequireWriteRole
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScanRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanCountResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanResponse
@@ -44,7 +47,7 @@ class ScanResource(
 
   @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE])
   @ResponseStatus(HttpStatus.CREATED)
-  @PreAuthorize("hasRole('ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW')")
+  @RequireWriteRole
   @Operation(
     summary = "Create an x-ray body scan for a prisoner",
     description = "Creates a new x-ray body scan record for the given prisoner.",
@@ -75,7 +78,7 @@ class ScanResource(
       ),
       ApiResponse(
         responseCode = "403",
-        description = "Forbidden. Token does not have the role ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW.",
+        description = "Forbidden. Token does not have the role $ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW.",
         content = [
           Content(
             mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -108,7 +111,7 @@ class ScanResource(
     .body(scanService.createScan(prisonerNumber, request))
 
   @GetMapping("/count")
-  @PreAuthorize("hasRole('ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW')")
+  @RequireReadRole
   @Operation(
     summary = "Count x-ray body scans for a prisoner",
     description = "Returns the total number of x-ray body scans for the given prisoner. " +
@@ -131,7 +134,7 @@ class ScanResource(
       ),
       ApiResponse(
         responseCode = "403",
-        description = "Forbidden. Token does not have the role ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW.",
+        description = "Forbidden. Token does not have the role $ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO or $ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW.",
         content = [Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = Schema(implementation = ErrorResponse::class))],
       ),
       ApiResponse(
