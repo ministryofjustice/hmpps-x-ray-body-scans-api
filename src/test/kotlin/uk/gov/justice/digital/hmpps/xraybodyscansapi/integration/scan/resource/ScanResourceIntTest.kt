@@ -1,6 +1,5 @@
 package uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.scan.resource
 
-import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -112,14 +111,10 @@ class ScanResourceIntTest : IntegrationTestBase() {
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue(CreateScanRequest(scanDate = futureDate))
           .exchange()
-          .expectStatus().isBadRequest
-          .expectBody()
-          .jsonPath("$.userMessage").value<String> {
-            assertThat(it).isEqualTo("Validation failure")
-          }
-          .jsonPath("$.developerMessage").value<String> {
-            assertThat(it).contains("scanDate must be today or in the past")
-          }
+          .expectErrorResponse(
+            userMessageContains = "Validation failure",
+            developerMessageContains = "scanDate must be today or in the past",
+          )
 
         verifyNoInteractions(scanService)
       }
@@ -132,14 +127,10 @@ class ScanResourceIntTest : IntegrationTestBase() {
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue("""{"scanDate":"not-a-date"}""")
           .exchange()
-          .expectStatus().isBadRequest
-          .expectBody()
-          .jsonPath("$.userMessage").value<String> {
-            assertThat(it).contains("Malformed request body")
-          }
-          .jsonPath("$.developerMessage").value<String> {
-            assertThat(it).contains("Failed to deserialize `java.time.LocalDate")
-          }
+          .expectErrorResponse(
+            userMessageContains = "Malformed request body",
+            developerMessageContains = "Failed to deserialize `java.time.LocalDate`",
+          )
 
         verifyNoInteractions(scanService)
       }
@@ -152,15 +143,10 @@ class ScanResourceIntTest : IntegrationTestBase() {
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue("{}")
           .exchange()
-          .expectStatus().isBadRequest
-          .expectBody()
-          .jsonPath("$.userMessage").value<String> {
-            assertThat(it).contains("Malformed request body")
-          }
-          .jsonPath("$.developerMessage").value<String> {
-            assertThat(it).contains("JSON property scanDate")
-            assertThat(it).contains("missing")
-          }
+          .expectErrorResponse(
+            userMessageContains = "Malformed request body",
+            developerMessageContains = "JSON property scanDate",
+          )
 
         verifyNoInteractions(scanService)
       }
@@ -173,14 +159,10 @@ class ScanResourceIntTest : IntegrationTestBase() {
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue(CreateScanRequest(scanDate = scanDate))
           .exchange()
-          .expectStatus().isBadRequest
-          .expectBody()
-          .jsonPath("$.userMessage").value<String> {
-            assertThat(it).contains("Validation failure")
-          }
-          .jsonPath("$.developerMessage").value<String> {
-            assertThat(it).isEqualTo("prisonerNumber must be in the right form, e.g. A1234BC.")
-          }
+          .expectErrorResponse(
+            userMessageContains = "Validation failure",
+            developerMessageContains = "prisonerNumber must be in the right form, e.g. A1234BC.",
+          )
 
         verifyNoInteractions(scanService)
       }
@@ -192,14 +174,10 @@ class ScanResourceIntTest : IntegrationTestBase() {
           .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW)))
           .contentType(MediaType.APPLICATION_JSON)
           .exchange()
-          .expectStatus().isBadRequest
-          .expectBody()
-          .jsonPath("$.userMessage").value<String> {
-            assertThat(it).contains("Malformed request body")
-          }
-          .jsonPath("$.developerMessage").value<String> {
-            assertThat(it).contains("Required request body is missing")
-          }
+          .expectErrorResponse(
+            userMessageContains = "Malformed request body",
+            developerMessageContains = "Required request body is missing",
+          )
 
         verifyNoInteractions(scanService)
       }
@@ -339,7 +317,10 @@ class ScanResourceIntTest : IntegrationTestBase() {
           .uri(url.toUriString())
           .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
           .exchange()
-          .expectStatus().isBadRequest
+          .expectErrorResponse(
+            userMessageContains = "Validation failure",
+            developerMessageContains = "Failed to convert value",
+          )
 
         verifyNoInteractions(scanService)
       }
