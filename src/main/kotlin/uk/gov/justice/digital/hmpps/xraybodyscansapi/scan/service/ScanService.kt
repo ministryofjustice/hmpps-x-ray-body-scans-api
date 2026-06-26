@@ -35,19 +35,19 @@ class ScanService(
   @Transactional(readOnly = true)
   fun countScans(
     prisonerNumber: String,
-    fromStartDate: LocalDate,
-    toStartDate: LocalDate,
-  ): ScanCountResponse = countScans(listOf(prisonerNumber), fromStartDate, toStartDate).first()
+    fromScanDate: LocalDate,
+    toScanDate: LocalDate,
+  ): ScanCountResponse = countScans(listOf(prisonerNumber), fromScanDate, toScanDate).first()
 
   @Transactional(readOnly = true)
   fun countScans(
     prisonerNumbers: List<String>,
-    fromStartDate: LocalDate,
-    toStartDate: LocalDate,
+    fromScanDate: LocalDate,
+    toScanDate: LocalDate,
   ): List<ScanCountResponse> {
-    val nomisCounts = getNomisScanCounts(prisonerNumbers, fromStartDate, toStartDate)
+    val nomisCounts = getNomisScanCounts(prisonerNumbers, fromScanDate, toScanDate)
     val dpsCounts = scanRepository
-      .findByPrisonerNumberInAndScanDateBetween(prisonerNumbers, fromStartDate, toStartDate)
+      .findByPrisonerNumberInAndScanDateBetween(prisonerNumbers, fromScanDate, toScanDate)
       .groupingBy { it.prisonerNumber }
       .eachCount()
 
@@ -65,13 +65,13 @@ class ScanService(
 
   private fun getNomisScanCounts(
     prisonerNumbers: List<String>,
-    fromStartDate: LocalDate,
-    toStartDate: LocalDate,
+    fromScanDate: LocalDate,
+    toScanDate: LocalDate,
   ): Map<String, Int> = prisonApiClient
     .getScanCareNeeds(prisonerNumbers)
     .associate { res ->
       res.offenderNo to res.personalCareNeeds.count { bscan ->
-        bscan.startDate != null && !bscan.startDate.isBefore(fromStartDate) && !bscan.startDate.isAfter(toStartDate)
+        bscan.startDate != null && !bscan.startDate.isBefore(fromScanDate) && !bscan.startDate.isAfter(toScanDate)
       }
     }
 }

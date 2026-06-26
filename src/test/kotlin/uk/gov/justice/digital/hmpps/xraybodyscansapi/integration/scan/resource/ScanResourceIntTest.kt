@@ -212,23 +212,23 @@ class ScanResourceIntTest : IntegrationTestBase() {
         ],
         delimiter = '|',
       )
-      fun `returns scans with date filters`(fromStartDate: String?, toStartDate: String?) {
+      fun `returns scans with date filters`(fromScanDate: String?, toScanDate: String?) {
         val url = UriComponentsBuilder.fromPath("/prisoner/$prisonerNumber/scan/count")
 
-        val fromStartDate = if (fromStartDate != null) {
-          url.queryParam("fromStartDate", fromStartDate)
-          LocalDate.parse(fromStartDate)
+        val fromScanDate = if (fromScanDate != null) {
+          url.queryParam("fromScanDate", fromScanDate)
+          LocalDate.parse(fromScanDate)
         } else {
           LocalDate.parse("2026-01-01")
         }
-        val toStartDate = if (toStartDate != null) {
-          url.queryParam("toStartDate", toStartDate)
-          LocalDate.parse(toStartDate)
+        val toScanDate = if (toScanDate != null) {
+          url.queryParam("toScanDate", toScanDate)
+          LocalDate.parse(toScanDate)
         } else {
           LocalDate.now()
         }
 
-        whenever(scanService.countScans(eq(prisonerNumber), eq(fromStartDate), eq(toStartDate)))
+        whenever(scanService.countScans(eq(prisonerNumber), eq(fromScanDate), eq(toScanDate)))
           .thenReturn(
             ScanCountResponse(
               prisonerNumber = prisonerNumber,
@@ -305,13 +305,13 @@ class ScanResourceIntTest : IntegrationTestBase() {
         ],
         delimiter = '|',
       )
-      fun `returns 400 for invalid date filters`(fromStartDate: String?, toStartDate: String?) {
+      fun `returns 400 for invalid date filters`(fromScanDate: String?, toScanDate: String?) {
         val url = UriComponentsBuilder.fromPath("/prisoner/$prisonerNumber/scan/count")
-        fromStartDate?.let {
-          url.queryParam("fromStartDate", it)
+        fromScanDate?.let {
+          url.queryParam("fromScanDate", it)
         }
-        toStartDate?.let {
-          url.queryParam("toStartDate", it)
+        toScanDate?.let {
+          url.queryParam("toScanDate", it)
         }
         webTestClient.get()
           .uri(url.toUriString())

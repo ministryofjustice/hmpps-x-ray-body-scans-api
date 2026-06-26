@@ -153,15 +153,15 @@ class ScanResource(
     prisonerNumber: String,
     @RequestParam(required = false)
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-    @Parameter(description = "Count scans on or after this date (YYYY-MM-DD). Defaults to the start of this calendar year.")
-    fromStartDate: LocalDate?,
+    @Parameter(description = "Count scans on or after this date (YYYY-MM-DD). Defaults to the start of this calendar year if no `toScanDate` is provided or the beginning of the `toScanDate` calendar year.")
+    fromScanDate: LocalDate?,
     @RequestParam(required = false)
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
     @Parameter(description = "Count scans on or before this date (YYYY-MM-DD). Defaults to today.")
-    toStartDate: LocalDate?,
+    toScanDate: LocalDate?,
   ): ScanCountResponse {
-    val to = toStartDate ?: LocalDate.now()
-    val from = fromStartDate ?: to.with(firstDayOfYear())
-    return scanService.countScans(prisonerNumber, from, to)
+    val toScanDate = toScanDate ?: LocalDate.now()
+    val fromScanDate = fromScanDate ?: toScanDate.with(firstDayOfYear())
+    return scanService.countScans(prisonerNumber, fromScanDate, toScanDate)
   }
 }

@@ -9,7 +9,7 @@ interface ScanRepository : JpaRepository<ScanEntity, Long> {
 
   fun findByPrisonerNumberInAndScanDateBetween(
     prisonerNumbers: List<String>,
-    fromStartDate: LocalDate,
-    toStartDate: LocalDate,
+    fromScanDate: LocalDate,
+    toScanDate: LocalDate,
   ): List<ScanEntity>
 }
