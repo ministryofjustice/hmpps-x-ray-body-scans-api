@@ -36,6 +36,63 @@ class ScanResourceIntTest : IntegrationTestBase() {
   private val id: Long = 1234L
 
   @Nested
+  @DisplayName("List scans endpoint")
+  inner class ListScans {
+    @Nested
+    @DisplayName("Happy paths")
+    inner class HappyPath {
+      @Test
+      fun `returns a list of scans`() {
+        val scanDate = LocalDate.now().minusDays(5)
+        whenever(scanService.listScans(prisonerNumber)).thenReturn(
+          (1..3).map { index ->
+            ScanResponse(
+              id = id + index,
+              prisonerNumber = prisonerNumber,
+              scanDate = scanDate.plusDays(index.toLong()),
+            )
+          },
+        )
+
+        webTestClient.get()
+          .uri("/prisoner/$prisonerNumber/scan")
+          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
+          .exchange()
+          .expectStatus().isOk
+          .expectHeader().contentType(MediaType.APPLICATION_JSON)
+          .expectBody()
+          .json(
+            // language=json
+            """
+            [
+              {"id": 1235, "prisonerNumber": "A1234BC"},
+              {"id": 1236, "prisonerNumber": "A1234BC"},
+              {"id": 1237, "prisonerNumber": "A1234BC"}
+            ]
+            """,
+            JsonCompareMode.LENIENT,
+          )
+
+        verify(scanService).listScans(eq(prisonerNumber))
+      }
+    }
+
+    @Nested
+    @DisplayName("Sad paths")
+    inner class SadPath {
+      @DisplayName("endpoint is protected")
+      @TestFactory
+      fun `endpoint is protected`() = endpointIsProtected(
+        webTestClient.get()
+          .uri("/prisoner/$prisonerNumber/scan"),
+        afterEach = {
+          verifyNoInteractions(scanService)
+        },
+      )
+    }
+  }
+
+  @Nested
   @DisplayName("Create a scan endpoint")
   inner class CreateScan {
 

@@ -44,6 +44,49 @@ import java.time.temporal.TemporalAdjusters.firstDayOfYear
 class ScanResource(
   private val scanService: ScanService,
 ) {
+  @GetMapping
+  @RequireReadRole
+  @Operation(
+    summary = "Retrieve x-ray body scans for a prisoner",
+    description = "Returns recorded x-ray body scans for the given prisoner. " +
+      "If the prisoner is not found, the list is empty. " +
+      "Ensure the prisoner exists prior to use.",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Scans returned successfully.",
+      ),
+      ApiResponse(
+        responseCode = "400",
+        description = "Invalid request. Check the prisoner number and filters.",
+        content = [Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorized. Missing or invalid token.",
+        content = [Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden. Token does not have the role $ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO or $ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW.",
+        content = [Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "500",
+        description = "Internal server error.",
+        content = [Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+  )
+  fun listScans(
+    @PathVariable
+    @Pattern(
+      regexp = "^[A-Z]\\d{4}[A-Z]{2}$",
+      message = "prisonerNumber must be in the right form, e.g. A1234BC.",
+    )
+    prisonerNumber: String,
+    // TODO: add filters and make paged response
+  ): List<ScanResponse> = scanService.listScans(prisonerNumber)
 
   @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE])
   @ResponseStatus(HttpStatus.CREATED)

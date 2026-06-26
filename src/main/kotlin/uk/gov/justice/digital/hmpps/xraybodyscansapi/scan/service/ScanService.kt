@@ -15,6 +15,14 @@ class ScanService(
   private val scanRepository: ScanRepository,
   private val prisonApiClient: PrisonApiClient,
 ) {
+  @Transactional(readOnly = true)
+  fun listScans(
+    prisonerNumber: String,
+    // TODO: add filters and make paged response
+  ): List<ScanResponse> =
+    scanRepository.findByPrisonerNumberIn(listOf(prisonerNumber)).map {
+      it.toDto()
+    }
 
   @Transactional
   fun createScan(prisonerNumber: String, request: CreateScanRequest): ScanResponse {
@@ -25,11 +33,7 @@ class ScanService(
       ),
     )
 
-    return ScanResponse(
-      id = saved.id,
-      prisonerNumber = saved.prisonerNumber,
-      scanDate = saved.scanDate,
-    )
+    return saved.toDto()
   }
 
   @Transactional(readOnly = true)
@@ -77,3 +81,9 @@ class ScanService(
       }
     }
 }
+
+private fun ScanEntity.toDto(): ScanResponse = ScanResponse(
+  id = id,
+  prisonerNumber = prisonerNumber,
+  scanDate = scanDate,
+)

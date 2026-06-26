@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.scan.service
 
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatList
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
@@ -23,6 +24,27 @@ class ScanServiceTest {
   private val scanRepository = mock<ScanRepository>()
   private val prisonApiClient = mock<PrisonApiClient>()
   private val scanService = ScanService(scanRepository, prisonApiClient)
+
+  @Nested
+  inner class List {
+    private val prisonerNumber = "A1234BC"
+
+    @Test
+    fun `returns list of scans for a prisoner`() {
+      whenever(scanRepository.findByPrisonerNumberIn(listOf(prisonerNumber)))
+        .thenReturn(
+          listOf(
+            scanEntity(prisonerNumber),
+            scanEntity(prisonerNumber),
+            scanEntity(prisonerNumber),
+          ),
+        )
+
+      val scans = scanService.listScans(prisonerNumber)
+      assertThat(scans).hasSize(3)
+      assertThatList(scans).allMatch { it.prisonerNumber == prisonerNumber }
+    }
+  }
 
   @Nested
   inner class Create {
@@ -190,10 +212,10 @@ class ScanServiceTest {
       problemStatus = "xyz",
       startDate = LocalDate.parse(startDate),
     )
-
-    private fun scanEntity(prisonerNumber: String) = ScanEntity(
-      prisonerNumber = prisonerNumber,
-      scanDate = LocalDate.now().minusDays(1),
-    )
   }
+
+  private fun scanEntity(prisonerNumber: String) = ScanEntity(
+    prisonerNumber = prisonerNumber,
+    scanDate = LocalDate.now().minusDays(1),
+  )
 }

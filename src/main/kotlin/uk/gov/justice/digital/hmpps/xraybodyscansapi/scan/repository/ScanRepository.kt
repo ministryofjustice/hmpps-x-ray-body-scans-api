@@ -6,6 +6,8 @@ import java.time.LocalDate
 
 @Repository
 interface ScanRepository : JpaRepository<ScanEntity, Long> {
+  // TODO: add specification filters and make paged response
+  fun findByPrisonerNumberIn(prisonerNumbers: List<String>): List<ScanEntity>
 
   fun findByPrisonerNumberInAndScanDateBetween(
     prisonerNumbers: List<String>,
