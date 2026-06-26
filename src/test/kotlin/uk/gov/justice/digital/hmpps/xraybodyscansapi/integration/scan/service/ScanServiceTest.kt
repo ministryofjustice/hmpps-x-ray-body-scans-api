@@ -6,9 +6,12 @@ import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import org.springframework.data.domain.Sort
+import org.springframework.data.jpa.domain.Specification
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.PrisonApiClient
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.response.PersonalCareNeed
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.response.PersonalCareNeedsResponse
@@ -30,8 +33,8 @@ class ScanServiceTest {
     private val prisonerNumber = "A1234BC"
 
     @Test
-    fun `returns list of scans for a prisoner`() {
-      whenever(scanRepository.findByPrisonerNumberIn(listOf(prisonerNumber)))
+    fun `returns a list of scans for a prisoner`() {
+      whenever(scanRepository.findAll(any<Specification<ScanEntity>>(), eq(Sort.by(Sort.Order.desc("startDate")))))
         .thenReturn(
           listOf(
             scanEntity(prisonerNumber),

@@ -20,6 +20,7 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCAN
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScanRequest
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.ListScansRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanCountResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.ScanService
@@ -44,7 +45,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
       @Test
       fun `returns a list of scans`() {
         val scanDate = LocalDate.now().minusDays(5)
-        whenever(scanService.listScans(prisonerNumber)).thenReturn(
+        whenever(scanService.listScans(prisonerNumber, ListScansRequest())).thenReturn(
           (1..3).map { index ->
             ScanResponse(
               id = id + index,
@@ -72,8 +73,44 @@ class ScanResourceIntTest : IntegrationTestBase() {
             """,
             JsonCompareMode.LENIENT,
           )
+      }
 
-        verify(scanService).listScans(eq(prisonerNumber))
+      @Test
+      fun `returns a list of scans filtered by date`() {
+        whenever(
+          scanService.listScans(
+            prisonerNumber,
+            ListScansRequest(
+              fromScanDate = LocalDate.of(2026, 1, 1),
+              toScanDate = LocalDate.of(2026, 6, 26),
+            ),
+          ),
+        ).thenReturn(
+          listOf(
+            ScanResponse(
+              id = id,
+              prisonerNumber = prisonerNumber,
+              scanDate = LocalDate.of(2026, 5, 6),
+            ),
+          ),
+        )
+
+        webTestClient.get()
+          .uri("/prisoner/$prisonerNumber/scan?fromScanDate=2026-01-01&toScanDate=2026-06-26")
+          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
+          .exchange()
+          .expectStatus().isOk
+          .expectHeader().contentType(MediaType.APPLICATION_JSON)
+          .expectBody()
+          .json(
+            // language=json
+            """
+            [
+              {"id": 1234, "prisonerNumber": "A1234BC"}
+            ]
+            """,
+            JsonCompareMode.LENIENT,
+          )
       }
     }
 
@@ -89,6 +126,27 @@ class ScanResourceIntTest : IntegrationTestBase() {
           verifyNoInteractions(scanService)
         },
       )
+
+      @ParameterizedTest(name = "returns 400 for bad requests: {1}")
+      @CsvSource(
+        value = [
+          "fromScanDate=this-year | listScansRequest.fromScanDate",
+          "toScanDate=null        | listScansRequest.toScanDate",
+        ],
+        delimiter = '|',
+      )
+      fun `returns 400 for bad requests`(queryParameters: String, expectedMessage: String) {
+        webTestClient.get()
+          .uri("/prisoner/$prisonerNumber/scan?$queryParameters")
+          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
+          .exchange()
+          .expectErrorResponse(
+            userMessageContains = "Validation failure",
+            developerMessageContains = expectedMessage,
+          )
+
+        verifyNoInteractions(scanService)
+      }
     }
   }
 

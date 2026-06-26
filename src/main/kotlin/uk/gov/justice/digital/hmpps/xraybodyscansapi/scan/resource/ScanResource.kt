@@ -25,6 +25,7 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCAN
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.RequireReadRole
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.RequireWriteRole
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScanRequest
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.ListScansRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanCountResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.ScanService
@@ -85,8 +86,10 @@ class ScanResource(
       message = "prisonerNumber must be in the right form, e.g. A1234BC.",
     )
     prisonerNumber: String,
-    // TODO: add filters and make paged response
-  ): List<ScanResponse> = scanService.listScans(prisonerNumber)
+    @Valid
+    query: ListScansRequest? = null,
+    // TODO: make paged response
+  ): List<ScanResponse> = scanService.listScans(prisonerNumber, query)
 
   @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE])
   @ResponseStatus(HttpStatus.CREATED)
@@ -148,7 +151,9 @@ class ScanResource(
       message = "prisonerNumber must be in the right form, e.g. A1234BC.",
     )
     prisonerNumber: String,
-    @Valid @RequestBody request: CreateScanRequest,
+    @RequestBody
+    @Valid
+    request: CreateScanRequest,
   ): ResponseEntity<ScanResponse> = ResponseEntity
     .status(HttpStatus.CREATED)
     .body(scanService.createScan(prisonerNumber, request))

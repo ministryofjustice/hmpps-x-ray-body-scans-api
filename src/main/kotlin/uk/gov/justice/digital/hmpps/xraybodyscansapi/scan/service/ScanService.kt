@@ -1,13 +1,16 @@
 package uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service
 
+import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.PrisonApiClient
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScanRequest
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.ListScansRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanCountResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanEntity
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanRepository
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.filterByPrisonerNumber
 import java.time.LocalDate
 
 @Service
@@ -18,11 +21,17 @@ class ScanService(
   @Transactional(readOnly = true)
   fun listScans(
     prisonerNumber: String,
-    // TODO: add filters and make paged response
-  ): List<ScanResponse> =
-    scanRepository.findByPrisonerNumberIn(listOf(prisonerNumber)).map {
+    query: ListScansRequest? = null,
+    // TODO: make paged response
+  ): List<ScanResponse> {
+    var specification = filterByPrisonerNumber(prisonerNumber)
+    query?.let {
+      specification = specification.and(query.toSpecification())
+    }
+    return scanRepository.findAll(specification, Sort.by(Sort.Order.desc("scanDate"))).map {
       it.toDto()
     }
+  }
 
   @Transactional
   fun createScan(prisonerNumber: String, request: CreateScanRequest): ScanResponse {
