@@ -51,8 +51,8 @@ class ScanServiceTest {
   @Nested
   inner class CountScans {
 
-    private val fromStartDate: LocalDate = LocalDate.parse("2026-01-01")
-    private val toStartDate: LocalDate = LocalDate.parse("2026-02-01")
+    private val fromScanDate: LocalDate = LocalDate.parse("2026-01-01")
+    private val toScanDate: LocalDate = LocalDate.parse("2026-02-01")
 
     @Test
     fun `returns correct counts for a list of prisoners, filtering nomis scans by date range`() {
@@ -75,7 +75,7 @@ class ScanServiceTest {
             ),
           ),
         )
-      whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(prisonerNumbers, fromStartDate, toStartDate))
+      whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(prisonerNumbers, fromScanDate, toScanDate))
         .thenReturn(
           listOf(
             scanEntity("A1234BC"),
@@ -85,11 +85,25 @@ class ScanServiceTest {
           ),
         )
 
-      val result = scanService.countScans(prisonerNumbers, fromStartDate, toStartDate)
+      val result = scanService.countScans(prisonerNumbers, fromScanDate, toScanDate)
 
       assertThat(result).containsExactly(
-        ScanCountResponse(prisonerNumber = "A1234BC", nomisCount = 2, dpsCount = 3, totalCount = 5),
-        ScanCountResponse(prisonerNumber = "B1234AC", nomisCount = 1, dpsCount = 1, totalCount = 2),
+        ScanCountResponse(
+          prisonerNumber = "A1234BC",
+          nomisCount = 2,
+          dpsCount = 3,
+          totalCount = 5,
+          fromScanDate = fromScanDate,
+          toScanDate = toScanDate,
+        ),
+        ScanCountResponse(
+          prisonerNumber = "B1234AC",
+          nomisCount = 1,
+          dpsCount = 1,
+          totalCount = 2,
+          fromScanDate = fromScanDate,
+          toScanDate = toScanDate,
+        ),
       )
     }
 
@@ -106,13 +120,20 @@ class ScanServiceTest {
             ),
           ),
         )
-      whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(listOf(prisonerNumber), fromStartDate, toStartDate))
+      whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(listOf(prisonerNumber), fromScanDate, toScanDate))
         .thenReturn(listOf(scanEntity("A1234BC"), scanEntity("A1234BC"), scanEntity("A1234BC")))
 
-      val result = scanService.countScans(prisonerNumber, fromStartDate, toStartDate)
+      val result = scanService.countScans(prisonerNumber, fromScanDate, toScanDate)
 
       assertThat(result).isEqualTo(
-        ScanCountResponse(prisonerNumber = "A1234BC", nomisCount = 2, dpsCount = 3, totalCount = 5),
+        ScanCountResponse(
+          prisonerNumber = "A1234BC",
+          nomisCount = 2,
+          dpsCount = 3,
+          totalCount = 5,
+          fromScanDate = fromScanDate,
+          toScanDate = toScanDate,
+        ),
       )
     }
 
@@ -129,15 +150,36 @@ class ScanServiceTest {
             ),
           ),
         )
-      whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(prisonerNumbers, fromStartDate, toStartDate))
+      whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(prisonerNumbers, fromScanDate, toScanDate))
         .thenReturn(listOf(scanEntity("B1234AC"), scanEntity("B1234AC")))
 
-      val result = scanService.countScans(prisonerNumbers, fromStartDate, toStartDate)
+      val result = scanService.countScans(prisonerNumbers, fromScanDate, toScanDate)
 
       assertThat(result).containsExactly(
-        ScanCountResponse(prisonerNumber = "A1234BC", nomisCount = 4, dpsCount = 0, totalCount = 4),
-        ScanCountResponse(prisonerNumber = "B1234AC", nomisCount = 0, dpsCount = 2, totalCount = 2),
-        ScanCountResponse(prisonerNumber = "C1234AB", nomisCount = 0, dpsCount = 0, totalCount = 0),
+        ScanCountResponse(
+          prisonerNumber = "A1234BC",
+          nomisCount = 4,
+          dpsCount = 0,
+          totalCount = 4,
+          fromScanDate = fromScanDate,
+          toScanDate = toScanDate,
+        ),
+        ScanCountResponse(
+          prisonerNumber = "B1234AC",
+          nomisCount = 0,
+          dpsCount = 2,
+          totalCount = 2,
+          fromScanDate = fromScanDate,
+          toScanDate = toScanDate,
+        ),
+        ScanCountResponse(
+          prisonerNumber = "C1234AB",
+          nomisCount = 0,
+          dpsCount = 0,
+          totalCount = 0,
+          fromScanDate = fromScanDate,
+          toScanDate = toScanDate,
+        ),
       )
     }
 
