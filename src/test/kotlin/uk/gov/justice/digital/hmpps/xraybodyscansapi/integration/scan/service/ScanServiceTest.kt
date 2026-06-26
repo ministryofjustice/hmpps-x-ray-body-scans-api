@@ -88,8 +88,22 @@ class ScanServiceTest {
       val result = scanService.countScans(prisonerNumbers, fromScanDate, toScanDate)
 
       assertThat(result).containsExactly(
-        ScanCountResponse(prisonerNumber = "A1234BC", nomisCount = 2, dpsCount = 3, totalCount = 5),
-        ScanCountResponse(prisonerNumber = "B1234AC", nomisCount = 1, dpsCount = 1, totalCount = 2),
+        ScanCountResponse(
+          prisonerNumber = "A1234BC",
+          nomisCount = 2,
+          dpsCount = 3,
+          totalCount = 5,
+          fromScanDate = fromScanDate,
+          toScanDate = toScanDate,
+        ),
+        ScanCountResponse(
+          prisonerNumber = "B1234AC",
+          nomisCount = 1,
+          dpsCount = 1,
+          totalCount = 2,
+          fromScanDate = fromScanDate,
+          toScanDate = toScanDate,
+        ),
       )
     }
 
@@ -112,7 +126,14 @@ class ScanServiceTest {
       val result = scanService.countScans(prisonerNumber, fromScanDate, toScanDate)
 
       assertThat(result).isEqualTo(
-        ScanCountResponse(prisonerNumber = "A1234BC", nomisCount = 2, dpsCount = 3, totalCount = 5),
+        ScanCountResponse(
+          prisonerNumber = "A1234BC",
+          nomisCount = 2,
+          dpsCount = 3,
+          totalCount = 5,
+          fromScanDate = fromScanDate,
+          toScanDate = toScanDate,
+        ),
       )
     }
 
@@ -135,9 +156,30 @@ class ScanServiceTest {
       val result = scanService.countScans(prisonerNumbers, fromScanDate, toScanDate)
 
       assertThat(result).containsExactly(
-        ScanCountResponse(prisonerNumber = "A1234BC", nomisCount = 4, dpsCount = 0, totalCount = 4),
-        ScanCountResponse(prisonerNumber = "B1234AC", nomisCount = 0, dpsCount = 2, totalCount = 2),
-        ScanCountResponse(prisonerNumber = "C1234AB", nomisCount = 0, dpsCount = 0, totalCount = 0),
+        ScanCountResponse(
+          prisonerNumber = "A1234BC",
+          nomisCount = 4,
+          dpsCount = 0,
+          totalCount = 4,
+          fromScanDate = fromScanDate,
+          toScanDate = toScanDate,
+        ),
+        ScanCountResponse(
+          prisonerNumber = "B1234AC",
+          nomisCount = 0,
+          dpsCount = 2,
+          totalCount = 2,
+          fromScanDate = fromScanDate,
+          toScanDate = toScanDate,
+        ),
+        ScanCountResponse(
+          prisonerNumber = "C1234AB",
+          nomisCount = 0,
+          dpsCount = 0,
+          totalCount = 0,
+          fromScanDate = fromScanDate,
+          toScanDate = toScanDate,
+        ),
       )
     }
 

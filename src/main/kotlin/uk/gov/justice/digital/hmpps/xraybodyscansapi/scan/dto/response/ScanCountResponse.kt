@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response
 
 import io.swagger.v3.oas.annotations.media.Schema
+import java.time.LocalDate
 
 @Schema(description = "Response for scan counts of a prisoner over the requested time period")
 data class ScanCountResponse(
@@ -32,4 +33,22 @@ data class ScanCountResponse(
     requiredMode = Schema.RequiredMode.REQUIRED,
   )
   val totalCount: Int,
+
+  @Schema(
+    description = "The earliest date of the period over which these scans were counted (inclusive)",
+    example = "2026-01-01",
+    type = "string",
+    format = "date",
+    requiredMode = Schema.RequiredMode.REQUIRED,
+  )
+  val fromScanDate: LocalDate,
+
+  @Schema(
+    description = "The latest date of the period over which these scans were counted (inclusive)",
+    example = "2026-06-26",
+    type = "string",
+    format = "date",
+    requiredMode = Schema.RequiredMode.REQUIRED,
+  )
+  val toScanDate: LocalDate,
 )

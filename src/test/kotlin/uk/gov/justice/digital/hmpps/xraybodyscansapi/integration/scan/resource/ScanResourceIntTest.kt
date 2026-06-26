@@ -235,6 +235,8 @@ class ScanResourceIntTest : IntegrationTestBase() {
               nomisCount = 4,
               dpsCount = 2,
               totalCount = 6,
+              fromScanDate = fromScanDate,
+              toScanDate = toScanDate,
             ),
           )
 
@@ -250,7 +252,9 @@ class ScanResourceIntTest : IntegrationTestBase() {
               "prisonerNumber": "$prisonerNumber",
               "nomisCount": 4,
               "dpsCount": 2,
-              "totalCount": 6
+              "totalCount": 6,
+              "fromScanDate": "$fromScanDate",
+              "toScanDate": "$toScanDate"
             }
             """,
             JsonCompareMode.STRICT,
@@ -272,6 +276,8 @@ class ScanResourceIntTest : IntegrationTestBase() {
               nomisCount = 4,
               dpsCount = 2,
               totalCount = 6,
+              fromScanDate = LocalDate.now(),
+              toScanDate = LocalDate.now().withDayOfMonth(1).withMonth(1),
             ),
           )
 

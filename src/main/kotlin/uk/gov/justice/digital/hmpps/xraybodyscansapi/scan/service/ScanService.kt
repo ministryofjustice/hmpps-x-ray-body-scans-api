@@ -59,6 +59,8 @@ class ScanService(
         nomisCount = nomisCount,
         dpsCount = dpsCount,
         totalCount = nomisCount + dpsCount,
+        fromScanDate = fromScanDate,
+        toScanDate = toScanDate,
       )
     }
   }
