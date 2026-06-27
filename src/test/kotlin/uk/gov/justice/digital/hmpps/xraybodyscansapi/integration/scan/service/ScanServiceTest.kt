@@ -10,6 +10,8 @@ import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import org.springframework.data.domain.PageImpl
+import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.data.jpa.domain.Specification
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.PrisonApiClient
@@ -33,19 +35,38 @@ class ScanServiceTest {
     private val prisonerNumber = "A1234BC"
 
     @Test
-    fun `returns a list of scans for a prisoner`() {
-      whenever(scanRepository.findAll(any<Specification<ScanEntity>>(), eq(Sort.by(Sort.Order.desc("startDate")))))
-        .thenReturn(
+    fun `returns a page of 20 scans for a prisoner`() {
+      whenever(
+        scanRepository.findAll(
+          any<Specification<ScanEntity>>(),
+          eq(PageRequest.of(0, 20, Sort.by("scanDate").descending())),
+        ),
+      ).thenReturn(
+        PageImpl(
           listOf(
             scanEntity(prisonerNumber),
             scanEntity(prisonerNumber),
             scanEntity(prisonerNumber),
           ),
-        )
+        ),
+      )
 
       val scans = scanService.listScans(prisonerNumber)
       assertThat(scans).hasSize(3)
-      assertThatList(scans).allMatch { it.prisonerNumber == prisonerNumber }
+      assertThatList(scans.content).allMatch { it.prisonerNumber == prisonerNumber }
+    }
+
+    @Test
+    fun `returns pages of scans as specified`() {
+      whenever(
+        scanRepository.findAll(
+          any<Specification<ScanEntity>>(),
+          eq(PageRequest.of(1, 10, Sort.by("id").ascending())),
+        ),
+      ).thenReturn(PageImpl(listOf(scanEntity(prisonerNumber))))
+
+      val scans = scanService.listScans(prisonerNumber, pageable = PageRequest.of(1, 10, Sort.by("id").ascending()))
+      assertThat(scans).hasSize(1)
     }
   }
 

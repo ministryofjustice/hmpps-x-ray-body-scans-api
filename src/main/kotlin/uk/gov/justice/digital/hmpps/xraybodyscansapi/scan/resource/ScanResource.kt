@@ -8,6 +8,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import jakarta.validation.constraints.Pattern
+import org.springdoc.core.annotations.ParameterObject
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
+import org.springframework.data.domain.Sort
+import org.springframework.data.web.PageableDefault
 import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -86,10 +91,13 @@ class ScanResource(
       message = "prisonerNumber must be in the right form, e.g. A1234BC.",
     )
     prisonerNumber: String,
+    @ParameterObject
     @Valid
     query: ListScansRequest? = null,
-    // TODO: make paged response
-  ): List<ScanResponse> = scanService.listScans(prisonerNumber, query)
+    @ParameterObject
+    @PageableDefault(page = 0, size = 20, sort = ["scanDate"], direction = Sort.Direction.DESC)
+    pageable: Pageable,
+  ): Page<ScanResponse> = scanService.listScans(prisonerNumber, query, pageable)
 
   @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE])
   @ResponseStatus(HttpStatus.CREATED)

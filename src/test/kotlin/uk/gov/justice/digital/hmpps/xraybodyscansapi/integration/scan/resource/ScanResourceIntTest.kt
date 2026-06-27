@@ -12,6 +12,9 @@ import org.mockito.kotlin.eq
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
+import org.springframework.data.domain.PageImpl
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Sort
 import org.springframework.http.MediaType
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.json.JsonCompareMode
@@ -43,16 +46,18 @@ class ScanResourceIntTest : IntegrationTestBase() {
     @DisplayName("Happy paths")
     inner class HappyPath {
       @Test
-      fun `returns a list of scans`() {
+      fun `returns a page of scans`() {
         val scanDate = LocalDate.now().minusDays(5)
-        whenever(scanService.listScans(prisonerNumber, ListScansRequest())).thenReturn(
-          (1..3).map { index ->
-            ScanResponse(
-              id = id + index,
-              prisonerNumber = prisonerNumber,
-              scanDate = scanDate.plusDays(index.toLong()),
-            )
-          },
+        whenever(scanService.listScans(prisonerNumber, ListScansRequest(), PageRequest.of(0, 20, Sort.by("scanDate").descending()))).thenReturn(
+          PageImpl(
+            (1..3).map { index ->
+              ScanResponse(
+                id = id + index,
+                prisonerNumber = prisonerNumber,
+                scanDate = scanDate.plusDays(index.toLong()),
+              )
+            },
+          ),
         )
 
         webTestClient.get()
@@ -65,18 +70,20 @@ class ScanResourceIntTest : IntegrationTestBase() {
           .json(
             // language=json
             """
-            [
-              {"id": 1235, "prisonerNumber": "A1234BC"},
-              {"id": 1236, "prisonerNumber": "A1234BC"},
-              {"id": 1237, "prisonerNumber": "A1234BC"}
-            ]
+            {
+              "content": [
+                {"id": 1235, "prisonerNumber": "A1234BC"},
+                {"id": 1236, "prisonerNumber": "A1234BC"},
+                {"id": 1237, "prisonerNumber": "A1234BC"}
+              ]
+            }
             """,
             JsonCompareMode.LENIENT,
           )
       }
 
       @Test
-      fun `returns a list of scans filtered by date`() {
+      fun `returns a page of scans filtered by date`() {
         whenever(
           scanService.listScans(
             prisonerNumber,
@@ -84,13 +91,16 @@ class ScanResourceIntTest : IntegrationTestBase() {
               fromScanDate = LocalDate.of(2026, 1, 1),
               toScanDate = LocalDate.of(2026, 6, 26),
             ),
+            PageRequest.of(0, 20, Sort.by("scanDate").descending()),
           ),
         ).thenReturn(
-          listOf(
-            ScanResponse(
-              id = id,
-              prisonerNumber = prisonerNumber,
-              scanDate = LocalDate.of(2026, 5, 6),
+          PageImpl(
+            listOf(
+              ScanResponse(
+                id = id,
+                prisonerNumber = prisonerNumber,
+                scanDate = LocalDate.of(2026, 5, 6),
+              ),
             ),
           ),
         )
@@ -105,9 +115,48 @@ class ScanResourceIntTest : IntegrationTestBase() {
           .json(
             // language=json
             """
-            [
-              {"id": 1234, "prisonerNumber": "A1234BC"}
-            ]
+            {
+              "content": [
+                {"id": 1234, "prisonerNumber": "A1234BC"}
+              ]
+            }
+            """,
+            JsonCompareMode.LENIENT,
+          )
+      }
+
+      @Test
+      fun `returns pages of scans as specified`() {
+        val pageable = PageRequest.of(2, 100, Sort.by("id").ascending())
+        whenever(
+          scanService.listScans(
+            prisonerNumber,
+            ListScansRequest(
+              fromScanDate = LocalDate.of(2025, 1, 1),
+              toScanDate = LocalDate.of(2025, 12, 31),
+            ),
+            pageable,
+          ),
+        ).thenReturn(PageImpl(emptyList(), pageable, 110))
+
+        webTestClient.get()
+          .uri("/prisoner/$prisonerNumber/scan?fromScanDate=2025-01-01&toScanDate=2025-12-31&size=100&page=2&sort=id,ASC")
+          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
+          .exchange()
+          .expectStatus().isOk
+          .expectHeader().contentType(MediaType.APPLICATION_JSON)
+          .expectBody()
+          .json(
+            // language=json
+            """
+            {
+              "content": [],
+              "size": 100,
+              "number": 2,
+              "numberOfElements": 0,
+              "totalElements": 110,
+              "totalPages": 2
+            }
             """,
             JsonCompareMode.LENIENT,
           )

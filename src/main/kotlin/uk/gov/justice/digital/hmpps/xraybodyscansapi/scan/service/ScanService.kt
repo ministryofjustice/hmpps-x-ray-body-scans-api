@@ -1,5 +1,8 @@
 package uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service
 
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -22,13 +25,14 @@ class ScanService(
   fun listScans(
     prisonerNumber: String,
     query: ListScansRequest? = null,
-    // TODO: make paged response
-  ): List<ScanResponse> {
+    pageable: Pageable = PageRequest.of(0, 20, Sort.by("scanDate").descending()),
+  ): Page<ScanResponse> {
     var specification = filterByPrisonerNumber(prisonerNumber)
     query?.let {
       specification = specification.and(query.toSpecification())
     }
-    return scanRepository.findAll(specification, Sort.by(Sort.Order.desc("scanDate"))).map {
+    // TODO: impose limits on page request, eg max size?
+    return scanRepository.findAll(specification, pageable).map {
       it.toDto()
     }
   }
