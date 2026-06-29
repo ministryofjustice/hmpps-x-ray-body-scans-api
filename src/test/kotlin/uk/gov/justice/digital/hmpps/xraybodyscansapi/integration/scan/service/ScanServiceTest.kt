@@ -1,13 +1,19 @@
 package uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.scan.service
 
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatList
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import org.springframework.data.domain.PageImpl
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Sort
+import org.springframework.data.jpa.domain.Specification
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.PrisonApiClient
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.response.PersonalCareNeed
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.response.PersonalCareNeedsResponse
@@ -23,6 +29,46 @@ class ScanServiceTest {
   private val scanRepository = mock<ScanRepository>()
   private val prisonApiClient = mock<PrisonApiClient>()
   private val scanService = ScanService(scanRepository, prisonApiClient)
+
+  @Nested
+  inner class List {
+    private val prisonerNumber = "A1234BC"
+
+    @Test
+    fun `returns a page of 20 scans for a prisoner`() {
+      whenever(
+        scanRepository.findAll(
+          any<Specification<ScanEntity>>(),
+          eq(PageRequest.of(0, 20, Sort.by("scanDate").descending())),
+        ),
+      ).thenReturn(
+        PageImpl(
+          listOf(
+            scanEntity(prisonerNumber),
+            scanEntity(prisonerNumber),
+            scanEntity(prisonerNumber),
+          ),
+        ),
+      )
+
+      val scans = scanService.listScans(prisonerNumber)
+      assertThat(scans).hasSize(3)
+      assertThatList(scans.content).allMatch { it.prisonerNumber == prisonerNumber }
+    }
+
+    @Test
+    fun `returns pages of scans as specified`() {
+      whenever(
+        scanRepository.findAll(
+          any<Specification<ScanEntity>>(),
+          eq(PageRequest.of(1, 10, Sort.by("id").ascending())),
+        ),
+      ).thenReturn(PageImpl(listOf(scanEntity(prisonerNumber))))
+
+      val scans = scanService.listScans(prisonerNumber, pageable = PageRequest.of(1, 10, Sort.by("id").ascending()))
+      assertThat(scans).hasSize(1)
+    }
+  }
 
   @Nested
   inner class Create {
@@ -190,10 +236,10 @@ class ScanServiceTest {
       problemStatus = "xyz",
       startDate = LocalDate.parse(startDate),
     )
-
-    private fun scanEntity(prisonerNumber: String) = ScanEntity(
-      prisonerNumber = prisonerNumber,
-      scanDate = LocalDate.now().minusDays(1),
-    )
   }
+
+  private fun scanEntity(prisonerNumber: String) = ScanEntity(
+    prisonerNumber = prisonerNumber,
+    scanDate = LocalDate.now().minusDays(1),
+  )
 }

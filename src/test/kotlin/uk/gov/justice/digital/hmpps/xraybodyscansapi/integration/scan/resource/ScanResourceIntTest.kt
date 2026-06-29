@@ -12,6 +12,9 @@ import org.mockito.kotlin.eq
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
+import org.springframework.data.domain.PageImpl
+import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Sort
 import org.springframework.http.MediaType
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.json.JsonCompareMode
@@ -20,6 +23,7 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCAN
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScanRequest
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.ListScansRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanCountResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.ScanService
@@ -34,6 +38,166 @@ class ScanResourceIntTest : IntegrationTestBase() {
   private val prisonerNumber = "A1234BC"
   private val scanDate: LocalDate = LocalDate.now().minusDays(1)
   private val id: Long = 1234L
+
+  @Nested
+  @DisplayName("List scans endpoint")
+  inner class ListScans {
+    @Nested
+    @DisplayName("Happy paths")
+    inner class HappyPath {
+      @Test
+      fun `returns a page of scans`() {
+        val scanDate = LocalDate.now().minusDays(5)
+        whenever(scanService.listScans(prisonerNumber, ListScansRequest(), PageRequest.of(0, 20, Sort.by("scanDate").descending()))).thenReturn(
+          PageImpl(
+            (1..3).map { index ->
+              ScanResponse(
+                id = id + index,
+                prisonerNumber = prisonerNumber,
+                scanDate = scanDate.plusDays(index.toLong()),
+              )
+            },
+          ),
+        )
+
+        webTestClient.get()
+          .uri("/prisoner/$prisonerNumber/scan")
+          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
+          .exchange()
+          .expectStatus().isOk
+          .expectHeader().contentType(MediaType.APPLICATION_JSON)
+          .expectBody()
+          .json(
+            // language=json
+            """
+            {
+              "content": [
+                {"id": 1235, "prisonerNumber": "A1234BC"},
+                {"id": 1236, "prisonerNumber": "A1234BC"},
+                {"id": 1237, "prisonerNumber": "A1234BC"}
+              ]
+            }
+            """,
+            JsonCompareMode.LENIENT,
+          )
+      }
+
+      @Test
+      fun `returns a page of scans filtered by date`() {
+        whenever(
+          scanService.listScans(
+            prisonerNumber,
+            ListScansRequest(
+              fromScanDate = LocalDate.of(2026, 1, 1),
+              toScanDate = LocalDate.of(2026, 6, 26),
+            ),
+            PageRequest.of(0, 20, Sort.by("scanDate").descending()),
+          ),
+        ).thenReturn(
+          PageImpl(
+            listOf(
+              ScanResponse(
+                id = id,
+                prisonerNumber = prisonerNumber,
+                scanDate = LocalDate.of(2026, 5, 6),
+              ),
+            ),
+          ),
+        )
+
+        webTestClient.get()
+          .uri("/prisoner/$prisonerNumber/scan?fromScanDate=2026-01-01&toScanDate=2026-06-26")
+          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
+          .exchange()
+          .expectStatus().isOk
+          .expectHeader().contentType(MediaType.APPLICATION_JSON)
+          .expectBody()
+          .json(
+            // language=json
+            """
+            {
+              "content": [
+                {"id": 1234, "prisonerNumber": "A1234BC"}
+              ]
+            }
+            """,
+            JsonCompareMode.LENIENT,
+          )
+      }
+
+      @Test
+      fun `returns pages of scans as specified`() {
+        val pageable = PageRequest.of(2, 100, Sort.by("id").ascending())
+        whenever(
+          scanService.listScans(
+            prisonerNumber,
+            ListScansRequest(
+              fromScanDate = LocalDate.of(2025, 1, 1),
+              toScanDate = LocalDate.of(2025, 12, 31),
+            ),
+            pageable,
+          ),
+        ).thenReturn(PageImpl(emptyList(), pageable, 110))
+
+        webTestClient.get()
+          .uri("/prisoner/$prisonerNumber/scan?fromScanDate=2025-01-01&toScanDate=2025-12-31&size=100&page=2&sort=id,ASC")
+          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
+          .exchange()
+          .expectStatus().isOk
+          .expectHeader().contentType(MediaType.APPLICATION_JSON)
+          .expectBody()
+          .json(
+            // language=json
+            """
+            {
+              "content": [],
+              "size": 100,
+              "number": 2,
+              "numberOfElements": 0,
+              "totalElements": 110,
+              "totalPages": 2
+            }
+            """,
+            JsonCompareMode.LENIENT,
+          )
+      }
+    }
+
+    @Nested
+    @DisplayName("Sad paths")
+    inner class SadPath {
+      @DisplayName("endpoint is protected")
+      @TestFactory
+      fun `endpoint is protected`() = endpointIsProtected(
+        webTestClient.get()
+          .uri("/prisoner/$prisonerNumber/scan"),
+        afterEach = {
+          verifyNoInteractions(scanService)
+        },
+      )
+
+      @ParameterizedTest(name = "returns 400 for bad requests: {1}")
+      @CsvSource(
+        value = [
+          "fromScanDate=this-year | listScansRequest.fromScanDate",
+          "toScanDate=null        | listScansRequest.toScanDate",
+        ],
+        delimiter = '|',
+      )
+      fun `returns 400 for bad requests`(queryParameters: String, expectedMessage: String) {
+        webTestClient.get()
+          .uri("/prisoner/$prisonerNumber/scan?$queryParameters")
+          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
+          .exchange()
+          .expectErrorResponse(
+            userMessageContains = "Validation failure",
+            developerMessageContains = expectedMessage,
+          )
+
+        verifyNoInteractions(scanService)
+      }
+    }
+  }
 
   @Nested
   @DisplayName("Create a scan endpoint")

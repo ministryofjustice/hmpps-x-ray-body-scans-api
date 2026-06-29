@@ -8,6 +8,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.tags.Tag
 import jakarta.validation.Valid
 import jakarta.validation.constraints.Pattern
+import org.springdoc.core.annotations.ParameterObject
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
+import org.springframework.data.domain.Sort
+import org.springframework.data.web.PageableDefault
 import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
@@ -25,6 +30,7 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCAN
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.RequireReadRole
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.RequireWriteRole
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScanRequest
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.ListScansRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanCountResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.ScanService
@@ -44,6 +50,54 @@ import java.time.temporal.TemporalAdjusters.firstDayOfYear
 class ScanResource(
   private val scanService: ScanService,
 ) {
+  @GetMapping
+  @RequireReadRole
+  @Operation(
+    summary = "Retrieve x-ray body scans for a prisoner",
+    description = "Returns recorded x-ray body scans for the given prisoner. " +
+      "If the prisoner is not found, the list is empty. " +
+      "Ensure the prisoner exists prior to use.",
+    responses = [
+      ApiResponse(
+        responseCode = "200",
+        description = "Scans returned successfully.",
+      ),
+      ApiResponse(
+        responseCode = "400",
+        description = "Invalid request. Check the prisoner number and filters.",
+        content = [Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "401",
+        description = "Unauthorized. Missing or invalid token.",
+        content = [Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "403",
+        description = "Forbidden. Token does not have the role $ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO or $ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW.",
+        content = [Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "500",
+        description = "Internal server error.",
+        content = [Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = Schema(implementation = ErrorResponse::class))],
+      ),
+    ],
+  )
+  fun listScans(
+    @PathVariable
+    @Pattern(
+      regexp = "^[A-Z]\\d{4}[A-Z]{2}$",
+      message = "prisonerNumber must be in the right form, e.g. A1234BC.",
+    )
+    prisonerNumber: String,
+    @ParameterObject
+    @Valid
+    query: ListScansRequest? = null,
+    @ParameterObject
+    @PageableDefault(page = 0, size = 20, sort = ["scanDate"], direction = Sort.Direction.DESC)
+    pageable: Pageable,
+  ): Page<ScanResponse> = scanService.listScans(prisonerNumber, query, pageable)
 
   @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE])
   @ResponseStatus(HttpStatus.CREATED)
@@ -105,7 +159,9 @@ class ScanResource(
       message = "prisonerNumber must be in the right form, e.g. A1234BC.",
     )
     prisonerNumber: String,
-    @Valid @RequestBody request: CreateScanRequest,
+    @RequestBody
+    @Valid
+    request: CreateScanRequest,
   ): ResponseEntity<ScanResponse> = ResponseEntity
     .status(HttpStatus.CREATED)
     .body(scanService.createScan(prisonerNumber, request))
