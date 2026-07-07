@@ -1,5 +1,5 @@
 plugins {
-  id("uk.gov.justice.hmpps.gradle-spring-boot") version "10.5.3"
+  id("uk.gov.justice.hmpps.gradle-spring-boot") version "10.5.4"
   kotlin("plugin.spring") version "2.4.0"
   kotlin("plugin.jpa") version "2.4.0"
 }
@@ -10,7 +10,7 @@ dependencies {
   implementation("org.springframework.boot:spring-boot-starter-webclient")
 
   // Monitoring
-  implementation("io.sentry:sentry-spring-boot-4:8.44.1")
+  implementation("io.sentry:sentry-spring-boot-4:8.46.0")
 
   // OpenAPI
   implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3")
