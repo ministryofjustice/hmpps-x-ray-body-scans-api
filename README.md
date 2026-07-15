@@ -3,6 +3,7 @@
 [![Ministry of Justice Repository Compliance Badge](https://github-community.service.justice.gov.uk/repository-standards/api/hmpps-x-ray-body-scans-api/badge?style=flat)](https://github-community.service.justice.gov.uk/repository-standards/hmpps-x-ray-body-scans-api)
 [![Docker Repository on ghcr](https://img.shields.io/badge/ghcr.io-repository-2496ED.svg?logo=docker)](https://ghcr.io/ministryofjustice/hmpps-x-ray-body-scans-api)
 [![API docs](https://img.shields.io/badge/API_docs_-view-85EA2D.svg?logo=swagger)](https://x-ray-body-scans-api-dev.hmpps.service.justice.gov.uk/swagger-ui/index.html)
+[![Database schema](https://img.shields.io/badge/Database_schema-view-85EA2D.svg)](https://ministryofjustice.github.io/hmpps-x-ray-body-scans-api/)
 
 Template github repo used for new Kotlin based projects.
 

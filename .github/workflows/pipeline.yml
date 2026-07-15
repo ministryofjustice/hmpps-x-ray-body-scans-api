@@ -20,6 +20,7 @@ on:
 permissions:
   contents: read
   packages: write
+  pages: write
   id-token: write
   attestations: write
 
@@ -59,6 +60,19 @@ jobs:
       java-version: "25"
     needs:
       - app_version
+  schema-spy:
+    name: SchemaSpy report
+    if: github.ref == 'refs/heads/main'
+    needs:
+      - gradle_verify
+    uses: ./.github/workflows/schema-spy.yml
+    with:
+      docker_compose_file: 'docker-compose-schema-spy.yml'
+      init_db_cli: './gradlew initialiseDatabase'
+      database_name: 'xrbs'
+      database_user: 'xrbs'
+      database_password: 'xrbs'
+    secrets: inherit
   build:
     name: Build docker image from hmpps-github-actions
     if: github.ref == 'refs/heads/main'

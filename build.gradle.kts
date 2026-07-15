@@ -1,3 +1,5 @@
+@file:Suppress("UnstableApiUsage")
+
 plugins {
   id("uk.gov.justice.hmpps.gradle-spring-boot") version "10.5.7"
   kotlin("plugin.spring") version "2.4.0"
@@ -42,5 +44,22 @@ kotlin {
 tasks {
   withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
     compilerOptions.jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_25
+  }
+
+  test {
+    exclude("**/InitialiseDatabase.class")
+  }
+
+  val testSuite = testing.suites.named("test", JvmTestSuite::class)
+  register("initialiseDatabase", Test::class) {
+    description = "initialise database"
+    testClassesDirs = files(testSuite.map { it.sources.output.classesDirs })
+    classpath = files(testSuite.map { it.sources.runtimeClasspath })
+    include("**/InitialiseDatabase.class")
+    systemProperty("spring.profiles.include", "test,schemaspy")
+  }
+
+  getByName("initialiseDatabase") {
+    onlyIf { gradle.startParameter.taskNames.contains("initialiseDatabase") }
   }
 }
