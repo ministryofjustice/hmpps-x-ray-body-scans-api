@@ -1,18 +1,18 @@
 @file:Suppress("UnstableApiUsage")
 
 plugins {
-  id("uk.gov.justice.hmpps.gradle-spring-boot") version "10.5.7"
-  kotlin("plugin.spring") version "2.4.0"
-  kotlin("plugin.jpa") version "2.4.0"
+  id("uk.gov.justice.hmpps.gradle-spring-boot") version "11.0.1"
+  kotlin("plugin.spring") version "2.4.10"
+  kotlin("plugin.jpa") version "2.4.10"
 }
 
 dependencies {
-  implementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter:2.5.0")
+  implementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter:3.0.0")
   implementation("org.springframework.boot:spring-boot-starter-webflux")
   implementation("org.springframework.boot:spring-boot-starter-webclient")
 
   // Monitoring
-  implementation("io.sentry:sentry-spring-boot-4:8.48.0")
+  implementation("io.sentry:sentry-spring-boot-4:8.49.0")
 
   // OpenAPI
   implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.3")
@@ -23,7 +23,7 @@ dependencies {
   // Persistence
   implementation("org.springframework.boot:spring-boot-starter-data-jpa")
   runtimeOnly("org.flywaydb:flyway-database-postgresql")
-  runtimeOnly("org.postgresql:postgresql")
+  runtimeOnly("org.postgresql:postgresql:42.7.13")
   implementation("org.springframework.boot:spring-boot-starter-flyway")
   implementation("com.h2database:h2") // Here in case you want to run locally using h2
   testImplementation("com.h2database:h2") // Tests use h2
