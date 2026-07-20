@@ -44,7 +44,7 @@ class WebClientConfiguration(
     prisonApiTimeout,
   )
 
-  private fun authorizedClientManagerUserEnhanced(clients: ClientRegistrationRepository?): OAuth2AuthorizedClientManager {
+  private fun authorizedClientManagerUserEnhanced(clients: ClientRegistrationRepository): OAuth2AuthorizedClientManager {
     val service: OAuth2AuthorizedClientService = InMemoryOAuth2AuthorizedClientService(clients)
     val manager = AuthorizedClientServiceOAuth2AuthorizedClientManager(clients, service)
     val restClientTokenResponseClient = RestClientClientCredentialsTokenResponseClient()
