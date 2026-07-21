@@ -36,5 +36,6 @@ class ScanRepositoryTest {
     val found = scanRepository.findById(saved.id).orElseThrow()
     assertThat(found.prisonerNumber).isEqualTo(prisonerNumber)
     assertThat(found.scanDate).isEqualTo(scanDate)
+    assertThat(found.result).isEqualTo(ScanResult.NEGATIVE)
   }
 }
