@@ -24,4 +24,9 @@ data class ScanResponse(
     format = "date",
   )
   val scanDate: LocalDate,
+
+  @Schema(
+    description = "The result of the scan. (POSITIVE, NEGATIVE, or INCONCLUSIVE)",
+  )
+  val result: ScanResult,
 )

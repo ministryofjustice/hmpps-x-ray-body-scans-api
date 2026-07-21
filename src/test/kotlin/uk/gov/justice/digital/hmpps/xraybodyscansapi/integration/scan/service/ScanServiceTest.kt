@@ -18,7 +18,8 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.PrisonApiC
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.response.PersonalCareNeed
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.response.PersonalCareNeedsResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScanRequest
-import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanCountResponse
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanResult
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanSummaryResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanEntity
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanRepository
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.ScanService
@@ -28,7 +29,7 @@ class ScanServiceTest {
 
   private val scanRepository = mock<ScanRepository>()
   private val prisonApiClient = mock<PrisonApiClient>()
-  private val scanService = ScanService(scanRepository, prisonApiClient)
+  private val scanService = ScanService(scanRepository, prisonApiClient, scanAnnualLimit = 116)
 
   @Nested
   inner class List {
@@ -82,7 +83,7 @@ class ScanServiceTest {
         invocation.getArgument<ScanEntity>(0)
       }
 
-      val response = scanService.createScan(prisonerNumber, CreateScanRequest(scanDate = scanDate))
+      val response = scanService.createScan(prisonerNumber, CreateScanRequest(scanDate = scanDate, result = ScanResult.NEGATIVE))
 
       val captor = argumentCaptor<ScanEntity>()
       verify(scanRepository).save(captor.capture())
@@ -91,11 +92,12 @@ class ScanServiceTest {
 
       assertThat(response.prisonerNumber).isEqualTo(prisonerNumber)
       assertThat(response.scanDate).isEqualTo(scanDate)
+      assertThat(response.result).isEqualTo(ScanResult.NEGATIVE)
     }
   }
 
   @Nested
-  inner class CountScans {
+  inner class Summarise {
 
     private val fromScanDate: LocalDate = LocalDate.parse("2026-01-01")
     private val toScanDate: LocalDate = LocalDate.parse("2026-02-01")
@@ -131,22 +133,30 @@ class ScanServiceTest {
           ),
         )
 
-      val result = scanService.countScans(prisonerNumbers, fromScanDate, toScanDate)
+      val result = scanService.summariseScans(prisonerNumbers, fromScanDate, toScanDate)
 
       assertThat(result).containsExactly(
-        ScanCountResponse(
+        ScanSummaryResponse(
           prisonerNumber = "A1234BC",
           nomisCount = 2,
           dpsCount = 3,
           totalCount = 5,
+          positiveCount = 0,
+          negativeCount = 3,
+          inconclusiveCount = 0,
+          remainingScans = 111,
           fromScanDate = fromScanDate,
           toScanDate = toScanDate,
         ),
-        ScanCountResponse(
+        ScanSummaryResponse(
           prisonerNumber = "B1234AC",
           nomisCount = 1,
           dpsCount = 1,
           totalCount = 2,
+          positiveCount = 0,
+          negativeCount = 1,
+          inconclusiveCount = 0,
+          remainingScans = 114,
           fromScanDate = fromScanDate,
           toScanDate = toScanDate,
         ),
@@ -169,14 +179,18 @@ class ScanServiceTest {
       whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(listOf(prisonerNumber), fromScanDate, toScanDate))
         .thenReturn(listOf(scanEntity("A1234BC"), scanEntity("A1234BC"), scanEntity("A1234BC")))
 
-      val result = scanService.countScans(prisonerNumber, fromScanDate, toScanDate)
+      val result = scanService.summariseScans(prisonerNumber, fromScanDate, toScanDate)
 
       assertThat(result).isEqualTo(
-        ScanCountResponse(
+        ScanSummaryResponse(
           prisonerNumber = "A1234BC",
           nomisCount = 2,
           dpsCount = 3,
           totalCount = 5,
+          positiveCount = 0,
+          negativeCount = 3,
+          inconclusiveCount = 0,
+          remainingScans = 111,
           fromScanDate = fromScanDate,
           toScanDate = toScanDate,
         ),
@@ -199,34 +213,93 @@ class ScanServiceTest {
       whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(prisonerNumbers, fromScanDate, toScanDate))
         .thenReturn(listOf(scanEntity("B1234AC"), scanEntity("B1234AC")))
 
-      val result = scanService.countScans(prisonerNumbers, fromScanDate, toScanDate)
+      val result = scanService.summariseScans(prisonerNumbers, fromScanDate, toScanDate)
 
       assertThat(result).containsExactly(
-        ScanCountResponse(
+        ScanSummaryResponse(
           prisonerNumber = "A1234BC",
           nomisCount = 4,
           dpsCount = 0,
           totalCount = 4,
+          positiveCount = 0,
+          negativeCount = 0,
+          inconclusiveCount = 0,
+          remainingScans = 112,
           fromScanDate = fromScanDate,
           toScanDate = toScanDate,
         ),
-        ScanCountResponse(
+        ScanSummaryResponse(
           prisonerNumber = "B1234AC",
           nomisCount = 0,
           dpsCount = 2,
           totalCount = 2,
+          positiveCount = 0,
+          negativeCount = 2,
+          inconclusiveCount = 0,
+          remainingScans = 114,
           fromScanDate = fromScanDate,
           toScanDate = toScanDate,
         ),
-        ScanCountResponse(
+        ScanSummaryResponse(
           prisonerNumber = "C1234AB",
           nomisCount = 0,
           dpsCount = 0,
           totalCount = 0,
+          positiveCount = 0,
+          negativeCount = 0,
+          inconclusiveCount = 0,
+          remainingScans = 116,
           fromScanDate = fromScanDate,
           toScanDate = toScanDate,
         ),
       )
+    }
+
+    @Test
+    fun `counts positive, negative and inconclusive DPS scans`() {
+      val prisonerNumber = "A1234BC"
+
+      whenever(prisonApiClient.getScanCareNeeds(listOf(prisonerNumber)))
+        .thenReturn(listOf(PersonalCareNeedsResponse(offenderNo = prisonerNumber)))
+      whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(listOf(prisonerNumber), fromScanDate, toScanDate))
+        .thenReturn(
+          listOf(
+            scanEntity(prisonerNumber, ScanResult.POSITIVE),
+            scanEntity(prisonerNumber, ScanResult.NEGATIVE),
+            scanEntity(prisonerNumber, ScanResult.NEGATIVE),
+            scanEntity(prisonerNumber, ScanResult.INCONCLUSIVE),
+          ),
+        )
+
+      val result = scanService.summariseScans(prisonerNumber, fromScanDate, toScanDate)
+
+      assertThat(result.positiveCount).isEqualTo(1)
+      assertThat(result.negativeCount).isEqualTo(2)
+      assertThat(result.inconclusiveCount).isEqualTo(1)
+      assertThat(result.dpsCount).isEqualTo(4)
+    }
+
+    @Test
+    fun `calculates remaining scans as annual limit minus total scans`() {
+      val prisonerNumber = "A1234BC"
+
+      whenever(prisonApiClient.getScanCareNeeds(listOf(prisonerNumber)))
+        .thenReturn(listOf(PersonalCareNeedsResponse(offenderNo = prisonerNumber)))
+      whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(listOf(prisonerNumber), fromScanDate, toScanDate))
+        .thenReturn(
+          listOf(
+            scanEntity(prisonerNumber),
+            scanEntity(prisonerNumber),
+            scanEntity(prisonerNumber),
+            scanEntity(prisonerNumber),
+            scanEntity(prisonerNumber),
+          ),
+        )
+
+      val result = scanService.summariseScans(prisonerNumber, fromScanDate, toScanDate)
+
+      assertThat(result.totalCount).isEqualTo(5)
+      assertThat(result.remainingScans).isEqualTo(111)
     }
 
     private fun bscan(startDate: String) = PersonalCareNeed(
@@ -238,8 +311,9 @@ class ScanServiceTest {
     )
   }
 
-  private fun scanEntity(prisonerNumber: String) = ScanEntity(
+  private fun scanEntity(prisonerNumber: String, result: ScanResult = ScanResult.NEGATIVE) = ScanEntity(
     prisonerNumber = prisonerNumber,
     scanDate = LocalDate.now().minusDays(1),
+    result = result,
   )
 }

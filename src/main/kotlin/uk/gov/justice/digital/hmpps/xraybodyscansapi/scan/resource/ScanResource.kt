@@ -31,8 +31,8 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.RequireReadRole
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.RequireWriteRole
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScanRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.ListScansRequest
-import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanCountResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanResponse
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanSummaryResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.ScanService
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 import java.time.LocalDate
@@ -166,7 +166,7 @@ class ScanResource(
     .status(HttpStatus.CREATED)
     .body(scanService.createScan(prisonerNumber, request))
 
-  @GetMapping("/count")
+  @GetMapping("/summary")
   @RequireReadRole
   @Operation(
     summary = "Count x-ray body scans for a prisoner",
@@ -200,7 +200,7 @@ class ScanResource(
       ),
     ],
   )
-  fun countScans(
+  fun summariseScans(
     @PathVariable
     @Pattern(
       regexp = "^[A-Z]\\d{4}[A-Z]{2}$",
@@ -209,15 +209,15 @@ class ScanResource(
     prisonerNumber: String,
     @RequestParam(required = false)
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-    @Parameter(description = "Count scans on or after this date (YYYY-MM-DD). Defaults to the start of this calendar year if no `toScanDate` is provided or the beginning of the `toScanDate` calendar year.")
+    @Parameter(description = "Summarise scans on or after this date (YYYY-MM-DD). Defaults to the start of this calendar year if no `toScanDate` is provided or the beginning of the `toScanDate` calendar year.")
     fromScanDate: LocalDate?,
     @RequestParam(required = false)
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-    @Parameter(description = "Count scans on or before this date (YYYY-MM-DD). Defaults to today.")
+    @Parameter(description = "Summarise scans on or before this date (YYYY-MM-DD). Defaults to today.")
     toScanDate: LocalDate?,
-  ): ScanCountResponse {
+  ): ScanSummaryResponse {
     val toScanDate = toScanDate ?: LocalDate.now()
     val fromScanDate = fromScanDate ?: toScanDate.with(firstDayOfYear())
-    return scanService.countScans(prisonerNumber, fromScanDate, toScanDate)
+    return scanService.summariseScans(prisonerNumber, fromScanDate, toScanDate)
   }
 }

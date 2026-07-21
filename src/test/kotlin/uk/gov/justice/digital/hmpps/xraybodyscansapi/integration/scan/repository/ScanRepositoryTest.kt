@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest
 import org.springframework.test.context.ActiveProfiles
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanResult
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanEntity
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanRepository
 import java.time.LocalDate
@@ -26,7 +27,7 @@ class ScanRepositoryTest {
     val after = LocalDateTime.now().plusSeconds(10)
 
     val saved = scanRepository.save(
-      ScanEntity(prisonerNumber = prisonerNumber, scanDate = scanDate),
+      ScanEntity(prisonerNumber = prisonerNumber, scanDate = scanDate, result = ScanResult.NEGATIVE),
     )
     assertThat(saved.id).isGreaterThan(0L)
     assertThat(saved.createdAt).isNotNull()
