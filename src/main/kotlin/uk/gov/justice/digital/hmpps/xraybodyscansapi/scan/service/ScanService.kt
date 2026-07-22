@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service
 
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
@@ -9,8 +10,9 @@ import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.PrisonApiClient
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScanRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.ListScansRequest
-import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanCountResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanResponse
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanResult
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanSummaryResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanEntity
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanRepository
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.filterByPrisonerNumber
@@ -20,6 +22,7 @@ import java.time.LocalDate
 class ScanService(
   private val scanRepository: ScanRepository,
   private val prisonApiClient: PrisonApiClient,
+  @Value("\${scan.annual-limit}") private val scanAnnualLimit: Int,
 ) {
   @Transactional(readOnly = true)
   fun listScans(
@@ -43,6 +46,7 @@ class ScanService(
       ScanEntity(
         prisonerNumber = prisonerNumber,
         scanDate = request.scanDate,
+        result = request.result,
       ),
     )
 
@@ -50,32 +54,36 @@ class ScanService(
   }
 
   @Transactional(readOnly = true)
-  fun countScans(
+  fun summariseScans(
     prisonerNumber: String,
     fromScanDate: LocalDate,
     toScanDate: LocalDate,
-  ): ScanCountResponse = countScans(listOf(prisonerNumber), fromScanDate, toScanDate).first()
+  ): ScanSummaryResponse = summariseScans(listOf(prisonerNumber), fromScanDate, toScanDate).first()
 
   @Transactional(readOnly = true)
-  fun countScans(
+  fun summariseScans(
     prisonerNumbers: List<String>,
     fromScanDate: LocalDate,
     toScanDate: LocalDate,
-  ): List<ScanCountResponse> {
+  ): List<ScanSummaryResponse> {
     val nomisCounts = getNomisScanCounts(prisonerNumbers, fromScanDate, toScanDate)
-    val dpsCounts = scanRepository
+    val dpsScans = scanRepository
       .findByPrisonerNumberInAndScanDateBetween(prisonerNumbers, fromScanDate, toScanDate)
-      .groupingBy { it.prisonerNumber }
-      .eachCount()
+      .groupBy { it.prisonerNumber }
 
     return prisonerNumbers.map { prisonerNumber ->
       val nomisCount = nomisCounts[prisonerNumber] ?: 0
-      val dpsCount = dpsCounts[prisonerNumber] ?: 0
-      ScanCountResponse(
+      val scans = dpsScans[prisonerNumber] ?: emptyList()
+      val dpsCount = scans.size
+      ScanSummaryResponse(
         prisonerNumber = prisonerNumber,
         nomisCount = nomisCount,
         dpsCount = dpsCount,
         totalCount = nomisCount + dpsCount,
+        positiveCount = scans.count { it.result == ScanResult.POSITIVE },
+        negativeCount = scans.count { it.result == ScanResult.NEGATIVE },
+        inconclusiveCount = scans.count { it.result == ScanResult.INCONCLUSIVE },
+        remainingScans = scanAnnualLimit - (nomisCount + dpsCount),
         fromScanDate = fromScanDate,
         toScanDate = toScanDate,
       )
@@ -99,4 +107,5 @@ private fun ScanEntity.toDto(): ScanResponse = ScanResponse(
   id = id,
   prisonerNumber = prisonerNumber,
   scanDate = scanDate,
+  result = result,
 )

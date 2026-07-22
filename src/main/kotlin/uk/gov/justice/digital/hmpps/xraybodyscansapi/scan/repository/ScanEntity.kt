@@ -2,11 +2,14 @@ package uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository
 
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
+import jakarta.persistence.EnumType
+import jakarta.persistence.Enumerated
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.Table
 import org.hibernate.annotations.CreationTimestamp
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanResult
 import java.time.LocalDate
 import java.time.LocalDateTime
 
@@ -18,6 +21,10 @@ class ScanEntity(
 
   @Column(name = "scan_date", nullable = false)
   val scanDate: LocalDate,
+
+  @Enumerated(EnumType.STRING)
+  @Column(name = "result", nullable = false)
+  val result: ScanResult,
 ) {
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
