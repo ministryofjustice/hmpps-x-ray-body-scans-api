@@ -21,6 +21,10 @@ class ReferenceDataService(
     ?.let { ReferenceDataDomain(it) }
 
   @Suppress("unused")
+  fun getReferenceDataDomainList(domain: String): List<ReferenceDataCode> = codeRepository.findByDomain(domain)
+    .map { ReferenceDataCode(it) }
+
+  @Suppress("unused")
   fun getReferenceData(domain: String, code: String): ReferenceDataCode? = codeRepository.findByDomainAndCode(domain, code)
     ?.let { ReferenceDataCode(it) }
 }

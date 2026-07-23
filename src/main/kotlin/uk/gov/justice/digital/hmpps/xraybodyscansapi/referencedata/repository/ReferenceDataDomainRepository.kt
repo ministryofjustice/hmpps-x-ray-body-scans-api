@@ -6,9 +6,11 @@ import org.springframework.stereotype.Repository
 
 @Repository
 interface ReferenceDataDomainRepository : JpaRepository<ReferenceDataDomainEntity, String> {
+  /** Find all domains and eagerly load all pre-sorted codes */
   @EntityGraph(attributePaths = ["codes"])
   override fun findAll(): List<ReferenceDataDomainEntity>
 
+  /** Find a domain and eagerly load all its pre-sorted codes */
   @EntityGraph(attributePaths = ["codes"])
   fun findByCode(code: String): ReferenceDataDomainEntity?
 }

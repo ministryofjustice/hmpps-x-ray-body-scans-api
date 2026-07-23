@@ -40,7 +40,7 @@ class ReferenceDataDomainEntity(
   @Column(name = "deactivated_by")
   val deactivatedBy: String? = null
 
-  @OneToMany(mappedBy = "domain", fetch = FetchType.LAZY, cascade = [CascadeType.ALL], orphanRemoval = true)
+  @OneToMany(mappedBy = "domainCode", fetch = FetchType.LAZY, cascade = [CascadeType.ALL], orphanRemoval = true)
   @OrderBy("listSequence ASC")
   val codes: MutableList<ReferenceDataCodeEntity> = mutableListOf()
 }

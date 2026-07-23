@@ -19,6 +19,7 @@ values ('JUSTIFICATION', 'Why was the scan carried out?', 'CONNECT_DPS', 'CONNEC
 
 create table if not exists reference_data_code
 (
+    id               serial primary key,
     domain           varchar(30)  not null references reference_data_domain (code) on delete restrict on update cascade,
     code             varchar(30)  not null,
     description      varchar(120) not null,
@@ -29,7 +30,7 @@ create table if not exists reference_data_code
     last_modified_by varchar(120) not null,
     deactivated_at   timestamp,
     deactivated_by   varchar(120),
-    primary key (domain, code)
+    unique (domain, code)
 );
 comment on table reference_data_code is 'Values referenced in x-ray body scan records';
 create index if not exists reference_data_code_list_sequence_idx on reference_data_code (list_sequence);

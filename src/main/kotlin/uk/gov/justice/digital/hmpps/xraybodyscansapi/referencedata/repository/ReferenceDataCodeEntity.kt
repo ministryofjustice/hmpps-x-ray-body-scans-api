@@ -1,12 +1,13 @@
 package uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.repository
 
 import jakarta.persistence.Column
-import jakarta.persistence.EmbeddedId
 import jakarta.persistence.Entity
 import jakarta.persistence.FetchType
+import jakarta.persistence.GeneratedValue
+import jakarta.persistence.GenerationType
+import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
-import jakarta.persistence.MapsId
 import jakarta.persistence.Table
 import org.hibernate.annotations.CreationTimestamp
 import org.hibernate.annotations.UpdateTimestamp
@@ -15,8 +16,11 @@ import java.time.LocalDateTime
 @Entity
 @Table(name = "reference_data_code")
 class ReferenceDataCodeEntity(
-  @EmbeddedId
-  val id: ReferenceDataKey,
+  @Column(name = "domain", nullable = false)
+  val domainCode: String,
+
+  @Column(name = "code", nullable = false)
+  val code: String,
 
   @Column(name = "description", nullable = false)
   val description: String,
@@ -30,9 +34,13 @@ class ReferenceDataCodeEntity(
   @Column(name = "last_modified_by")
   val lastModifiedBy: String,
 ) {
+  @Id
+  @GeneratedValue(strategy = GenerationType.IDENTITY)
+  @Column(name = "id", nullable = false, updatable = false)
+  val id: Int = 0
+
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
-  @MapsId("domain")
-  @JoinColumn(name = "domain", nullable = false, updatable = false)
+  @JoinColumn(name = "domain", nullable = false, insertable = false, updatable = false)
   lateinit var domain: ReferenceDataDomainEntity
 
   @CreationTimestamp

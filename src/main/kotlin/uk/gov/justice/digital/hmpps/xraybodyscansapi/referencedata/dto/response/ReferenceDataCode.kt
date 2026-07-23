@@ -68,8 +68,8 @@ data class ReferenceDataCode(
   val deactivatedBy: String?,
 ) {
   constructor(entity: ReferenceDataCodeEntity) : this(
-    domain = entity.id.domain,
-    code = entity.id.code,
+    domain = entity.domainCode,
+    code = entity.code,
     description = entity.description,
     createdAt = entity.createdAt,
     createdBy = entity.createdBy,
