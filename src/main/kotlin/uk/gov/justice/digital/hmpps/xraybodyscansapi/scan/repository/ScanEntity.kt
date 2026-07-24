@@ -43,7 +43,7 @@ class ScanEntity(
   @Column(name = "created_by", nullable = false, updatable = false)
   val createdBy: String,
   @Column(name = "last_modified_by")
-  val lastModifiedBy: String,
+  val lastModifiedBy: String = createdBy,
 ) {
   @Id
   @GeneratedUuidV7

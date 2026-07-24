@@ -390,7 +390,6 @@ class ScanServiceTest {
     outcome = referenceData(ReferenceDataDomains.OUTCOME, outcome),
     typeOfFind = typeOfFind?.let { referenceData(ReferenceDataDomains.TYPE_OF_FIND, typeOfFind) },
     createdBy = createdBy,
-    lastModifiedBy = createdBy,
   ).apply {
     // updates to entity that would be done by jpa/hibernate
     id = UUID.randomUUID()

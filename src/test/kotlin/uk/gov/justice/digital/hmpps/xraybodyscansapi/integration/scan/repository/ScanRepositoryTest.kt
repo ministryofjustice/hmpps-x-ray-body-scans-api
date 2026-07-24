@@ -37,7 +37,6 @@ class ScanRepositoryTest {
         justification = codeRepository.findByDomainAndCode(ReferenceDataDomains.JUSTIFICATION, "REASONABLE_SUSPICION")!!,
         outcome = codeRepository.findByDomainAndCode(ReferenceDataDomains.OUTCOME, "NEGATIVE")!!,
         createdBy = "abc12a",
-        lastModifiedBy = "abc12a",
       ),
     )
 
