@@ -54,7 +54,6 @@ class ScanService(
         justification = findReferenceDataOrThrowValidationError(ReferenceDataDomains.JUSTIFICATION, request.justification),
         outcome = findReferenceDataOrThrowValidationError(ReferenceDataDomains.OUTCOME, request.outcome),
         typeOfFind = request.typeOfFind?.let { findReferenceDataOrThrowValidationError(ReferenceDataDomains.TYPE_OF_FIND, it) },
-        caseNoteId = request.caseNoteId,
         createdBy = request.createdBy,
       ),
     )

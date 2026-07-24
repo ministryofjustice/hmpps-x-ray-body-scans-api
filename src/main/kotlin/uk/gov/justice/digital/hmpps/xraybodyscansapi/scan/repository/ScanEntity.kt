@@ -37,9 +37,6 @@ class ScanEntity(
   @JoinColumn(name = "type_of_find")
   val typeOfFind: ReferenceDataCodeEntity? = null,
 
-  @Column(name = "case_note_id")
-  val caseNoteId: UUID? = null,
-
   @Column(name = "created_by", nullable = false, updatable = false)
   val createdBy: String,
   @Column(name = "last_modified_by")
@@ -58,6 +55,9 @@ class ScanEntity(
 
   @Column(name = "outcome", insertable = false, updatable = false)
   var typeOfFindCode: String? = null
+
+  @Column(name = "case_note_id")
+  var caseNoteId: UUID? = null
 
   @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)
