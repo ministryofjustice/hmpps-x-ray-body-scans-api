@@ -35,25 +35,32 @@ data class ScanSummaryResponse(
   val totalCount: Int,
 
   @Schema(
-    description = "Number of scans with a positive result",
+    description = "Number of scans with a positive result in DPS",
     example = "1",
     requiredMode = Schema.RequiredMode.REQUIRED,
   )
   val positiveCount: Int,
 
   @Schema(
-    description = "Number of scans with a negative result",
+    description = "Number of scans with a negative result in DPS",
     example = "6",
     requiredMode = Schema.RequiredMode.REQUIRED,
   )
   val negativeCount: Int,
 
   @Schema(
-    description = "Number of scans with an inconclusive result",
+    description = "Number of scans with an inconclusive result in DPS",
     example = "1",
     requiredMode = Schema.RequiredMode.REQUIRED,
   )
   val inconclusiveCount: Int,
+
+  @Schema(
+    description = "Number of scans permitted annually",
+    example = "116",
+    requiredMode = Schema.RequiredMode.REQUIRED,
+  )
+  val annualLimit: Int,
 
   @Schema(
     description = "Number of scans remaining before the annual limit of 116 is reached. Negative values indicate the limit has been surpassed",

@@ -420,6 +420,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
               positiveCount = 1,
               negativeCount = 1,
               inconclusiveCount = 1,
+              annualLimit = 116,
               remainingScans = 110,
               fromScanDate = fromScanDate,
               toScanDate = toScanDate,
@@ -442,6 +443,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
               "positiveCount": 1,
               "negativeCount": 1,
               "inconclusiveCount": 1,
+              "annualLimit": 116,
               "remainingScans": 110,
               "fromScanDate": "$fromScanDate",
               "toScanDate": "$toScanDate"
@@ -469,6 +471,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
               positiveCount = 0,
               negativeCount = 2,
               inconclusiveCount = 0,
+              annualLimit = 116,
               remainingScans = 110,
               fromScanDate = LocalDate.now(),
               toScanDate = LocalDate.now().withDayOfMonth(1).withMonth(1),

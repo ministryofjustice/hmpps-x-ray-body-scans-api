@@ -26,7 +26,7 @@ class ScanService(
   private val codeRepository: ReferenceDataCodeRepository,
   private val scanRepository: ScanRepository,
   private val prisonApiClient: PrisonApiClient,
-  @Value("\${scan.annual-limit}") private val scanAnnualLimit: Int,
+  @Value($$"${scan.annual-limit}") private val scanAnnualLimit: Int,
 ) {
   @Transactional(readOnly = true)
   fun listScans(
@@ -92,6 +92,7 @@ class ScanService(
         positiveCount = outcomes.getOrDefault("POSITIVE", 0),
         negativeCount = outcomes.getOrDefault("NEGATIVE", 0),
         inconclusiveCount = outcomes.getOrDefault("INCONCLUSIVE", 0),
+        annualLimit = scanAnnualLimit,
         remainingScans = scanAnnualLimit - (nomisCount + dpsCount),
         fromScanDate = fromScanDate,
         toScanDate = toScanDate,
