@@ -9,6 +9,8 @@ import java.util.UUID
 data class ScanResponse(
   @Schema(
     description = "Unique identifier for the scan as a UUIDv7",
+    type = "string",
+    format = "uuid",
     requiredMode = Schema.RequiredMode.REQUIRED,
   )
   val id: UUID,
@@ -84,9 +86,27 @@ data class ScanResponse(
 
   @Schema(
     description = "Reference to associated case note, if any",
+    type = "string",
+    format = "uuid",
+    nullable = true,
     requiredMode = Schema.RequiredMode.REQUIRED,
   )
   val caseNoteId: UUID? = null,
+
+  @Schema(
+    description = "Former prisoner number this record belonged to, if any",
+    nullable = true,
+    requiredMode = Schema.RequiredMode.REQUIRED,
+  )
+  val mergedFromPrisonerNumber: String? = null,
+  @Schema(
+    description = "When this record was merged from a different prisoner number, if ever",
+    type = "string",
+    format = "date-time",
+    nullable = true,
+    requiredMode = Schema.RequiredMode.REQUIRED,
+  )
+  val mergedAt: LocalDateTime? = null,
 
   @Schema(
     description = "When the scan record was created",

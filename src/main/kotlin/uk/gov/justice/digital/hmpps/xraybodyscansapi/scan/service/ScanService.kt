@@ -129,6 +129,8 @@ class ScanService(
     typeOfFind = typeOfFind?.code,
     typeOfFindDescription = typeOfFind?.description,
     caseNoteId = caseNoteId,
+    mergedFromPrisonerNumber = mergedFromPrisonerNumber,
+    mergedAt = mergedAt,
     createdAt = createdAt,
     createdBy = createdBy,
     lastModifiedAt = lastModifiedAt,

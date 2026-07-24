@@ -59,6 +59,12 @@ class ScanEntity(
   @Column(name = "case_note_id")
   var caseNoteId: UUID? = null
 
+  @Column(name = "merged_from_prisoner_number")
+  var mergedFromPrisonerNumber: String? = null
+
+  @Column(name = "merged_at")
+  var mergedAt: LocalDateTime? = null
+
   @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)
   val createdAt: LocalDateTime = LocalDateTime.now()
