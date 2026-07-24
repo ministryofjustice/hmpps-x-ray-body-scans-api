@@ -11,6 +11,8 @@ create table if not exists body_scan
     outcome          int          not null references reference_data_code (id) on delete restrict on update cascade,
     type_of_find     int references reference_data_code (id) on delete restrict on update cascade,
 
+    case_note_id uuid,
+
     created_at       timestamp    not null default now(),
     created_by       varchar(120) not null,
     last_modified_at timestamp    not null default now(),
@@ -24,6 +26,7 @@ comment on column body_scan.scan_date is 'When the scan itself took place';
 comment on column body_scan.justification is 'Why the scan was carried out';
 comment on column body_scan.outcome is 'What the outcome of the scan was';
 comment on column body_scan.type_of_find is 'What type of item was detected, if any';
+comment on column body_scan.case_note_id is 'Reference to associated case note, if any';
 comment on column body_scan.created_at is 'When this scan record was created';
 comment on column body_scan.created_by is 'Who created this scan record';
 comment on column body_scan.last_modified_at is 'When this scan record was updated';

@@ -83,6 +83,12 @@ data class ScanResponse(
   val typeOfFindDescription: String? = null,
 
   @Schema(
+    description = "Reference to associated case note, if any",
+    requiredMode = Schema.RequiredMode.REQUIRED,
+  )
+  val caseNoteId: UUID? = null,
+
+  @Schema(
     description = "When the scan record was created",
     type = "string",
     format = "date-time",

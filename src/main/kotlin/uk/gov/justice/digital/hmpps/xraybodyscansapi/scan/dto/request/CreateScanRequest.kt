@@ -5,6 +5,7 @@ import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.PastOrPresent
 import java.time.LocalDate
+import java.util.UUID
 
 @Schema(description = "Request model for creating an x-ray body scan.")
 data class CreateScanRequest(
@@ -48,6 +49,13 @@ data class CreateScanRequest(
     nullable = true,
   )
   val typeOfFind: String? = null,
+
+  @Schema(
+    description = "Reference to associated case note, if any",
+    requiredMode = Schema.RequiredMode.NOT_REQUIRED,
+    nullable = true,
+  )
+  val caseNoteId: UUID? = null,
 
   @Schema(
     description = "Who created the scan record",
