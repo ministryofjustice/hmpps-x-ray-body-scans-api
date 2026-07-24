@@ -369,7 +369,6 @@ class ScanServiceTest {
     description = code,
     listSequence = 0,
     createdBy = "CONNECT_DPS",
-    lastModifiedBy = "CONNECT_DPS",
   ).apply {
     // updates to entity that would be done by jpa/hibernate
     id = (1..100).random()

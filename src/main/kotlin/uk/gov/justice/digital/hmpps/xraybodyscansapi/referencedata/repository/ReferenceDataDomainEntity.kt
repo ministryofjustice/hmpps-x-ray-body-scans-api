@@ -24,7 +24,7 @@ class ReferenceDataDomainEntity(
   @Column(name = "created_by", nullable = false, updatable = false)
   val createdBy: String,
   @Column(name = "last_modified_by", nullable = false)
-  val lastModifiedBy: String,
+  val lastModifiedBy: String = createdBy,
 ) {
   @CreationTimestamp
   @Column(name = "created_at", nullable = false, updatable = false)
