@@ -37,7 +37,7 @@ class ReferenceDataCodeEntity(
   @Id
   @GeneratedValue(strategy = GenerationType.IDENTITY)
   @Column(name = "id", nullable = false, updatable = false)
-  val id: Int = 0
+  var id: Int = 0
 
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "domain", nullable = false, insertable = false, updatable = false)

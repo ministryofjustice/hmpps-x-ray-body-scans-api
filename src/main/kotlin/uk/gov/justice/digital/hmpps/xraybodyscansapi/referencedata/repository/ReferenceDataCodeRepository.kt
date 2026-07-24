@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.repository
 
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.dto.response.ReferenceDataDomains
 
 @Repository
 interface ReferenceDataCodeRepository : JpaRepository<ReferenceDataCodeEntity, Int> {
@@ -18,4 +19,7 @@ interface ReferenceDataCodeRepository : JpaRepository<ReferenceDataCodeEntity, I
 
   /** Find a code in a domain (domain would be loaded lazily) */
   fun findByDomainAndCode(domain: String, code: String): ReferenceDataCodeEntity? = findByDomain_CodeAndCode(domain, code)
+
+  /** Find a code in a domain (domain would be loaded lazily) */
+  fun findByDomainAndCode(domain: ReferenceDataDomains, code: String): ReferenceDataCodeEntity? = findByDomain_CodeAndCode(domain.name, code)
 }

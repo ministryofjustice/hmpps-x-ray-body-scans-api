@@ -2,8 +2,11 @@ package uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.scan.service
 
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatList
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.EnumSource
 import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.eq
@@ -17,19 +20,22 @@ import org.springframework.data.jpa.domain.Specification
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.PrisonApiClient
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.response.PersonalCareNeed
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.response.PersonalCareNeedsResponse
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.dto.response.ReferenceDataDomains
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.repository.ReferenceDataCodeEntity
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.repository.ReferenceDataCodeRepository
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScanRequest
-import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanResult
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanSummaryResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanEntity
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanRepository
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.ScanService
 import java.time.LocalDate
+import java.util.UUID
 
 class ScanServiceTest {
-
+  private val codeRepository = mock<ReferenceDataCodeRepository>()
   private val scanRepository = mock<ScanRepository>()
   private val prisonApiClient = mock<PrisonApiClient>()
-  private val scanService = ScanService(scanRepository, prisonApiClient, scanAnnualLimit = 116)
+  private val scanService = ScanService(codeRepository, scanRepository, prisonApiClient, scanAnnualLimit = 116)
 
   @Nested
   inner class List {
@@ -79,11 +85,22 @@ class ScanServiceTest {
 
     @Test
     fun `persists a scan entity built from the request and returns response built from the saved entity`() {
+      makeReferenceDataWheneverNeeded()
       whenever(scanRepository.save(any<ScanEntity>())).thenAnswer { invocation ->
-        invocation.getArgument<ScanEntity>(0)
+        val scanEntity = invocation.getArgument<ScanEntity>(0)
+        scanEntity.apply { id = UUID.randomUUID() }
       }
 
-      val response = scanService.createScan(prisonerNumber, CreateScanRequest(scanDate = scanDate, result = ScanResult.NEGATIVE))
+      val response = scanService.createScan(
+        prisonerNumber,
+        CreateScanRequest(
+          scanDate = scanDate,
+          prisonId = "MDI",
+          justification = "INTELLIGENCE",
+          outcome = "NEGATIVE",
+          createdBy = "abc12a",
+        ),
+      )
 
       val captor = argumentCaptor<ScanEntity>()
       verify(scanRepository).save(captor.capture())
@@ -92,7 +109,27 @@ class ScanServiceTest {
 
       assertThat(response.prisonerNumber).isEqualTo(prisonerNumber)
       assertThat(response.scanDate).isEqualTo(scanDate)
-      assertThat(response.result).isEqualTo(ScanResult.NEGATIVE)
+      assertThat(response.justification).isEqualTo("INTELLIGENCE")
+      assertThat(response.outcome).isEqualTo("NEGATIVE")
+      assertThat(response.typeOfFind).isNull()
+      assertThat(response.lastModifiedBy).isEqualTo("abc12a")
+    }
+
+    @ParameterizedTest(name = "throws validation error when requested {0} is invalid")
+    @EnumSource(ReferenceDataDomains::class)
+    fun `throws validation error when reference data is invalid`(domain: ReferenceDataDomains) {
+      makeReferenceDataWheneverNeeded(setOf(domain.name to "INVALID"))
+      val request = CreateScanRequest(
+        scanDate = scanDate,
+        prisonId = "MDI",
+        justification = if (domain == ReferenceDataDomains.JUSTIFICATION) "INVALID" else "INTELLIGENCE",
+        outcome = if (domain == ReferenceDataDomains.OUTCOME) "INVALID" else "POSITIVE",
+        typeOfFind = if (domain == ReferenceDataDomains.TYPE_OF_FIND) "INVALID" else "INORGANIC",
+        createdBy = "abc12a",
+      )
+      assertThatThrownBy {
+        scanService.createScan(prisonerNumber, request)
+      }.hasMessage("Reference data with domain ${domain.name} and code INVALID not found")
     }
   }
 
@@ -264,10 +301,10 @@ class ScanServiceTest {
       whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(listOf(prisonerNumber), fromScanDate, toScanDate))
         .thenReturn(
           listOf(
-            scanEntity(prisonerNumber, ScanResult.POSITIVE),
-            scanEntity(prisonerNumber, ScanResult.NEGATIVE),
-            scanEntity(prisonerNumber, ScanResult.NEGATIVE),
-            scanEntity(prisonerNumber, ScanResult.INCONCLUSIVE),
+            scanEntity(prisonerNumber, outcome = "POSITIVE"),
+            scanEntity(prisonerNumber, outcome = "NEGATIVE"),
+            scanEntity(prisonerNumber, outcome = "NEGATIVE"),
+            scanEntity(prisonerNumber, outcome = "INCONCLUSIVE"),
           ),
         )
 
@@ -311,9 +348,54 @@ class ScanServiceTest {
     )
   }
 
-  private fun scanEntity(prisonerNumber: String, result: ScanResult = ScanResult.NEGATIVE) = ScanEntity(
+  private fun makeReferenceDataWheneverNeeded(missingCodes: Set<Pair<String, String>> = emptySet()) {
+    whenever(codeRepository.findByDomainAndCode(any<ReferenceDataDomains>(), any<String>())).thenAnswer { invocation ->
+      val domain = invocation.getArgument(0) as ReferenceDataDomains
+      val code = invocation.getArgument(1) as String
+      if (missingCodes.contains(domain.name to code)) {
+        null
+      } else {
+        referenceData(domain = domain, code = code)
+      }
+    }
+  }
+
+  private fun referenceData(
+    domain: ReferenceDataDomains,
+    code: String,
+  ) = ReferenceDataCodeEntity(
+    domainCode = domain.name,
+    code = code,
+    description = code,
+    listSequence = 0,
+    createdBy = "CONNECT_DPS",
+    lastModifiedBy = "CONNECT_DPS",
+  ).apply {
+    // updates to entity that would be done by jpa/hibernate
+    id = (1..100).random()
+  }
+
+  private fun scanEntity(
+    prisonerNumber: String,
+    prisonId: String = "MDI",
+    justification: String = "INTELLIGENCE",
+    outcome: String = "NEGATIVE",
+    typeOfFind: String? = null,
+    createdBy: String = "abc12ab",
+  ) = ScanEntity(
     prisonerNumber = prisonerNumber,
+    prisonId = prisonId,
     scanDate = LocalDate.now().minusDays(1),
-    result = result,
-  )
+    justification = referenceData(ReferenceDataDomains.JUSTIFICATION, justification),
+    outcome = referenceData(ReferenceDataDomains.OUTCOME, outcome),
+    typeOfFind = typeOfFind?.let { referenceData(ReferenceDataDomains.TYPE_OF_FIND, typeOfFind) },
+    createdBy = createdBy,
+    lastModifiedBy = createdBy,
+  ).apply {
+    // updates to entity that would be done by jpa/hibernate
+    id = UUID.randomUUID()
+    justificationCode = justification
+    outcomeCode = outcome
+    typeOfFindCode = typeOfFind
+  }
 }
