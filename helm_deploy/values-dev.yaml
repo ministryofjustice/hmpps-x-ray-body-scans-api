@@ -15,6 +15,7 @@ generic-service:
     API_PRISON_API_BASE_URL: "https://prison-api-dev.prison.service.justice.gov.uk"
     SPRINGDOC_API-DOCS_ENABLED: "true"
     SPRINGDOC_SWAGGER-UI_ENABLED: "true"
+    SERVICE_ACTIVE_AGENCIES: "***"
 
   scheduledDowntime:
     enabled: true

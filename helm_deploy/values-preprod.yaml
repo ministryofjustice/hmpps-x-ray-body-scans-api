@@ -13,6 +13,7 @@ generic-service:
     HMPPS_AUTH_URL: "https://sign-in-preprod.hmpps.service.justice.gov.uk/auth"
     API_HMPPS_AUTH_BASE_URL: "https://sign-in-preprod.hmpps.service.justice.gov.uk/auth"
     API_PRISON_API_BASE_URL: "https://prison-api-preprod.prison.service.justice.gov.uk"
+    SERVICE_ACTIVE_AGENCIES: "***"
 
   scheduledDowntime:
     enabled: true
