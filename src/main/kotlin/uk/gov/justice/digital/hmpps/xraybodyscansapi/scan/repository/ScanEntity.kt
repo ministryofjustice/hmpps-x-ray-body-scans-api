@@ -47,15 +47,6 @@ class ScanEntity(
   @Column(name = "id", nullable = false, updatable = false)
   lateinit var id: UUID
 
-  @Column(name = "outcome", nullable = false, insertable = false, updatable = false)
-  var justificationCode: String = ""
-
-  @Column(name = "outcome", nullable = false, insertable = false, updatable = false)
-  var outcomeCode: String = ""
-
-  @Column(name = "outcome", insertable = false, updatable = false)
-  var typeOfFindCode: String? = null
-
   @Column(name = "case_note_id")
   var caseNoteId: UUID? = null
 
