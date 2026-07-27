@@ -22,6 +22,7 @@ dependencies {
 
   // Persistence
   implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+  implementation("com.fasterxml.uuid:java-uuid-generator:5.2.0")
   runtimeOnly("org.flywaydb:flyway-database-postgresql")
   runtimeOnly("org.postgresql:postgresql:42.7.13")
   implementation("org.springframework.boot:spring-boot-starter-flyway")
