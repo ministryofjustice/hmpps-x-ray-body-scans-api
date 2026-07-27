@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component
 @Component
 class ActiveAgenciesInfoContributor(
   // TODO: currently saved in yaml configuration but will move to database to store dates when each prison goes live
-  @param:Value($$"${service.active-agencies}")
+  @param:Value($$"${service.active-agencies:}")
   val activeAgencies: List<String>,
 ) : InfoContributor {
   override fun contribute(builder: Info.Builder) {
