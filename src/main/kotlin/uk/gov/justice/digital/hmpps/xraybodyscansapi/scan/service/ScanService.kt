@@ -83,7 +83,7 @@ class ScanService(
       val nomisCount = nomisCounts[prisonerNumber] ?: 0
       val scans = dpsScans[prisonerNumber] ?: emptyList()
       val dpsCount = scans.size
-      val outcomes = scans.groupingBy { it.outcomeCode }.eachCount()
+      val outcomes = scans.groupingBy { it.outcome.code }.eachCount()
       ScanSummaryResponse(
         prisonerNumber = prisonerNumber,
         nomisCount = nomisCount,

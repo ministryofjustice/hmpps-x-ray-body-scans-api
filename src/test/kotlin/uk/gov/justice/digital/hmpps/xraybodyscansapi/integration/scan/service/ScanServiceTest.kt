@@ -398,8 +398,5 @@ class ScanServiceTest {
   ).apply {
     // updates to entity that would be done by jpa/hibernate
     id = UUID.randomUUID()
-    justificationCode = justification
-    outcomeCode = outcome
-    typeOfFindCode = typeOfFind
   }
 }
