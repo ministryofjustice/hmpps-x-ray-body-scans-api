@@ -24,10 +24,12 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCAN
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScanRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.ListScansRequest
-import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanCountResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanResponse
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanSummaryResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.ScanService
 import java.time.LocalDate
+import java.time.LocalDateTime
+import java.util.UUID
 
 @DisplayName("X-ray body scans resource")
 class ScanResourceIntTest : IntegrationTestBase() {
@@ -37,7 +39,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
 
   private val prisonerNumber = "A1234BC"
   private val scanDate: LocalDate = LocalDate.now().minusDays(1)
-  private val id: Long = 1234L
+  private val id: UUID = UUID.randomUUID()
 
   @Nested
   @DisplayName("List scans endpoint")
@@ -47,12 +49,13 @@ class ScanResourceIntTest : IntegrationTestBase() {
     inner class HappyPath {
       @Test
       fun `returns a page of scans`() {
+        val scanIds = listOf(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID())
         val scanDate = LocalDate.now().minusDays(5)
         whenever(scanService.listScans(prisonerNumber, ListScansRequest(), PageRequest.of(0, 20, Sort.by("scanDate").descending()))).thenReturn(
           PageImpl(
-            (1..3).map { index ->
-              ScanResponse(
-                id = id + index,
+            scanIds.mapIndexed { index, id ->
+              scanResponse(
+                id = id,
                 prisonerNumber = prisonerNumber,
                 scanDate = scanDate.plusDays(index.toLong()),
               )
@@ -72,9 +75,9 @@ class ScanResourceIntTest : IntegrationTestBase() {
             """
             {
               "content": [
-                {"id": 1235, "prisonerNumber": "A1234BC"},
-                {"id": 1236, "prisonerNumber": "A1234BC"},
-                {"id": 1237, "prisonerNumber": "A1234BC"}
+                {"id": "${scanIds[0]}", "prisonerNumber": "A1234BC"},
+                {"id": "${scanIds[1]}", "prisonerNumber": "A1234BC"},
+                {"id": "${scanIds[2]}", "prisonerNumber": "A1234BC"}
               ]
             }
             """,
@@ -96,7 +99,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
         ).thenReturn(
           PageImpl(
             listOf(
-              ScanResponse(
+              scanResponse(
                 id = id,
                 prisonerNumber = prisonerNumber,
                 scanDate = LocalDate.of(2026, 5, 6),
@@ -117,7 +120,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
             """
             {
               "content": [
-                {"id": 1234, "prisonerNumber": "A1234BC"}
+                {"id": "$id", "prisonerNumber": "A1234BC"}
               ]
             }
             """,
@@ -209,11 +212,10 @@ class ScanResourceIntTest : IntegrationTestBase() {
 
       @Test
       fun `returns 201 and created scan when request is valid`() {
-        val expectedId = 1234L
-        val request = CreateScanRequest(scanDate = scanDate)
+        val request = createScanRequest(scanDate = scanDate)
         whenever(scanService.createScan(eq(prisonerNumber), any()))
           .thenReturn(
-            ScanResponse(
+            scanResponse(
               id = id,
               prisonerNumber = prisonerNumber,
               scanDate = scanDate,
@@ -229,7 +231,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
           .expectStatus().isCreated
           .expectHeader().contentType(MediaType.APPLICATION_JSON)
           .expectBody()
-          .jsonPath("$.id").isEqualTo(expectedId.toString())
+          .jsonPath("$.id").isEqualTo(id)
           .jsonPath("$.prisonerNumber").isEqualTo(prisonerNumber)
           .jsonPath("$.scanDate").isEqualTo(scanDate.toString())
 
@@ -239,10 +241,10 @@ class ScanResourceIntTest : IntegrationTestBase() {
       @Test
       fun `returns 201 when scanDate is today`() {
         val today = LocalDate.now()
-        val request = CreateScanRequest(scanDate = today)
+        val request = createScanRequest(scanDate = today)
         whenever(scanService.createScan(eq(prisonerNumber), any()))
           .thenReturn(
-            ScanResponse(
+            scanResponse(
               id = id,
               prisonerNumber = prisonerNumber,
               scanDate = today,
@@ -273,7 +275,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
           .uri("/prisoner/$prisonerNumber/scan")
           .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW)))
           .contentType(MediaType.APPLICATION_JSON)
-          .bodyValue(CreateScanRequest(scanDate = futureDate))
+          .bodyValue(createScanRequest(scanDate = futureDate))
           .exchange()
           .expectErrorResponse(
             userMessageContains = "Validation failure",
@@ -321,7 +323,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
           .uri("/prisoner/RUBBISH/scan")
           .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW)))
           .contentType(MediaType.APPLICATION_JSON)
-          .bodyValue(CreateScanRequest(scanDate = scanDate))
+          .bodyValue(createScanRequest(scanDate = scanDate))
           .exchange()
           .expectErrorResponse(
             userMessageContains = "Validation failure",
@@ -351,18 +353,34 @@ class ScanResourceIntTest : IntegrationTestBase() {
       fun `endpoint is protected`() = endpointIsProtected(
         webTestClient.post()
           .uri("/prisoner/$prisonerNumber/scan")
-          .bodyValue(CreateScanRequest(scanDate = scanDate)),
+          .bodyValue(createScanRequest(scanDate = scanDate)),
         requiresWriteRole = true,
         afterEach = {
           verifyNoInteractions(scanService)
         },
       )
     }
+
+    private fun createScanRequest(
+      scanDate: LocalDate,
+      prisonId: String = "MDI",
+      justification: String = "INTELLIGENCE",
+      outcome: String = "NEGATIVE",
+      typeOfFind: String? = null,
+      createdBy: String = "abc12ab",
+    ) = CreateScanRequest(
+      scanDate = scanDate,
+      prisonId = prisonId,
+      justification = justification,
+      outcome = outcome,
+      typeOfFind = typeOfFind,
+      createdBy = createdBy,
+    )
   }
 
   @Nested
-  @DisplayName("Get scan counts endpoint")
-  inner class CountScans {
+  @DisplayName("Get scan summary endpoint")
+  inner class SummariseScans {
     @Nested
     @DisplayName("Happy paths")
     inner class HappyPath {
@@ -377,7 +395,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
         delimiter = '|',
       )
       fun `returns scans with date filters`(fromScanDate: String?, toScanDate: String?) {
-        val url = UriComponentsBuilder.fromPath("/prisoner/$prisonerNumber/scan/count")
+        val url = UriComponentsBuilder.fromPath("/prisoner/$prisonerNumber/scan/summary")
 
         val fromScanDate = if (fromScanDate != null) {
           url.queryParam("fromScanDate", fromScanDate)
@@ -392,13 +410,18 @@ class ScanResourceIntTest : IntegrationTestBase() {
           LocalDate.now()
         }
 
-        whenever(scanService.countScans(eq(prisonerNumber), eq(fromScanDate), eq(toScanDate)))
+        whenever(scanService.summariseScans(eq(prisonerNumber), eq(fromScanDate), eq(toScanDate)))
           .thenReturn(
-            ScanCountResponse(
+            ScanSummaryResponse(
               prisonerNumber = prisonerNumber,
               nomisCount = 4,
               dpsCount = 2,
               totalCount = 6,
+              positiveCount = 1,
+              negativeCount = 1,
+              inconclusiveCount = 1,
+              annualLimit = 116,
+              remainingScans = 110,
               fromScanDate = fromScanDate,
               toScanDate = toScanDate,
             ),
@@ -417,6 +440,11 @@ class ScanResourceIntTest : IntegrationTestBase() {
               "nomisCount": 4,
               "dpsCount": 2,
               "totalCount": 6,
+              "positiveCount": 1,
+              "negativeCount": 1,
+              "inconclusiveCount": 1,
+              "annualLimit": 116,
+              "remainingScans": 110,
               "fromScanDate": "$fromScanDate",
               "toScanDate": "$toScanDate"
             }
@@ -433,20 +461,25 @@ class ScanResourceIntTest : IntegrationTestBase() {
         ],
       )
       fun `permits role`(role: String) {
-        whenever(scanService.countScans(eq(prisonerNumber), any<LocalDate>(), any<LocalDate>()))
+        whenever(scanService.summariseScans(eq(prisonerNumber), any<LocalDate>(), any<LocalDate>()))
           .thenReturn(
-            ScanCountResponse(
+            ScanSummaryResponse(
               prisonerNumber = prisonerNumber,
               nomisCount = 4,
               dpsCount = 2,
               totalCount = 6,
+              positiveCount = 0,
+              negativeCount = 2,
+              inconclusiveCount = 0,
+              annualLimit = 116,
+              remainingScans = 110,
               fromScanDate = LocalDate.now(),
               toScanDate = LocalDate.now().withDayOfMonth(1).withMonth(1),
             ),
           )
 
         webTestClient.get()
-          .uri("/prisoner/$prisonerNumber/scan/count")
+          .uri("/prisoner/$prisonerNumber/scan/summary")
           .headers(setAuthorisation(roles = listOf(role)))
           .exchange()
           .expectStatus().isOk
@@ -460,7 +493,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
       @TestFactory
       fun `endpoint is protected`() = endpointIsProtected(
         webTestClient.get()
-          .uri("/prisoner/$prisonerNumber/scan/count"),
+          .uri("/prisoner/$prisonerNumber/scan/summary"),
         afterEach = {
           verifyNoInteractions(scanService)
         },
@@ -476,7 +509,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
         delimiter = '|',
       )
       fun `returns 400 for invalid date filters`(fromScanDate: String?, toScanDate: String?) {
-        val url = UriComponentsBuilder.fromPath("/prisoner/$prisonerNumber/scan/count")
+        val url = UriComponentsBuilder.fromPath("/prisoner/$prisonerNumber/scan/summary")
         fromScanDate?.let {
           url.queryParam("fromScanDate", it)
         }
@@ -499,4 +532,30 @@ class ScanResourceIntTest : IntegrationTestBase() {
       // TODO: to is after from 400?
     }
   }
+
+  private fun scanResponse(
+    id: UUID = UUID.randomUUID(),
+    prisonerNumber: String,
+    prisonId: String = "MDI",
+    scanDate: LocalDate = LocalDate.now().minusDays(1),
+    justification: String = "INTELLIGENCE",
+    outcome: String = "NEGATIVE",
+    typeOfFind: String? = null,
+    createdBy: String = "abc12ab",
+  ) = ScanResponse(
+    id = id,
+    prisonerNumber = prisonerNumber,
+    prisonId = prisonId,
+    scanDate = scanDate,
+    justification = justification,
+    justificationDescription = justification,
+    outcome = outcome,
+    outcomeDescription = outcome,
+    typeOfFind = typeOfFind,
+    typeOfFindDescription = typeOfFind,
+    createdAt = LocalDateTime.now(),
+    createdBy = createdBy,
+    lastModifiedAt = LocalDateTime.now(),
+    lastModifiedBy = createdBy,
+  )
 }

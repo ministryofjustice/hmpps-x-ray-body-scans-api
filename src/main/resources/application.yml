@@ -1,3 +1,6 @@
+scan:
+  annual-limit: 116
+
 info.app:
   name: HMPPS X-ray Body Scans API
   version: 1.0

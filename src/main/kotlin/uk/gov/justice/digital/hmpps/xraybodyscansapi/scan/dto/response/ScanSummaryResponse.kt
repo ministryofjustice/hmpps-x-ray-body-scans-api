@@ -3,8 +3,8 @@ package uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response
 import io.swagger.v3.oas.annotations.media.Schema
 import java.time.LocalDate
 
-@Schema(description = "Response for scan counts of a prisoner over the requested time period")
-data class ScanCountResponse(
+@Schema(description = "Summary of x-ray body scans for a prisoner over a given time period")
+data class ScanSummaryResponse(
 
   @Schema(
     description = "Unique prisoner identifier",
@@ -33,6 +33,41 @@ data class ScanCountResponse(
     requiredMode = Schema.RequiredMode.REQUIRED,
   )
   val totalCount: Int,
+
+  @Schema(
+    description = "Number of scans with a positive result in DPS",
+    example = "1",
+    requiredMode = Schema.RequiredMode.REQUIRED,
+  )
+  val positiveCount: Int,
+
+  @Schema(
+    description = "Number of scans with a negative result in DPS",
+    example = "6",
+    requiredMode = Schema.RequiredMode.REQUIRED,
+  )
+  val negativeCount: Int,
+
+  @Schema(
+    description = "Number of scans with an inconclusive result in DPS",
+    example = "1",
+    requiredMode = Schema.RequiredMode.REQUIRED,
+  )
+  val inconclusiveCount: Int,
+
+  @Schema(
+    description = "Number of scans permitted annually",
+    example = "116",
+    requiredMode = Schema.RequiredMode.REQUIRED,
+  )
+  val annualLimit: Int,
+
+  @Schema(
+    description = "Number of scans remaining before the annual limit of 116 is reached. Negative values indicate the limit has been surpassed",
+    example = "109",
+    requiredMode = Schema.RequiredMode.REQUIRED,
+  )
+  val remainingScans: Int,
 
   @Schema(
     description = "The earliest date of the period over which these scans were counted (inclusive)",
