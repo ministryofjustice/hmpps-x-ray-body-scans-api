@@ -35,6 +35,7 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanRespo
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanSummaryResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.ScanService
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
+import java.time.Clock
 import java.time.LocalDate
 import java.time.temporal.TemporalAdjusters.firstDayOfYear
 
@@ -48,6 +49,7 @@ import java.time.temporal.TemporalAdjusters.firstDayOfYear
   produces = [MediaType.APPLICATION_JSON_VALUE],
 )
 class ScanResource(
+  private val clock: Clock,
   private val scanService: ScanService,
 ) {
   @GetMapping
@@ -216,7 +218,7 @@ class ScanResource(
     @Parameter(description = "Summarise scans on or before this date (YYYY-MM-DD). Defaults to today.")
     toScanDate: LocalDate?,
   ): ScanSummaryResponse {
-    val toScanDate = toScanDate ?: LocalDate.now()
+    val toScanDate = toScanDate ?: LocalDate.now(clock)
     val fromScanDate = fromScanDate ?: toScanDate.with(firstDayOfYear())
     return scanService.summariseScans(prisonerNumber, fromScanDate, toScanDate)
   }

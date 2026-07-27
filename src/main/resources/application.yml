@@ -17,6 +17,8 @@ spring:
 #  It is ignored for LocalDateTime, and therefore unnecessary for most projects
 #  jackson:
 #    date-format: "yyyy-MM-dd HH:mm:ss"
+  jackson:
+    time-zone: Europe/London
 
   security:
     oauth2:
