@@ -4,12 +4,14 @@ import io.swagger.v3.oas.annotations.media.Schema
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.PastOrPresent
+import org.springframework.format.annotation.DateTimeFormat
 import java.time.LocalDate
 
 @Schema(description = "Request model for creating an x-ray body scan.")
 data class CreateScanRequest(
-  @field:NotNull
-  @field:PastOrPresent(message = "scanDate must be today or in the past")
+  @NotNull
+  @PastOrPresent(message = "scanDate must be today or in the past")
+  @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
   @Schema(
     description = "Date the scan was performed (today or in the past)",
     example = "YYYY-MM-DD",
@@ -19,7 +21,7 @@ data class CreateScanRequest(
   )
   val scanDate: LocalDate,
 
-  @field:NotBlank
+  @NotBlank
   @Schema(
     description = "The prison/establishment code where the scan took place",
     example = "MDI",
@@ -27,14 +29,14 @@ data class CreateScanRequest(
   )
   val prisonId: String,
 
-  @field:NotBlank
+  @NotBlank
   @Schema(
     description = "Why the scan was carried out",
     example = "REASONABLE_SUSPICION",
     requiredMode = Schema.RequiredMode.REQUIRED,
   )
   val justification: String,
-  @field:NotBlank
+  @NotBlank
   @Schema(
     description = "What the outcome of the scan was",
     example = "NEGATIVE",

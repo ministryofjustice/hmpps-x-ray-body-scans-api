@@ -20,6 +20,7 @@ import org.springframework.data.jpa.domain.Specification
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.PrisonApiClient
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.response.PersonalCareNeed
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.response.PersonalCareNeedsResponse
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.FixedClock
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.dto.response.ReferenceDataDomains
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.repository.ReferenceDataCodeEntity
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.repository.ReferenceDataCodeRepository
@@ -32,10 +33,12 @@ import java.time.LocalDate
 import java.util.UUID
 
 class ScanServiceTest {
+  companion object : FixedClock()
+
   private val codeRepository = mock<ReferenceDataCodeRepository>()
   private val scanRepository = mock<ScanRepository>()
   private val prisonApiClient = mock<PrisonApiClient>()
-  private val scanService = ScanService(codeRepository, scanRepository, prisonApiClient, scanAnnualLimit = 116)
+  private val scanService = ScanService(clock, codeRepository, scanRepository, prisonApiClient, scanAnnualLimit = 116)
 
   @Nested
   inner class List {
@@ -81,7 +84,7 @@ class ScanServiceTest {
   inner class Create {
 
     private val prisonerNumber = "A1234BC"
-    private val scanDate: LocalDate = LocalDate.now().minusDays(1)
+    private val scanDate: LocalDate = today.minusDays(1)
 
     @Test
     fun `persists a scan entity built from the request and returns response built from the saved entity`() {
@@ -135,10 +138,6 @@ class ScanServiceTest {
 
   @Nested
   inner class Summarise {
-
-    private val fromScanDate: LocalDate = LocalDate.parse("2026-01-01")
-    private val toScanDate: LocalDate = LocalDate.parse("2026-02-01")
-
     @Test
     fun `returns correct counts for a list of prisoners, filtering nomis scans by date range`() {
       val prisonerNumbers = listOf("A1234BC", "B1234AC")
@@ -160,7 +159,7 @@ class ScanServiceTest {
             ),
           ),
         )
-      whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(prisonerNumbers, fromScanDate, toScanDate))
+      whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(prisonerNumbers, yearStart, today))
         .thenReturn(
           listOf(
             scanEntity("A1234BC"),
@@ -170,7 +169,7 @@ class ScanServiceTest {
           ),
         )
 
-      val result = scanService.summariseScans(prisonerNumbers, fromScanDate, toScanDate)
+      val result = scanService.summariseScans(prisonerNumbers)
 
       assertThat(result).containsExactly(
         ScanSummaryResponse(
@@ -183,8 +182,8 @@ class ScanServiceTest {
           inconclusiveCount = 0,
           annualLimit = 116,
           remainingScans = 111,
-          fromScanDate = fromScanDate,
-          toScanDate = toScanDate,
+          fromScanDate = yearStart,
+          toScanDate = today,
         ),
         ScanSummaryResponse(
           prisonerNumber = "B1234AC",
@@ -196,8 +195,8 @@ class ScanServiceTest {
           inconclusiveCount = 0,
           annualLimit = 116,
           remainingScans = 114,
-          fromScanDate = fromScanDate,
-          toScanDate = toScanDate,
+          fromScanDate = yearStart,
+          toScanDate = today,
         ),
       )
     }
@@ -215,10 +214,10 @@ class ScanServiceTest {
             ),
           ),
         )
-      whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(listOf(prisonerNumber), fromScanDate, toScanDate))
+      whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(listOf(prisonerNumber), yearStart, today))
         .thenReturn(listOf(scanEntity("A1234BC"), scanEntity("A1234BC"), scanEntity("A1234BC")))
 
-      val result = scanService.summariseScans(prisonerNumber, fromScanDate, toScanDate)
+      val result = scanService.summariseScans(prisonerNumber)
 
       assertThat(result).isEqualTo(
         ScanSummaryResponse(
@@ -231,8 +230,8 @@ class ScanServiceTest {
           inconclusiveCount = 0,
           annualLimit = 116,
           remainingScans = 111,
-          fromScanDate = fromScanDate,
-          toScanDate = toScanDate,
+          fromScanDate = yearStart,
+          toScanDate = today,
         ),
       )
     }
@@ -250,10 +249,10 @@ class ScanServiceTest {
             ),
           ),
         )
-      whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(prisonerNumbers, fromScanDate, toScanDate))
+      whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(prisonerNumbers, yearStart, today))
         .thenReturn(listOf(scanEntity("B1234AC"), scanEntity("B1234AC")))
 
-      val result = scanService.summariseScans(prisonerNumbers, fromScanDate, toScanDate)
+      val result = scanService.summariseScans(prisonerNumbers)
 
       assertThat(result).containsExactly(
         ScanSummaryResponse(
@@ -266,8 +265,8 @@ class ScanServiceTest {
           inconclusiveCount = 0,
           annualLimit = 116,
           remainingScans = 112,
-          fromScanDate = fromScanDate,
-          toScanDate = toScanDate,
+          fromScanDate = yearStart,
+          toScanDate = today,
         ),
         ScanSummaryResponse(
           prisonerNumber = "B1234AC",
@@ -279,8 +278,8 @@ class ScanServiceTest {
           inconclusiveCount = 0,
           annualLimit = 116,
           remainingScans = 114,
-          fromScanDate = fromScanDate,
-          toScanDate = toScanDate,
+          fromScanDate = yearStart,
+          toScanDate = today,
         ),
         ScanSummaryResponse(
           prisonerNumber = "C1234AB",
@@ -292,8 +291,8 @@ class ScanServiceTest {
           inconclusiveCount = 0,
           annualLimit = 116,
           remainingScans = 116,
-          fromScanDate = fromScanDate,
-          toScanDate = toScanDate,
+          fromScanDate = yearStart,
+          toScanDate = today,
         ),
       )
     }
@@ -304,7 +303,7 @@ class ScanServiceTest {
 
       whenever(prisonApiClient.getScanCareNeeds(listOf(prisonerNumber)))
         .thenReturn(listOf(PersonalCareNeedsResponse(offenderNo = prisonerNumber)))
-      whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(listOf(prisonerNumber), fromScanDate, toScanDate))
+      whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(listOf(prisonerNumber), yearStart, today))
         .thenReturn(
           listOf(
             scanEntity(prisonerNumber, outcome = "POSITIVE"),
@@ -314,7 +313,7 @@ class ScanServiceTest {
           ),
         )
 
-      val result = scanService.summariseScans(prisonerNumber, fromScanDate, toScanDate)
+      val result = scanService.summariseScans(prisonerNumber)
 
       assertThat(result.positiveCount).isEqualTo(1)
       assertThat(result.negativeCount).isEqualTo(2)
@@ -328,7 +327,7 @@ class ScanServiceTest {
 
       whenever(prisonApiClient.getScanCareNeeds(listOf(prisonerNumber)))
         .thenReturn(listOf(PersonalCareNeedsResponse(offenderNo = prisonerNumber)))
-      whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(listOf(prisonerNumber), fromScanDate, toScanDate))
+      whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(listOf(prisonerNumber), yearStart, today))
         .thenReturn(
           listOf(
             scanEntity(prisonerNumber),
@@ -339,7 +338,7 @@ class ScanServiceTest {
           ),
         )
 
-      val result = scanService.summariseScans(prisonerNumber, fromScanDate, toScanDate)
+      val result = scanService.summariseScans(prisonerNumber)
 
       assertThat(result.totalCount).isEqualTo(5)
       assertThat(result.remainingScans).isEqualTo(111)
@@ -390,7 +389,7 @@ class ScanServiceTest {
   ) = ScanEntity(
     prisonerNumber = prisonerNumber,
     prisonId = prisonId,
-    scanDate = LocalDate.now().minusDays(1),
+    scanDate = today.minusDays(1),
     justification = referenceData(ReferenceDataDomains.JUSTIFICATION, justification),
     outcome = referenceData(ReferenceDataDomains.OUTCOME, outcome),
     typeOfFind = typeOfFind?.let { referenceData(ReferenceDataDomains.TYPE_OF_FIND, typeOfFind) },

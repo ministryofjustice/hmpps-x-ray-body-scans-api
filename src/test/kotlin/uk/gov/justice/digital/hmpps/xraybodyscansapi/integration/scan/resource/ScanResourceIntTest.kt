@@ -12,15 +12,17 @@ import org.mockito.kotlin.eq
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
+import org.springframework.context.annotation.Import
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.http.MediaType
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.json.JsonCompareMode
-import org.springframework.web.util.UriComponentsBuilder
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.FixedClock
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.FixedClockConfiguration
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScanRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.ListScansRequest
@@ -28,17 +30,18 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanRespo
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanSummaryResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.ScanService
 import java.time.LocalDate
-import java.time.LocalDateTime
 import java.util.UUID
 
 @DisplayName("X-ray body scans resource")
+@Import(FixedClockConfiguration::class)
 class ScanResourceIntTest : IntegrationTestBase() {
+  companion object : FixedClock()
 
   @MockitoBean
   private lateinit var scanService: ScanService
 
   private val prisonerNumber = "A1234BC"
-  private val scanDate: LocalDate = LocalDate.now().minusDays(1)
+  private val scanDate: LocalDate = today.minusDays(1)
   private val id: UUID = UUID.randomUUID()
 
   @Nested
@@ -50,7 +53,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
       @Test
       fun `returns a page of scans`() {
         val scanIds = listOf(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID())
-        val scanDate = LocalDate.now().minusDays(5)
+        val scanDate = today.minusDays(5)
         whenever(scanService.listScans(prisonerNumber, ListScansRequest(), PageRequest.of(0, 20, Sort.by("scanDate").descending()))).thenReturn(
           PageImpl(
             scanIds.mapIndexed { index, id ->
@@ -240,7 +243,6 @@ class ScanResourceIntTest : IntegrationTestBase() {
 
       @Test
       fun `returns 201 when scanDate is today`() {
-        val today = LocalDate.now()
         val request = createScanRequest(scanDate = today)
         whenever(scanService.createScan(eq(prisonerNumber), any()))
           .thenReturn(
@@ -384,33 +386,9 @@ class ScanResourceIntTest : IntegrationTestBase() {
     @Nested
     @DisplayName("Happy paths")
     inner class HappyPath {
-      @ParameterizedTest(name = "returns scan counts for date filters: from {0} to {1}")
-      @CsvSource(
-        value = [
-          "           |           ",
-          "2026-06-24 |           ",
-          "           | 2026-06-24",
-          "2026-05-24 | 2026-06-24",
-        ],
-        delimiter = '|',
-      )
-      fun `returns scans with date filters`(fromScanDate: String?, toScanDate: String?) {
-        val url = UriComponentsBuilder.fromPath("/prisoner/$prisonerNumber/scan/summary")
-
-        val fromScanDate = if (fromScanDate != null) {
-          url.queryParam("fromScanDate", fromScanDate)
-          LocalDate.parse(fromScanDate)
-        } else {
-          LocalDate.parse("2026-01-01")
-        }
-        val toScanDate = if (toScanDate != null) {
-          url.queryParam("toScanDate", toScanDate)
-          LocalDate.parse(toScanDate)
-        } else {
-          LocalDate.now()
-        }
-
-        whenever(scanService.summariseScans(eq(prisonerNumber), eq(fromScanDate), eq(toScanDate)))
+      @Test
+      fun `returns scan summary for this calendar year`() {
+        whenever(scanService.summariseScans(prisonerNumber))
           .thenReturn(
             ScanSummaryResponse(
               prisonerNumber = prisonerNumber,
@@ -422,13 +400,13 @@ class ScanResourceIntTest : IntegrationTestBase() {
               inconclusiveCount = 1,
               annualLimit = 116,
               remainingScans = 110,
-              fromScanDate = fromScanDate,
-              toScanDate = toScanDate,
+              fromScanDate = yearStart,
+              toScanDate = today,
             ),
           )
 
         webTestClient.get()
-          .uri(url.toUriString())
+          .uri("/prisoner/$prisonerNumber/scan/summary")
           .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
           .exchange()
           .expectStatus().isOk
@@ -445,8 +423,8 @@ class ScanResourceIntTest : IntegrationTestBase() {
               "inconclusiveCount": 1,
               "annualLimit": 116,
               "remainingScans": 110,
-              "fromScanDate": "$fromScanDate",
-              "toScanDate": "$toScanDate"
+              "fromScanDate": "2026-01-01",
+              "toScanDate": "2026-07-27"
             }
             """,
             JsonCompareMode.STRICT,
@@ -461,7 +439,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
         ],
       )
       fun `permits role`(role: String) {
-        whenever(scanService.summariseScans(eq(prisonerNumber), any<LocalDate>(), any<LocalDate>()))
+        whenever(scanService.summariseScans(prisonerNumber))
           .thenReturn(
             ScanSummaryResponse(
               prisonerNumber = prisonerNumber,
@@ -473,8 +451,8 @@ class ScanResourceIntTest : IntegrationTestBase() {
               inconclusiveCount = 0,
               annualLimit = 116,
               remainingScans = 110,
-              fromScanDate = LocalDate.now(),
-              toScanDate = LocalDate.now().withDayOfMonth(1).withMonth(1),
+              fromScanDate = yearStart,
+              toScanDate = today,
             ),
           )
 
@@ -499,37 +477,19 @@ class ScanResourceIntTest : IntegrationTestBase() {
         },
       )
 
-      @ParameterizedTest(name = "returns 400 for invalid date filters: from {0} to {1}")
-      @CsvSource(
-        value = [
-          "yesterday |        ",
-          "          | June   ",
-          "2025      | 2026-01",
-        ],
-        delimiter = '|',
-      )
-      fun `returns 400 for invalid date filters`(fromScanDate: String?, toScanDate: String?) {
-        val url = UriComponentsBuilder.fromPath("/prisoner/$prisonerNumber/scan/summary")
-        fromScanDate?.let {
-          url.queryParam("fromScanDate", it)
-        }
-        toScanDate?.let {
-          url.queryParam("toScanDate", it)
-        }
+      @Test
+      fun `returns 400 when the prisonerNumber is malformed or missing`() {
         webTestClient.get()
-          .uri(url.toUriString())
+          .uri("/prisoner/RUBBISH/scan/summary")
           .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
           .exchange()
           .expectErrorResponse(
             userMessageContains = "Validation failure",
-            developerMessageContains = "Failed to convert value",
+            developerMessageContains = "prisonerNumber must be in the right form, e.g. A1234BC.",
           )
 
         verifyNoInteractions(scanService)
       }
-
-      // TODO: future dates 400?
-      // TODO: to is after from 400?
     }
   }
 
@@ -537,7 +497,7 @@ class ScanResourceIntTest : IntegrationTestBase() {
     id: UUID = UUID.randomUUID(),
     prisonerNumber: String,
     prisonId: String = "MDI",
-    scanDate: LocalDate = LocalDate.now().minusDays(1),
+    scanDate: LocalDate = today.minusDays(1),
     justification: String = "INTELLIGENCE",
     outcome: String = "NEGATIVE",
     typeOfFind: String? = null,
@@ -553,9 +513,9 @@ class ScanResourceIntTest : IntegrationTestBase() {
     outcomeDescription = outcome,
     typeOfFind = typeOfFind,
     typeOfFindDescription = typeOfFind,
-    createdAt = LocalDateTime.now(),
+    createdAt = now,
     createdBy = createdBy,
-    lastModifiedAt = LocalDateTime.now(),
+    lastModifiedAt = now,
     lastModifiedBy = createdBy,
   )
 }

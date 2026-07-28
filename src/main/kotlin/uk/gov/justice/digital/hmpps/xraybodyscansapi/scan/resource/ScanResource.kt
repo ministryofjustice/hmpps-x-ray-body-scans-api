@@ -1,7 +1,6 @@
 package uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.resource
 
 import io.swagger.v3.oas.annotations.Operation
-import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.media.Content
 import io.swagger.v3.oas.annotations.media.Schema
 import io.swagger.v3.oas.annotations.responses.ApiResponse
@@ -13,7 +12,6 @@ import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import org.springframework.data.web.PageableDefault
-import org.springframework.format.annotation.DateTimeFormat
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
@@ -22,7 +20,6 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO
@@ -35,9 +32,6 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanRespo
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanSummaryResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.ScanService
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
-import java.time.Clock
-import java.time.LocalDate
-import java.time.temporal.TemporalAdjusters.firstDayOfYear
 
 @RestController
 @Tag(
@@ -49,7 +43,6 @@ import java.time.temporal.TemporalAdjusters.firstDayOfYear
   produces = [MediaType.APPLICATION_JSON_VALUE],
 )
 class ScanResource(
-  private val clock: Clock,
   private val scanService: ScanService,
 ) {
   @GetMapping
@@ -172,7 +165,7 @@ class ScanResource(
   @RequireReadRole
   @Operation(
     summary = "Count x-ray body scans for a prisoner",
-    description = "Returns the total number of x-ray body scans for the given prisoner. " +
+    description = "Returns the total number of x-ray body scans for the given prisoner this calendar year and how many remain. " +
       "If the prisoner is not found, the count will default to zero. " +
       "Ensure the prisoner exists prior to use.",
     responses = [
@@ -209,17 +202,5 @@ class ScanResource(
       message = "prisonerNumber must be in the right form, e.g. A1234BC.",
     )
     prisonerNumber: String,
-    @RequestParam(required = false)
-    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-    @Parameter(description = "Summarise scans on or after this date (YYYY-MM-DD). Defaults to the start of this calendar year if no `toScanDate` is provided or the beginning of the `toScanDate` calendar year.")
-    fromScanDate: LocalDate?,
-    @RequestParam(required = false)
-    @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-    @Parameter(description = "Summarise scans on or before this date (YYYY-MM-DD). Defaults to today.")
-    toScanDate: LocalDate?,
-  ): ScanSummaryResponse {
-    val toScanDate = toScanDate ?: LocalDate.now(clock)
-    val fromScanDate = fromScanDate ?: toScanDate.with(firstDayOfYear())
-    return scanService.summariseScans(prisonerNumber, fromScanDate, toScanDate)
-  }
+  ): ScanSummaryResponse = scanService.summariseScans(prisonerNumber)
 }
