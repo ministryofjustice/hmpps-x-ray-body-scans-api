@@ -12,6 +12,7 @@ import org.mockito.kotlin.eq
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Import
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
@@ -34,7 +35,10 @@ import java.util.UUID
 
 @DisplayName("X-ray body scans resource")
 @Import(FixedClockConfiguration::class)
-class ScanResourceIntTest : IntegrationTestBase() {
+class ScanResourceIntTest(
+  @Value($$"${scan.annual-limit}") private val scanAnnualLimit: Int,
+  @Value($$"${scan.nearing-limit-threshold}") private val nearingLimitThreshold: Int,
+) : IntegrationTestBase() {
   companion object : FixedClock()
 
   @MockitoBean
@@ -390,18 +394,13 @@ class ScanResourceIntTest : IntegrationTestBase() {
       fun `returns scan summary for this calendar year`() {
         whenever(scanService.summariseScans(prisonerNumber))
           .thenReturn(
-            ScanSummaryResponse(
+            summaryResponse(
               prisonerNumber = prisonerNumber,
               nomisCount = 4,
               dpsCount = 2,
-              totalCount = 6,
               positiveCount = 1,
               negativeCount = 1,
               inconclusiveCount = 1,
-              annualLimit = 116,
-              remainingScans = 110,
-              fromScanDate = yearStart,
-              toScanDate = today,
             ),
           )
 
@@ -423,6 +422,8 @@ class ScanResourceIntTest : IntegrationTestBase() {
               "inconclusiveCount": 1,
               "annualLimit": 116,
               "remainingScans": 110,
+              "nearingScanLimit": false,
+              "atScanLimit": false,
               "fromScanDate": "2026-01-01",
               "toScanDate": "2026-07-27"
             }
@@ -441,18 +442,11 @@ class ScanResourceIntTest : IntegrationTestBase() {
       fun `permits role`(role: String) {
         whenever(scanService.summariseScans(prisonerNumber))
           .thenReturn(
-            ScanSummaryResponse(
+            summaryResponse(
               prisonerNumber = prisonerNumber,
               nomisCount = 4,
               dpsCount = 2,
-              totalCount = 6,
-              positiveCount = 0,
               negativeCount = 2,
-              inconclusiveCount = 0,
-              annualLimit = 116,
-              remainingScans = 110,
-              fromScanDate = yearStart,
-              toScanDate = today,
             ),
           )
 
@@ -517,5 +511,32 @@ class ScanResourceIntTest : IntegrationTestBase() {
     createdBy = createdBy,
     lastModifiedAt = now,
     lastModifiedBy = createdBy,
+  )
+
+  private fun summaryResponse(
+    prisonerNumber: String,
+    nomisCount: Int,
+    dpsCount: Int,
+    totalCount: Int = nomisCount + dpsCount,
+    positiveCount: Int = 0,
+    negativeCount: Int = 0,
+    inconclusiveCount: Int = 0,
+    remainingScans: Int = scanAnnualLimit - totalCount,
+    nearingScanLimit: Boolean = totalCount >= nearingLimitThreshold,
+    atScanLimit: Boolean = remainingScans <= 0,
+  ) = ScanSummaryResponse(
+    prisonerNumber = prisonerNumber,
+    nomisCount = nomisCount,
+    dpsCount = dpsCount,
+    totalCount = totalCount,
+    positiveCount = positiveCount,
+    negativeCount = negativeCount,
+    inconclusiveCount = inconclusiveCount,
+    remainingScans = remainingScans,
+    annualLimit = scanAnnualLimit,
+    nearingScanLimit = nearingScanLimit,
+    atScanLimit = atScanLimit,
+    fromScanDate = yearStart,
+    toScanDate = today,
   )
 }

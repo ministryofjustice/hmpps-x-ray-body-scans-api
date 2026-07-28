@@ -70,6 +70,17 @@ data class ScanSummaryResponse(
   val remainingScans: Int,
 
   @Schema(
+    description = "Whether this person will soon reach their annual limit this calendar year",
+    requiredMode = Schema.RequiredMode.REQUIRED,
+  )
+  val nearingScanLimit: Boolean,
+  @Schema(
+    description = "Whether this person has reached their annual limit this calendar year",
+    requiredMode = Schema.RequiredMode.REQUIRED,
+  )
+  val atScanLimit: Boolean,
+
+  @Schema(
     description = "The earliest date of the period over which these scans were counted (inclusive)",
     example = "2026-01-01",
     type = "string",
