@@ -19,14 +19,18 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanSumma
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanEntity
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanRepository
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.filterByPrisonerNumber
+import java.time.Clock
 import java.time.LocalDate
+import java.time.temporal.TemporalAdjusters.firstDayOfYear
 
 @Service
 class ScanService(
+  private val clock: Clock,
   private val codeRepository: ReferenceDataCodeRepository,
   private val scanRepository: ScanRepository,
   private val prisonApiClient: PrisonApiClient,
   @Value($$"${scan.annual-limit}") private val scanAnnualLimit: Int,
+  @Value($$"${scan.nearing-limit-threshold}") private val nearingLimitThreshold: Int,
 ) {
   @Transactional(readOnly = true)
   fun listScans(
@@ -62,18 +66,11 @@ class ScanService(
   }
 
   @Transactional(readOnly = true)
-  fun summariseScans(
-    prisonerNumber: String,
-    fromScanDate: LocalDate,
-    toScanDate: LocalDate,
-  ): ScanSummaryResponse = summariseScans(listOf(prisonerNumber), fromScanDate, toScanDate).first()
+  fun summariseScans(prisonerNumber: String): ScanSummaryResponse = summariseScans(listOf(prisonerNumber)).first()
 
   @Transactional(readOnly = true)
-  fun summariseScans(
-    prisonerNumbers: List<String>,
-    fromScanDate: LocalDate,
-    toScanDate: LocalDate,
-  ): List<ScanSummaryResponse> {
+  fun summariseScans(prisonerNumbers: List<String>): List<ScanSummaryResponse> {
+    val (fromScanDate, toScanDate) = calendarYear()
     val nomisCounts = getNomisScanCounts(prisonerNumbers, fromScanDate, toScanDate)
     val dpsScans = scanRepository
       .findByPrisonerNumberInAndScanDateBetween(prisonerNumbers, fromScanDate, toScanDate)
@@ -83,21 +80,33 @@ class ScanService(
       val nomisCount = nomisCounts[prisonerNumber] ?: 0
       val scans = dpsScans[prisonerNumber] ?: emptyList()
       val dpsCount = scans.size
-      val outcomes = scans.groupingBy { it.outcome.code }.eachCount()
+      val totalCount = nomisCount + dpsCount
+      val dpsOutcomes = scans.groupingBy { it.outcome.code }.eachCount()
+      val remainingScans = scanAnnualLimit - totalCount
+      val nearingScanLimit = totalCount >= nearingLimitThreshold
+      val atScanLimit = remainingScans <= 0
       ScanSummaryResponse(
         prisonerNumber = prisonerNumber,
         nomisCount = nomisCount,
         dpsCount = dpsCount,
-        totalCount = nomisCount + dpsCount,
-        positiveCount = outcomes.getOrDefault("POSITIVE", 0),
-        negativeCount = outcomes.getOrDefault("NEGATIVE", 0),
-        inconclusiveCount = outcomes.getOrDefault("INCONCLUSIVE", 0),
+        totalCount = totalCount,
+        positiveCount = dpsOutcomes.getOrDefault("POSITIVE", 0),
+        negativeCount = dpsOutcomes.getOrDefault("NEGATIVE", 0),
+        inconclusiveCount = dpsOutcomes.getOrDefault("INCONCLUSIVE", 0),
         annualLimit = scanAnnualLimit,
-        remainingScans = scanAnnualLimit - (nomisCount + dpsCount),
+        remainingScans = remainingScans,
+        nearingScanLimit = nearingScanLimit,
+        atScanLimit = atScanLimit,
         fromScanDate = fromScanDate,
         toScanDate = toScanDate,
       )
     }
+  }
+
+  private fun calendarYear(): Pair<LocalDate, LocalDate> {
+    val today = LocalDate.now(clock)
+    val startOfYear = today.with(firstDayOfYear())
+    return startOfYear to today
   }
 
   private fun getNomisScanCounts(

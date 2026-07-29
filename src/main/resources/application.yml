@@ -4,6 +4,7 @@ service:
 
 scan:
   annual-limit: 116
+  nearing-limit-threshold: 100
 
 info.app:
   name: HMPPS X-ray Body Scans API
@@ -17,6 +18,8 @@ spring:
 #  It is ignored for LocalDateTime, and therefore unnecessary for most projects
 #  jackson:
 #    date-format: "yyyy-MM-dd HH:mm:ss"
+  jackson:
+    time-zone: Europe/London
 
   security:
     oauth2:
