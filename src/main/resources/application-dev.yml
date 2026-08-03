@@ -3,6 +3,8 @@ api:
     base-url: "https://sign-in-dev.hmpps.service.justice.gov.uk/auth"
   prison-api:
     base-url: "https://prison-api-dev.prison.service.justice.gov.uk"
+  alerts-api:
+    base-url: "https://alerts-api-dev.hmpps.service.justice.gov.uk"
 
 springdoc:
   api-docs:

@@ -8,6 +8,7 @@ management.endpoint:
 api:
   hmpps-auth.base-url: http://localhost:8090/auth
   prison-api.base-url: http://localhost:8091
+  alerts-api.base-url: http://localhost:8092
 
 springdoc:
   api-docs:

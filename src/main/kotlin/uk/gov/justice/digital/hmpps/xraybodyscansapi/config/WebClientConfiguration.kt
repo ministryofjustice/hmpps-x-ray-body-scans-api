@@ -22,15 +22,23 @@ import java.time.Duration
 class WebClientConfiguration(
   @Value($$"${api.hmpps-auth.base-url}") private val hmppsAuthBaseUri: String,
   @Value($$"${api.hmpps-auth.health-timeout:20s}") private val hmppsAuthHealthTimeout: Duration,
+
   @Value($$"${api.prison-api.base-url}") private val prisonApiBaseUri: String,
   @Value($$"${api.prison-api.timeout:30s}") private val prisonApiTimeout: Duration,
   @Value($$"${api.prison-api.health-timeout:20s}") private val prisonApiHealthTimeout: Duration,
+
+  @Value($$"${api.alerts-api.base-url}") private val alertsApiBaseUri: String,
+  @Value($$"${api.alerts-api.timeout:30s}") private val alertsApiTimeout: Duration,
+  @Value($$"${api.alerts-api.health-timeout:20s}") private val alertsApiHealthTimeout: Duration,
 ) {
   @Bean
   fun hmppsAuthHealthWebClient(builder: Builder): WebClient = builder.healthWebClient(hmppsAuthBaseUri, hmppsAuthHealthTimeout)
 
   @Bean
   fun prisonApiHealthWebClient(builder: Builder): WebClient = builder.healthWebClient(prisonApiBaseUri, prisonApiHealthTimeout)
+
+  @Bean
+  fun alertsApiHealthWebClient(builder: Builder): WebClient = builder.healthWebClient(alertsApiBaseUri, alertsApiHealthTimeout)
 
   @Bean
   @RequestScope
@@ -42,6 +50,18 @@ class WebClientConfiguration(
     "hmpps-x-ray-body-scans-api",
     prisonApiBaseUri,
     prisonApiTimeout,
+  )
+
+  @Bean
+  @RequestScope
+  fun alertsApiWebClient(
+    clientRegistrationRepository: ClientRegistrationRepository,
+    builder: Builder,
+  ) = builder.authorisedWebClient(
+    authorizedClientManagerUserEnhanced(clientRegistrationRepository),
+    "hmpps-x-ray-body-scans-api",
+    alertsApiBaseUri,
+    alertsApiTimeout,
   )
 
   private fun authorizedClientManagerUserEnhanced(clients: ClientRegistrationRepository): OAuth2AuthorizedClientManager {

@@ -22,7 +22,6 @@ class PrisonApiClientTest {
 
   @BeforeEach
   fun resetMocks() {
-    prisonApi.resetRequests()
     val webClient = WebClient.create("http://localhost:${prisonApi.port()}")
     client = PrisonApiClient(webClient)
   }
