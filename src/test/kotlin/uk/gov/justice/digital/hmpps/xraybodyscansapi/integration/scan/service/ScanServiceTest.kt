@@ -20,6 +20,7 @@ import org.springframework.data.jpa.domain.Specification
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.PrisonApiClient
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.response.PersonalCareNeed
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.response.PersonalCareNeedsResponse
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.FixedClock
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.dto.response.ReferenceDataDomains
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.repository.ReferenceDataCodeEntity
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.repository.ReferenceDataCodeRepository
@@ -32,10 +33,19 @@ import java.time.LocalDate
 import java.util.UUID
 
 class ScanServiceTest {
+  companion object : FixedClock()
+
   private val codeRepository = mock<ReferenceDataCodeRepository>()
   private val scanRepository = mock<ScanRepository>()
   private val prisonApiClient = mock<PrisonApiClient>()
-  private val scanService = ScanService(codeRepository, scanRepository, prisonApiClient, scanAnnualLimit = 116)
+  private val scanService = ScanService(
+    clock,
+    codeRepository,
+    scanRepository,
+    prisonApiClient,
+    scanAnnualLimit = 116,
+    nearingLimitThreshold = 100,
+  )
 
   @Nested
   inner class List {
@@ -81,7 +91,7 @@ class ScanServiceTest {
   inner class Create {
 
     private val prisonerNumber = "A1234BC"
-    private val scanDate: LocalDate = LocalDate.now().minusDays(1)
+    private val scanDate: LocalDate = today.minusDays(1)
 
     @Test
     fun `persists a scan entity built from the request and returns response built from the saved entity`() {
@@ -135,10 +145,6 @@ class ScanServiceTest {
 
   @Nested
   inner class Summarise {
-
-    private val fromScanDate: LocalDate = LocalDate.parse("2026-01-01")
-    private val toScanDate: LocalDate = LocalDate.parse("2026-02-01")
-
     @Test
     fun `returns correct counts for a list of prisoners, filtering nomis scans by date range`() {
       val prisonerNumbers = listOf("A1234BC", "B1234AC")
@@ -160,7 +166,7 @@ class ScanServiceTest {
             ),
           ),
         )
-      whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(prisonerNumbers, fromScanDate, toScanDate))
+      whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(prisonerNumbers, yearStart, today))
         .thenReturn(
           listOf(
             scanEntity("A1234BC"),
@@ -170,7 +176,7 @@ class ScanServiceTest {
           ),
         )
 
-      val result = scanService.summariseScans(prisonerNumbers, fromScanDate, toScanDate)
+      val result = scanService.summariseScans(prisonerNumbers)
 
       assertThat(result).containsExactly(
         ScanSummaryResponse(
@@ -183,8 +189,10 @@ class ScanServiceTest {
           inconclusiveCount = 0,
           annualLimit = 116,
           remainingScans = 111,
-          fromScanDate = fromScanDate,
-          toScanDate = toScanDate,
+          nearingScanLimit = false,
+          atScanLimit = false,
+          fromScanDate = yearStart,
+          toScanDate = today,
         ),
         ScanSummaryResponse(
           prisonerNumber = "B1234AC",
@@ -196,8 +204,10 @@ class ScanServiceTest {
           inconclusiveCount = 0,
           annualLimit = 116,
           remainingScans = 114,
-          fromScanDate = fromScanDate,
-          toScanDate = toScanDate,
+          nearingScanLimit = false,
+          atScanLimit = false,
+          fromScanDate = yearStart,
+          toScanDate = today,
         ),
       )
     }
@@ -215,10 +225,10 @@ class ScanServiceTest {
             ),
           ),
         )
-      whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(listOf(prisonerNumber), fromScanDate, toScanDate))
+      whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(listOf(prisonerNumber), yearStart, today))
         .thenReturn(listOf(scanEntity("A1234BC"), scanEntity("A1234BC"), scanEntity("A1234BC")))
 
-      val result = scanService.summariseScans(prisonerNumber, fromScanDate, toScanDate)
+      val result = scanService.summariseScans(prisonerNumber)
 
       assertThat(result).isEqualTo(
         ScanSummaryResponse(
@@ -231,8 +241,10 @@ class ScanServiceTest {
           inconclusiveCount = 0,
           annualLimit = 116,
           remainingScans = 111,
-          fromScanDate = fromScanDate,
-          toScanDate = toScanDate,
+          nearingScanLimit = false,
+          atScanLimit = false,
+          fromScanDate = yearStart,
+          toScanDate = today,
         ),
       )
     }
@@ -250,10 +262,10 @@ class ScanServiceTest {
             ),
           ),
         )
-      whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(prisonerNumbers, fromScanDate, toScanDate))
+      whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(prisonerNumbers, yearStart, today))
         .thenReturn(listOf(scanEntity("B1234AC"), scanEntity("B1234AC")))
 
-      val result = scanService.summariseScans(prisonerNumbers, fromScanDate, toScanDate)
+      val result = scanService.summariseScans(prisonerNumbers)
 
       assertThat(result).containsExactly(
         ScanSummaryResponse(
@@ -266,8 +278,10 @@ class ScanServiceTest {
           inconclusiveCount = 0,
           annualLimit = 116,
           remainingScans = 112,
-          fromScanDate = fromScanDate,
-          toScanDate = toScanDate,
+          nearingScanLimit = false,
+          atScanLimit = false,
+          fromScanDate = yearStart,
+          toScanDate = today,
         ),
         ScanSummaryResponse(
           prisonerNumber = "B1234AC",
@@ -279,8 +293,10 @@ class ScanServiceTest {
           inconclusiveCount = 0,
           annualLimit = 116,
           remainingScans = 114,
-          fromScanDate = fromScanDate,
-          toScanDate = toScanDate,
+          nearingScanLimit = false,
+          atScanLimit = false,
+          fromScanDate = yearStart,
+          toScanDate = today,
         ),
         ScanSummaryResponse(
           prisonerNumber = "C1234AB",
@@ -292,8 +308,10 @@ class ScanServiceTest {
           inconclusiveCount = 0,
           annualLimit = 116,
           remainingScans = 116,
-          fromScanDate = fromScanDate,
-          toScanDate = toScanDate,
+          nearingScanLimit = false,
+          atScanLimit = false,
+          fromScanDate = yearStart,
+          toScanDate = today,
         ),
       )
     }
@@ -304,7 +322,7 @@ class ScanServiceTest {
 
       whenever(prisonApiClient.getScanCareNeeds(listOf(prisonerNumber)))
         .thenReturn(listOf(PersonalCareNeedsResponse(offenderNo = prisonerNumber)))
-      whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(listOf(prisonerNumber), fromScanDate, toScanDate))
+      whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(listOf(prisonerNumber), yearStart, today))
         .thenReturn(
           listOf(
             scanEntity(prisonerNumber, outcome = "POSITIVE"),
@@ -314,7 +332,7 @@ class ScanServiceTest {
           ),
         )
 
-      val result = scanService.summariseScans(prisonerNumber, fromScanDate, toScanDate)
+      val result = scanService.summariseScans(prisonerNumber)
 
       assertThat(result.positiveCount).isEqualTo(1)
       assertThat(result.negativeCount).isEqualTo(2)
@@ -328,7 +346,7 @@ class ScanServiceTest {
 
       whenever(prisonApiClient.getScanCareNeeds(listOf(prisonerNumber)))
         .thenReturn(listOf(PersonalCareNeedsResponse(offenderNo = prisonerNumber)))
-      whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(listOf(prisonerNumber), fromScanDate, toScanDate))
+      whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(listOf(prisonerNumber), yearStart, today))
         .thenReturn(
           listOf(
             scanEntity(prisonerNumber),
@@ -339,18 +357,91 @@ class ScanServiceTest {
           ),
         )
 
-      val result = scanService.summariseScans(prisonerNumber, fromScanDate, toScanDate)
+      val result = scanService.summariseScans(prisonerNumber)
 
       assertThat(result.totalCount).isEqualTo(5)
       assertThat(result.remainingScans).isEqualTo(111)
     }
 
-    private fun bscan(startDate: String) = PersonalCareNeed(
+    @Test
+    fun `flags prisoners who are nearing or have reached the annual limit`() {
+      // A1234BC is over limit
+      // B1234AC is at limit
+      // C1234AB is over nearing limit threshold, but below limit
+      // D1234FG is at nearing limit threshold
+      // E1234HI is below nearing limit threshold
+
+      val prisonerNumbers = listOf("A1234BC", "B1234AC", "C1234AB", "D1234FG", "E1234HI")
+      whenever(prisonApiClient.getScanCareNeeds(prisonerNumbers))
+        .thenReturn(
+          listOf(
+            // A1234BC has 50 nomis scans
+            PersonalCareNeedsResponse(
+              offenderNo = "A1234BC",
+              personalCareNeeds = (1L..50).map {
+                bscan(yearStart.plusDays(it))
+              },
+            ),
+            // B1234AC, C1234AB and D1234FG have 0 nomis scans
+            PersonalCareNeedsResponse(offenderNo = "B1234AC"),
+            PersonalCareNeedsResponse(offenderNo = "C1234AB"),
+            PersonalCareNeedsResponse(offenderNo = "D1234FG"),
+            // E1234HI has no nomis scans
+          ),
+        )
+
+      whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(prisonerNumbers, yearStart, today))
+        .thenReturn(
+          buildList {
+            // A1234BC has 67 dps scans
+            repeat(67) { add(scanEntity("A1234BC")) }
+            // B1234AC has 116 dps scans
+            repeat(116) { add(scanEntity("B1234AC")) }
+            // C1234AB has 101 dps scans
+            repeat(101) { add(scanEntity("C1234AB")) }
+            // D1234FG has 100 dps scans
+            repeat(100) { add(scanEntity("D1234FG")) }
+            // E1234HI has no dps scans
+          }.shuffled(),
+        )
+
+      val result = scanService.summariseScans(prisonerNumbers)
+
+      data class SimplifiedSummary(
+        val prisonerNumber: String,
+        val totalCount: Int,
+        val remainingScans: Int,
+        val nearingScanLimit: Boolean,
+        val atScanLimit: Boolean,
+      )
+      val simpleResult = result.map {
+        SimplifiedSummary(
+          prisonerNumber = it.prisonerNumber,
+          totalCount = it.totalCount,
+          remainingScans = it.remainingScans,
+          nearingScanLimit = it.nearingScanLimit,
+          atScanLimit = it.atScanLimit,
+        )
+      }
+
+      assertThat(simpleResult).isEqualTo(
+        listOf(
+          SimplifiedSummary("A1234BC", 117, -1, true, true),
+          SimplifiedSummary("B1234AC", 116, 0, true, true),
+          SimplifiedSummary("C1234AB", 101, 15, true, false),
+          SimplifiedSummary("D1234FG", 100, 16, true, false),
+          SimplifiedSummary("E1234HI", 0, 116, false, false),
+        ),
+      )
+    }
+
+    private fun bscan(startDate: String) = bscan(LocalDate.parse(startDate))
+    private fun bscan(startDate: LocalDate) = PersonalCareNeed(
       personalCareNeedId = 1,
       problemType = "BSCAN",
       problemCode = "xyz",
       problemStatus = "xyz",
-      startDate = LocalDate.parse(startDate),
+      startDate = startDate,
     )
   }
 
@@ -390,7 +481,7 @@ class ScanServiceTest {
   ) = ScanEntity(
     prisonerNumber = prisonerNumber,
     prisonId = prisonId,
-    scanDate = LocalDate.now().minusDays(1),
+    scanDate = today.minusDays(1),
     justification = referenceData(ReferenceDataDomains.JUSTIFICATION, justification),
     outcome = referenceData(ReferenceDataDomains.OUTCOME, outcome),
     typeOfFind = typeOfFind?.let { referenceData(ReferenceDataDomains.TYPE_OF_FIND, typeOfFind) },
