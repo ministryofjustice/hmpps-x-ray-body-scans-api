@@ -486,18 +486,18 @@ class ScanServiceTest {
             "A1234AA" to listOf(
               AlertResponseDto(
                 id = "019fcc21-8aaf-75a8-9c27-ec1e006fe35e",
-                alertType = "X",
+                type = "X",
                 typeDescription = "X",
-                alertCode = "XXRAY",
+                code = "XXRAY",
                 codeDescription = "XXRAY",
               ),
             ),
             "B1234BB" to listOf(
               AlertResponseDto(
                 id = "019fcc21-8df6-7278-8869-8fe992a46c68",
-                alertType = "X",
+                type = "X",
                 typeDescription = "X",
-                alertCode = "XIS",
+                code = "XIS",
                 codeDescription = "XIS",
               ),
             ),

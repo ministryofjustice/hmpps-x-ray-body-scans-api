@@ -14,7 +14,7 @@ data class AlertResponse(
     description = "Internal type",
     requiredMode = Schema.RequiredMode.REQUIRED,
   )
-  val alertType: String,
+  val type: String,
   @Schema(
     description = "Alert type description",
     requiredMode = Schema.RequiredMode.REQUIRED,
@@ -24,7 +24,7 @@ data class AlertResponse(
     description = "Internal code",
     requiredMode = Schema.RequiredMode.REQUIRED,
   )
-  val alertCode: String,
+  val code: String,
   @Schema(
     description = "Alert code description",
     requiredMode = Schema.RequiredMode.REQUIRED,
@@ -33,9 +33,9 @@ data class AlertResponse(
 ) {
   constructor(alert: Alert) : this(
     id = alert.alertUuid,
-    alertType = alert.alertCode.alertTypeCode,
+    type = alert.alertCode.alertTypeCode,
     typeDescription = alert.alertCode.alertTypeDescription,
-    alertCode = alert.alertCode.code,
+    code = alert.alertCode.code,
     codeDescription = alert.alertCode.description,
   )
 }
