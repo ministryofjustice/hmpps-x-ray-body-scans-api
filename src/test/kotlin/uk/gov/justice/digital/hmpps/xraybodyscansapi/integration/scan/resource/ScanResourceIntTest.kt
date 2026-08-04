@@ -423,6 +423,7 @@ class ScanResourceIntTest(
               "annualLimit": 116,
               "remainingScans": 110,
               "nearingScanLimit": false,
+              "relevantAlerts": null,
               "atScanLimit": false,
               "fromScanDate": "2026-01-01",
               "toScanDate": "2026-07-27"

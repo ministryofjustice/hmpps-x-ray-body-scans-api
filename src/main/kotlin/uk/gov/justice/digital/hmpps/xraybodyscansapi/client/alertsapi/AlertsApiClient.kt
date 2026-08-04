@@ -11,7 +11,7 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.DownstreamServiceExc
 class AlertsApiClient(
   @Qualifier("alertsApiWebClient") private val webClient: WebClient,
 ) {
-  /** Bulk-get alerts for given prisoners. Requires ROLE_PRISONER_ALERTS__RO */
+  /** Bulk-get alerts for given prisoners. Requires ROLE_PRISONER_ALERTS__RO or ROLE_PRISONER_ALERTS__RW */
   fun getAlerts(prisonerNumbers: List<String>): AlertResponse = try {
     webClient.post().uri("/search/alerts/prison-numbers")
       .bodyValue(prisonerNumbers).retrieve()
