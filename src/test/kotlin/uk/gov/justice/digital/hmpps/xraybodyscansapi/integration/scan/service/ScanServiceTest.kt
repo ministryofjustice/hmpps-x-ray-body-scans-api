@@ -54,6 +54,7 @@ class ScanServiceTest {
     alertsApiClient,
     scanAnnualLimit = 116,
     nearingLimitThreshold = 100,
+    relevantAlertCodes = setOf("XIS"),
   )
 
   @Nested

@@ -34,6 +34,7 @@ class ScanService(
   private val alertsApiClient: AlertsApiClient,
   @Value($$"${scan.annual-limit}") private val scanAnnualLimit: Int,
   @Value($$"${scan.nearing-limit-threshold}") private val nearingLimitThreshold: Int,
+  @Value($$"${scan.relevant-alert-codes:}") private val relevantAlertCodes: Set<String>,
 ) {
   @Transactional(readOnly = true)
   fun listScans(
@@ -163,6 +164,6 @@ class ScanService(
 
   private fun getRelevantAlerts(prisonerNumbers: List<String>): Map<String, List<AlertResponse>> = alertsApiClient.getAlerts(prisonerNumbers)
     .toList()
-    .filter { setOf("XIS").contains(it.alertCode.code) }
+    .filter { relevantAlertCodes.contains(it.alertCode.code) }
     .groupBy({ it.prisonerNumber }, { AlertResponse(it) })
 }
