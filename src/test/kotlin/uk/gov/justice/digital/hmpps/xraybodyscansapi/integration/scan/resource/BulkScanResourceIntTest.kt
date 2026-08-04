@@ -7,6 +7,9 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
+import org.mockito.kotlin.any
+import org.mockito.kotlin.eq
+import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Value
@@ -33,7 +36,8 @@ class BulkScanResourceIntTest(
           summaryResponse(prisonerNumber = "A1234BC", nomisCount = 4, dpsCount = 2, positiveCount = 1, negativeCount = 1, inconclusiveCount = 1),
           summaryResponse(prisonerNumber = "B5678DE", nomisCount = 0, dpsCount = 1, negativeCount = 1),
         )
-        whenever(scanService.summariseScans(listOf("A1234BC", "B5678DE"))).thenReturn(expected)
+        whenever(scanService.summariseScans(any<List<String>>(), any()))
+          .thenReturn(expected)
 
         val result = webTestClient.post()
           .uri("/bulk/summary")
@@ -46,6 +50,37 @@ class BulkScanResourceIntTest(
           .returnResult().responseBody
 
         assertThat(result).isEqualTo(expected)
+        verify(scanService).summariseScans(eq(listOf("A1234BC", "B5678DE")), eq(false))
+      }
+
+      @Test
+      fun `returns relevant alerts when requested`() {
+        val response = summaryResponse(
+          prisonerNumber = "A1234BC",
+          nomisCount = 0,
+          dpsCount = 0,
+          relevantAlerts = listOf(alertResponse(), alertResponse("XXRAY", "Do Not X-Ray Body Scan")),
+        )
+        whenever(scanService.summariseScans(any<List<String>>(), any()))
+          .thenReturn(listOf(response))
+
+        val result = webTestClient.post()
+          .uri("/bulk/summary")
+          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
+          .contentType(MediaType.APPLICATION_JSON)
+          .bodyValue(
+            // language=json
+            """
+            {"prisonerNumbers": ["A1234BC"], "includeAlerts": true}
+            """,
+          )
+          .exchange()
+          .expectStatus().isOk
+          .expectBodyList(ScanSummaryResponse::class.java)
+          .returnResult().responseBody
+
+        assertThat(result).isEqualTo(listOf(response))
+        verify(scanService).summariseScans(eq(listOf("A1234BC")), eq(true))
       }
 
       @ParameterizedTest(name = "permits role {0}")

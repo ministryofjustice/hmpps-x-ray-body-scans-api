@@ -6,6 +6,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.FixedClock
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.FixedClockConfiguration
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.AlertResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanSummaryResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.ScanService
 
@@ -30,6 +31,7 @@ abstract class BaseScanResourceIntTest(
     remainingScans: Int = scanAnnualLimit - totalCount,
     nearingScanLimit: Boolean = totalCount >= nearingLimitThreshold,
     atScanLimit: Boolean = remainingScans <= 0,
+    relevantAlerts: List<AlertResponse>? = null,
   ) = ScanSummaryResponse(
     prisonerNumber = prisonerNumber,
     nomisCount = nomisCount,
@@ -42,8 +44,16 @@ abstract class BaseScanResourceIntTest(
     annualLimit = scanAnnualLimit,
     nearingScanLimit = nearingScanLimit,
     atScanLimit = atScanLimit,
-    relevantAlerts = null,
+    relevantAlerts = relevantAlerts,
     fromScanDate = yearStart,
     toScanDate = today,
+  )
+
+  protected fun alertResponse(code: String = "XIS", codeDescription: String = "Internal Secretor") = AlertResponse(
+    id = "019fcc21-8aaf-75a8-9c27-ec1e006fe35e",
+    type = "X",
+    typeDescription = "Security",
+    code = code,
+    codeDescription = codeDescription,
   )
 }

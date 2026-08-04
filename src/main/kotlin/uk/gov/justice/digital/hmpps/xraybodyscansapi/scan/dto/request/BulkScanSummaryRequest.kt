@@ -11,7 +11,7 @@ data class BulkScanSummaryRequest(
     example = "[\"A1234BC\", \"B5678DE\"]",
     requiredMode = Schema.RequiredMode.REQUIRED,
   )
-  @field:NotEmpty(message = "prisonerNumbers must not be empty")
+  @NotEmpty(message = "prisonerNumbers must not be empty")
   val prisonerNumbers: List<
     @Pattern(
       regexp = "^[A-Z]\\d{4}[A-Z]{2}$",
@@ -19,4 +19,10 @@ data class BulkScanSummaryRequest(
     )
     String,
     >,
+
+  @Schema(
+    description = "Whether relevant alerts should be included (alerts field is null otherwise)",
+    requiredMode = Schema.RequiredMode.NOT_REQUIRED,
+  )
+  val includeAlerts: Boolean = false,
 )

@@ -380,7 +380,7 @@ class ScanResourceIntTest(
     inner class HappyPath {
       @Test
       fun `returns scan summary for this calendar year`() {
-        whenever(scanService.summariseScans(prisonerNumber))
+        whenever(scanService.summariseScans(any<String>(), any()))
           .thenReturn(
             summaryResponse(
               prisonerNumber = prisonerNumber,
@@ -411,14 +411,52 @@ class ScanResourceIntTest(
               "annualLimit": 116,
               "remainingScans": 110,
               "nearingScanLimit": false,
-              "relevantAlerts": null,
               "atScanLimit": false,
+              "relevantAlerts": null,
               "fromScanDate": "2026-01-01",
               "toScanDate": "2026-07-27"
             }
             """,
             JsonCompareMode.STRICT,
           )
+
+        verify(scanService).summariseScans(eq(prisonerNumber), eq(false))
+      }
+
+      @Test
+      fun `returns relevant alerts when requested`() {
+        whenever(scanService.summariseScans(any<String>(), any()))
+          .thenReturn(
+            summaryResponse(
+              prisonerNumber = prisonerNumber,
+              nomisCount = 0,
+              dpsCount = 0,
+              relevantAlerts = listOf(alertResponse()),
+            ),
+          )
+
+        webTestClient.get()
+          .uri("/prisoner/$prisonerNumber/scan/summary?includeAlerts=true")
+          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
+          .exchange()
+          .expectStatus().isOk
+          .expectBody().json(
+            // language=json
+            """
+            {
+              "prisonerNumber": "$prisonerNumber",
+              "totalCount": 0,
+              "relevantAlerts": [{
+                "id": "019fcc21-8aaf-75a8-9c27-ec1e006fe35e",
+                "type": "X", "typeDescription": "Security",
+                "code": "XIS", "codeDescription": "Internal Secretor"
+              }]
+            }
+            """,
+            JsonCompareMode.LENIENT,
+          )
+
+        verify(scanService).summariseScans(eq(prisonerNumber), eq(true))
       }
 
       @ParameterizedTest(name = "permits role {0}")

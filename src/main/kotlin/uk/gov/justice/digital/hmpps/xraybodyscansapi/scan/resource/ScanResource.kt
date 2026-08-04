@@ -28,6 +28,7 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.RequireReadRole
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.RequireWriteRole
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScanRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.ListScansRequest
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.ScanSummaryRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanSummaryResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.ScanService
@@ -202,5 +203,8 @@ class ScanResource(
       message = "prisonerNumber must be in the right form, e.g. A1234BC.",
     )
     prisonerNumber: String,
-  ): ScanSummaryResponse = scanService.summariseScans(prisonerNumber)
+    @ParameterObject
+    @Valid
+    request: ScanSummaryRequest,
+  ): ScanSummaryResponse = scanService.summariseScans(prisonerNumber, request.includeAlerts)
 }
