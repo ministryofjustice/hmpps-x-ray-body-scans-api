@@ -37,7 +37,7 @@ class PrisonApiMockServer : WireMockServer(WIREMOCK_PORT) {
     private const val WIREMOCK_PORT = 8091
   }
 
-  fun stubHealthPing(status: Int) {
+  fun stubHealthPing(status: Int = 200) {
     stubFor(
       get("/health/ping").willReturn(
         aResponse()
@@ -68,6 +68,7 @@ class PrisonApiMockServer : WireMockServer(WIREMOCK_PORT) {
             .withHeader("Content-Type", "application/json")
             .withStatus(status)
             .withBody(
+              // language=json
               """
               {
                 "status": $status,

@@ -81,6 +81,12 @@ data class ScanSummaryResponse(
   val atScanLimit: Boolean,
 
   @Schema(
+    description = "Relevant active alerts for this prisoner, if requested and null otherwise",
+    requiredMode = Schema.RequiredMode.REQUIRED,
+  )
+  val relevantAlerts: List<AlertResponse>? = null,
+
+  @Schema(
     description = "The earliest date of the period over which these scans were counted (inclusive)",
     example = "2026-01-01",
     type = "string",

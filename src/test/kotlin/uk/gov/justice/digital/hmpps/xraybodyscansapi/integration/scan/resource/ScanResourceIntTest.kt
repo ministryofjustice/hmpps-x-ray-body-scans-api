@@ -13,36 +13,24 @@ import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.context.annotation.Import
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.http.MediaType
-import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.test.json.JsonCompareMode
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW
-import uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.FixedClock
-import uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.FixedClockConfiguration
-import uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScanRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.ListScansRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanResponse
-import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanSummaryResponse
-import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.ScanService
 import java.time.LocalDate
 import java.util.UUID
 
 @DisplayName("X-ray body scans resource")
-@Import(FixedClockConfiguration::class)
 class ScanResourceIntTest(
-  @Value($$"${scan.annual-limit}") private val scanAnnualLimit: Int,
-  @Value($$"${scan.nearing-limit-threshold}") private val nearingLimitThreshold: Int,
-) : IntegrationTestBase() {
-  companion object : FixedClock()
-
-  @MockitoBean
-  private lateinit var scanService: ScanService
+  @Value($$"${scan.annual-limit}") scanAnnualLimit: Int,
+  @Value($$"${scan.nearing-limit-threshold}") nearingLimitThreshold: Int,
+) : BaseScanResourceIntTest(scanAnnualLimit, nearingLimitThreshold) {
 
   private val prisonerNumber = "A1234BC"
   private val scanDate: LocalDate = today.minusDays(1)
@@ -392,7 +380,7 @@ class ScanResourceIntTest(
     inner class HappyPath {
       @Test
       fun `returns scan summary for this calendar year`() {
-        whenever(scanService.summariseScans(prisonerNumber))
+        whenever(scanService.summariseScans(any<String>(), any()))
           .thenReturn(
             summaryResponse(
               prisonerNumber = prisonerNumber,
@@ -424,12 +412,51 @@ class ScanResourceIntTest(
               "remainingScans": 110,
               "nearingScanLimit": false,
               "atScanLimit": false,
+              "relevantAlerts": null,
               "fromScanDate": "2026-01-01",
               "toScanDate": "2026-07-27"
             }
             """,
             JsonCompareMode.STRICT,
           )
+
+        verify(scanService).summariseScans(eq(prisonerNumber), eq(false))
+      }
+
+      @Test
+      fun `returns relevant alerts when requested`() {
+        whenever(scanService.summariseScans(any<String>(), any()))
+          .thenReturn(
+            summaryResponse(
+              prisonerNumber = prisonerNumber,
+              nomisCount = 0,
+              dpsCount = 0,
+              relevantAlerts = listOf(alertResponse()),
+            ),
+          )
+
+        webTestClient.get()
+          .uri("/prisoner/$prisonerNumber/scan/summary?includeAlerts=true")
+          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
+          .exchange()
+          .expectStatus().isOk
+          .expectBody().json(
+            // language=json
+            """
+            {
+              "prisonerNumber": "$prisonerNumber",
+              "totalCount": 0,
+              "relevantAlerts": [{
+                "id": "019fcc21-8aaf-75a8-9c27-ec1e006fe35e",
+                "type": "X", "typeDescription": "Security",
+                "code": "XIS", "codeDescription": "Internal Secretor"
+              }]
+            }
+            """,
+            JsonCompareMode.LENIENT,
+          )
+
+        verify(scanService).summariseScans(eq(prisonerNumber), eq(true))
       }
 
       @ParameterizedTest(name = "permits role {0}")
@@ -511,32 +538,5 @@ class ScanResourceIntTest(
     createdBy = createdBy,
     lastModifiedAt = now,
     lastModifiedBy = createdBy,
-  )
-
-  private fun summaryResponse(
-    prisonerNumber: String,
-    nomisCount: Int,
-    dpsCount: Int,
-    totalCount: Int = nomisCount + dpsCount,
-    positiveCount: Int = 0,
-    negativeCount: Int = 0,
-    inconclusiveCount: Int = 0,
-    remainingScans: Int = scanAnnualLimit - totalCount,
-    nearingScanLimit: Boolean = totalCount >= nearingLimitThreshold,
-    atScanLimit: Boolean = remainingScans <= 0,
-  ) = ScanSummaryResponse(
-    prisonerNumber = prisonerNumber,
-    nomisCount = nomisCount,
-    dpsCount = dpsCount,
-    totalCount = totalCount,
-    positiveCount = positiveCount,
-    negativeCount = negativeCount,
-    inconclusiveCount = inconclusiveCount,
-    remainingScans = remainingScans,
-    annualLimit = scanAnnualLimit,
-    nearingScanLimit = nearingScanLimit,
-    atScanLimit = atScanLimit,
-    fromScanDate = yearStart,
-    toScanDate = today,
   )
 }

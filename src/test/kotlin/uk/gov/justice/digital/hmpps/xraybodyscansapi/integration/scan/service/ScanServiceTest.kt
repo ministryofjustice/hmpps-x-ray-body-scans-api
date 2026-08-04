@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.scan.service
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatList
 import org.assertj.core.api.Assertions.assertThatThrownBy
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
@@ -12,11 +13,16 @@ import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.verify
+import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.data.jpa.domain.Specification
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.alertsapi.AlertsApiClient
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.alertsapi.response.Alert
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.alertsapi.response.AlertCode
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.alertsapi.response.AlertResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.PrisonApiClient
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.response.PersonalCareNeed
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.response.PersonalCareNeedsResponse
@@ -31,6 +37,7 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanReposit
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.ScanService
 import java.time.LocalDate
 import java.util.UUID
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.AlertResponse as AlertResponseDto
 
 class ScanServiceTest {
   companion object : FixedClock()
@@ -38,13 +45,16 @@ class ScanServiceTest {
   private val codeRepository = mock<ReferenceDataCodeRepository>()
   private val scanRepository = mock<ScanRepository>()
   private val prisonApiClient = mock<PrisonApiClient>()
+  private val alertsApiClient = mock<AlertsApiClient>()
   private val scanService = ScanService(
     clock,
     codeRepository,
     scanRepository,
     prisonApiClient,
+    alertsApiClient,
     scanAnnualLimit = 116,
     nearingLimitThreshold = 100,
+    relevantAlertCodes = setOf("XIS", "XXRAY"),
   )
 
   @Nested
@@ -191,6 +201,7 @@ class ScanServiceTest {
           remainingScans = 111,
           nearingScanLimit = false,
           atScanLimit = false,
+          relevantAlerts = null,
           fromScanDate = yearStart,
           toScanDate = today,
         ),
@@ -206,10 +217,12 @@ class ScanServiceTest {
           remainingScans = 114,
           nearingScanLimit = false,
           atScanLimit = false,
+          relevantAlerts = null,
           fromScanDate = yearStart,
           toScanDate = today,
         ),
       )
+      verifyNoInteractions(alertsApiClient)
     }
 
     @Test
@@ -243,10 +256,12 @@ class ScanServiceTest {
           remainingScans = 111,
           nearingScanLimit = false,
           atScanLimit = false,
+          relevantAlerts = null,
           fromScanDate = yearStart,
           toScanDate = today,
         ),
       )
+      verifyNoInteractions(alertsApiClient)
     }
 
     @Test
@@ -280,6 +295,7 @@ class ScanServiceTest {
           remainingScans = 112,
           nearingScanLimit = false,
           atScanLimit = false,
+          relevantAlerts = null,
           fromScanDate = yearStart,
           toScanDate = today,
         ),
@@ -295,6 +311,7 @@ class ScanServiceTest {
           remainingScans = 114,
           nearingScanLimit = false,
           atScanLimit = false,
+          relevantAlerts = null,
           fromScanDate = yearStart,
           toScanDate = today,
         ),
@@ -310,10 +327,12 @@ class ScanServiceTest {
           remainingScans = 116,
           nearingScanLimit = false,
           atScanLimit = false,
+          relevantAlerts = null,
           fromScanDate = yearStart,
           toScanDate = today,
         ),
       )
+      verifyNoInteractions(alertsApiClient)
     }
 
     @Test
@@ -435,6 +454,79 @@ class ScanServiceTest {
       )
     }
 
+    @Nested
+    inner class Alerts {
+      val prisonerNumbers = listOf("A1234AA", "B1234BB")
+
+      @BeforeEach
+      fun setup() {
+        // alerts do not interact with actual scan data, so can say there were none
+        whenever(prisonApiClient.getScanCareNeeds(prisonerNumbers))
+          .thenReturn(emptyList())
+        whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(prisonerNumbers, yearStart, today))
+          .thenReturn(emptyList())
+      }
+
+      @Test
+      fun `returns alerts when requested`() {
+        whenever(alertsApiClient.getAlerts(prisonerNumbers))
+          .thenReturn(
+            AlertResponse(
+              listOf(
+                alert("A1234AA", "X", "XXRAY", id = "019fcc21-8aaf-75a8-9c27-ec1e006fe35e"),
+                alert("B1234BB", "X", "XIS", id = "019fcc21-8df6-7278-8869-8fe992a46c68"),
+              ),
+            ),
+          )
+        val result = scanService.summariseScans(prisonerNumbers, includeAlerts = true)
+
+        val relevantAlerts = result.associate { it.prisonerNumber to it.relevantAlerts }
+        assertThat(relevantAlerts).isEqualTo(
+          mapOf(
+            "A1234AA" to listOf(
+              AlertResponseDto(
+                id = "019fcc21-8aaf-75a8-9c27-ec1e006fe35e",
+                type = "X",
+                typeDescription = "X",
+                code = "XXRAY",
+                codeDescription = "XXRAY",
+              ),
+            ),
+            "B1234BB" to listOf(
+              AlertResponseDto(
+                id = "019fcc21-8df6-7278-8869-8fe992a46c68",
+                type = "X",
+                typeDescription = "X",
+                code = "XIS",
+                codeDescription = "XIS",
+              ),
+            ),
+          ),
+        )
+      }
+
+      @Test
+      fun `filters alerts and returns empty list if no relevant codes`() {
+        whenever(alertsApiClient.getAlerts(prisonerNumbers))
+          .thenReturn(
+            AlertResponse(
+              listOf(
+                alert("A1234AA", "L", "LCE"),
+              ),
+            ),
+          )
+        val result = scanService.summariseScans(prisonerNumbers, includeAlerts = true)
+
+        val relevantAlerts = result.associate { it.prisonerNumber to it.relevantAlerts }
+        assertThat(relevantAlerts).isEqualTo(
+          mapOf(
+            "A1234AA" to emptyList<AlertResponseDto>(),
+            "B1234BB" to emptyList(),
+          ),
+        )
+      }
+    }
+
     private fun bscan(startDate: String) = bscan(LocalDate.parse(startDate))
     private fun bscan(startDate: LocalDate) = PersonalCareNeed(
       personalCareNeedId = 1,
@@ -442,6 +534,18 @@ class ScanServiceTest {
       problemCode = "xyz",
       problemStatus = "xyz",
       startDate = startDate,
+    )
+
+    private fun alert(prisonerNumber: String, type: String, code: String, id: String = "019fc832-57b9-704f-a907-8059720e37e8") = Alert(
+      alertUuid = id,
+      prisonerNumber = prisonerNumber,
+      alertCode = AlertCode(
+        alertTypeCode = type,
+        alertTypeDescription = type,
+        code = code,
+        description = code,
+      ),
+      description = "",
     )
   }
 

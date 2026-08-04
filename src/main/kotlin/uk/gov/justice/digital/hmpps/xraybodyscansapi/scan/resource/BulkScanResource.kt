@@ -69,5 +69,5 @@ class BulkScanResource(
     @RequestBody
     @Valid
     request: BulkScanSummaryRequest,
-  ): List<ScanSummaryResponse> = scanService.summariseScans(request.prisonerNumbers)
+  ): List<ScanSummaryResponse> = scanService.summariseScans(request.prisonerNumbers, request.includeAlerts)
 }

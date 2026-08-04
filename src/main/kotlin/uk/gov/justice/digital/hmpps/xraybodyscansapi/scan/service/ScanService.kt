@@ -8,12 +8,14 @@ import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.alertsapi.AlertsApiClient
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.PrisonApiClient
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.dto.response.ReferenceDataDomains
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.repository.ReferenceDataCodeEntity
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.repository.ReferenceDataCodeRepository
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScanRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.ListScansRequest
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.AlertResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanSummaryResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanEntity
@@ -29,8 +31,10 @@ class ScanService(
   private val codeRepository: ReferenceDataCodeRepository,
   private val scanRepository: ScanRepository,
   private val prisonApiClient: PrisonApiClient,
+  private val alertsApiClient: AlertsApiClient,
   @Value($$"${scan.annual-limit}") private val scanAnnualLimit: Int,
   @Value($$"${scan.nearing-limit-threshold}") private val nearingLimitThreshold: Int,
+  @Value($$"${scan.relevant-alert-codes:}") private val relevantAlertCodes: Set<String>,
 ) {
   @Transactional(readOnly = true)
   fun listScans(
@@ -66,15 +70,21 @@ class ScanService(
   }
 
   @Transactional(readOnly = true)
-  fun summariseScans(prisonerNumber: String): ScanSummaryResponse = summariseScans(listOf(prisonerNumber)).first()
+  fun summariseScans(prisonerNumber: String, includeAlerts: Boolean = false): ScanSummaryResponse = summariseScans(listOf(prisonerNumber), includeAlerts).first()
 
   @Transactional(readOnly = true)
-  fun summariseScans(prisonerNumbers: List<String>): List<ScanSummaryResponse> {
+  fun summariseScans(prisonerNumbers: List<String>, includeAlerts: Boolean = false): List<ScanSummaryResponse> {
     val (fromScanDate, toScanDate) = calendarYear()
     val nomisCounts = getNomisScanCounts(prisonerNumbers, fromScanDate, toScanDate)
     val dpsScans = scanRepository
       .findByPrisonerNumberInAndScanDateBetween(prisonerNumbers, fromScanDate, toScanDate)
       .groupBy { it.prisonerNumber }
+
+    val relevantAlerts = if (includeAlerts) {
+      getRelevantAlerts(prisonerNumbers)
+    } else {
+      null
+    }
 
     return prisonerNumbers.map { prisonerNumber ->
       val nomisCount = nomisCounts[prisonerNumber] ?: 0
@@ -97,6 +107,11 @@ class ScanService(
         remainingScans = remainingScans,
         nearingScanLimit = nearingScanLimit,
         atScanLimit = atScanLimit,
+        relevantAlerts = if (relevantAlerts != null) {
+          relevantAlerts[prisonerNumber] ?: emptyList()
+        } else {
+          null
+        },
         fromScanDate = fromScanDate,
         toScanDate = toScanDate,
       )
@@ -146,4 +161,9 @@ class ScanService(
     lastModifiedAt = lastModifiedAt,
     lastModifiedBy = lastModifiedBy,
   )
+
+  private fun getRelevantAlerts(prisonerNumbers: List<String>): Map<String, List<AlertResponse>> = alertsApiClient.getAlerts(prisonerNumbers)
+    .toList()
+    .filter { relevantAlertCodes.contains(it.alertCode.code) }
+    .groupBy({ it.prisonerNumber }, { AlertResponse(it) })
 }
