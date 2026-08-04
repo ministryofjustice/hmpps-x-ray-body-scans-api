@@ -5,7 +5,7 @@ service:
 scan:
   annual-limit: 116
   nearing-limit-threshold: 100
-  relevant-alert-codes: XIS
+  relevant-alert-codes: XIS,XXRAY
 
 info.app:
   name: HMPPS X-ray Body Scans API

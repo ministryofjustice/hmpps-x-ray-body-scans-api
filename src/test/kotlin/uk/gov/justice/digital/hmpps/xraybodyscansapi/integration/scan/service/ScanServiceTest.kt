@@ -54,7 +54,7 @@ class ScanServiceTest {
     alertsApiClient,
     scanAnnualLimit = 116,
     nearingLimitThreshold = 100,
-    relevantAlertCodes = setOf("XIS"),
+    relevantAlertCodes = setOf("XIS", "XXRAY"),
   )
 
   @Nested
@@ -473,7 +473,7 @@ class ScanServiceTest {
           .thenReturn(
             AlertResponse(
               listOf(
-                alert("A1234AA", "X", "XIS", id = "019fcc21-8aaf-75a8-9c27-ec1e006fe35e"),
+                alert("A1234AA", "X", "XXRAY", id = "019fcc21-8aaf-75a8-9c27-ec1e006fe35e"),
                 alert("B1234BB", "X", "XIS", id = "019fcc21-8df6-7278-8869-8fe992a46c68"),
               ),
             ),
@@ -488,8 +488,8 @@ class ScanServiceTest {
                 id = "019fcc21-8aaf-75a8-9c27-ec1e006fe35e",
                 alertType = "X",
                 typeDescription = "X",
-                alertCode = "XIS",
-                codeDescription = "XIS",
+                alertCode = "XXRAY",
+                codeDescription = "XXRAY",
               ),
             ),
             "B1234BB" to listOf(

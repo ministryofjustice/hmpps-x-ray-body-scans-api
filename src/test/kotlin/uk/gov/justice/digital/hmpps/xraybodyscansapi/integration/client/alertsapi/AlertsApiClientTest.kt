@@ -34,8 +34,11 @@ class AlertsApiClientTest {
       // language=json
       """
       {"content":  [
-        {"alertUuid":  "019fc832-57b9-704f-a907-8059720e37e8", "prisonerNumber": "B1234BB", "alertCode":  {
+        {"alertUuid":  "019fcc21-8aaf-75a8-9c27-ec1e006fe35e", "prisonerNumber": "A1234AA", "alertCode":  {
           "alertTypeCode": "X", "alertTypeDescription": "Security", "code": "XIS", "description": "Internal Secretor"
+        }, "description":  ""},
+        {"alertUuid":  "019fcc21-8df6-7278-8869-8fe992a46c68", "prisonerNumber": "B1234BB", "alertCode":  {
+          "alertTypeCode": "X", "alertTypeDescription": "Security", "code": "XXRAY", "description": "Do Not X-Ray Body Scan"
         }, "description":  ""}
       ]}
       """,
@@ -47,13 +50,24 @@ class AlertsApiClientTest {
       AlertResponse(
         listOf(
           Alert(
-            alertUuid = "019fc832-57b9-704f-a907-8059720e37e8",
-            prisonerNumber = "B1234BB",
+            alertUuid = "019fcc21-8aaf-75a8-9c27-ec1e006fe35e",
+            prisonerNumber = "A1234AA",
             alertCode = AlertCode(
               alertTypeCode = "X",
               alertTypeDescription = "Security",
               code = "XIS",
               description = "Internal Secretor",
+            ),
+            description = "",
+          ),
+          Alert(
+            alertUuid = "019fcc21-8df6-7278-8869-8fe992a46c68",
+            prisonerNumber = "B1234BB",
+            alertCode = AlertCode(
+              alertTypeCode = "X",
+              alertTypeDescription = "Security",
+              code = "XXRAY",
+              description = "Do Not X-Ray Body Scan",
             ),
             description = "",
           ),
