@@ -151,6 +151,22 @@ class ScanServiceTest {
         scanService.createScan(prisonerNumber, request)
       }.hasMessage("Reference data with domain ${domain.name} and code INVALID not found")
     }
+
+    @Test
+    fun `throws validation error when outcome is positive but no type of find is provided`() {
+      makeReferenceDataWheneverNeeded()
+      val request = CreateScanRequest(
+        scanDate = scanDate,
+        prisonId = "MDI",
+        justification = "INTELLIGENCE",
+        outcome = "POSITIVE",
+        typeOfFind = null,
+        createdBy = "abc12a",
+      )
+      assertThatThrownBy {
+        scanService.createScan(prisonerNumber, request)
+      }.hasMessage("typeOfFind is required for positive outcomes")
+    }
   }
 
   @Nested
