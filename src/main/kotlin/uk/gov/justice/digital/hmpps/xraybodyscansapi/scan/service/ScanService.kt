@@ -54,14 +54,22 @@ class ScanService(
 
   @Transactional
   fun createScan(prisonerNumber: String, request: CreateScanRequest): ScanResponse {
+    val justification = findReferenceDataOrThrowValidationError(ReferenceDataDomains.JUSTIFICATION, request.justification)
+    val outcome = findReferenceDataOrThrowValidationError(ReferenceDataDomains.OUTCOME, request.outcome)
+    val typeOfFind = request.typeOfFind?.let {
+      findReferenceDataOrThrowValidationError(ReferenceDataDomains.TYPE_OF_FIND, it)
+    }
+    if (outcome.code == "POSITIVE" && typeOfFind == null) {
+      throw ValidationException("typeOfFind is required for positive outcomes")
+    }
     val saved = scanRepository.save(
       ScanEntity(
         prisonerNumber = prisonerNumber,
         prisonId = request.prisonId,
         scanDate = request.scanDate,
-        justification = findReferenceDataOrThrowValidationError(ReferenceDataDomains.JUSTIFICATION, request.justification),
-        outcome = findReferenceDataOrThrowValidationError(ReferenceDataDomains.OUTCOME, request.outcome),
-        typeOfFind = request.typeOfFind?.let { findReferenceDataOrThrowValidationError(ReferenceDataDomains.TYPE_OF_FIND, it) },
+        justification = justification,
+        outcome = outcome,
+        typeOfFind = typeOfFind,
         createdBy = request.createdBy,
       ),
     )
