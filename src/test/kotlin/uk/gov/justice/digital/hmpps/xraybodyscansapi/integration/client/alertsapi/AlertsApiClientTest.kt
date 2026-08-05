@@ -20,6 +20,8 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.wiremock.Alerts
 class AlertsApiClientTest {
   private lateinit var client: AlertsApiClient
 
+  private val relevantAlertCodes = setOf("XIS", "XXRAY")
+
   @BeforeEach
   fun resetMocks() {
     val webClient = WebClient.create("http://localhost:${alertsApi.port()}")
@@ -42,9 +44,10 @@ class AlertsApiClientTest {
         }, "description":  ""}
       ]}
       """,
+      relevantAlertCodes,
     )
 
-    val result = client.getAlerts(prisonerNumbers)
+    val result = client.getAlerts(prisonerNumbers, relevantAlertCodes)
 
     assertThat(result).isEqualTo(
       AlertResponse(
