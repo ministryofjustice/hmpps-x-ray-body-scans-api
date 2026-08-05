@@ -538,7 +538,7 @@ class ScanServiceTest {
 
     private fun alert(prisonerNumber: String, type: String, code: String, id: String = "019fc832-57b9-704f-a907-8059720e37e8") = Alert(
       alertUuid = id,
-      prisonerNumber = prisonerNumber,
+      prisonNumber = prisonerNumber,
       alertCode = AlertCode(
         alertTypeCode = type,
         alertTypeDescription = type,

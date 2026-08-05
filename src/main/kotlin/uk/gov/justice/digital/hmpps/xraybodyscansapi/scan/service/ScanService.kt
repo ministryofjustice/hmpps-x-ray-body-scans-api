@@ -165,5 +165,5 @@ class ScanService(
   private fun getRelevantAlerts(prisonerNumbers: List<String>): Map<String, List<AlertResponse>> = alertsApiClient.getAlerts(prisonerNumbers)
     .toList()
     .filter { relevantAlertCodes.contains(it.alertCode.code) }
-    .groupBy({ it.prisonerNumber }, { AlertResponse(it) })
+    .groupBy({ it.prisonNumber }, { AlertResponse(it) })
 }

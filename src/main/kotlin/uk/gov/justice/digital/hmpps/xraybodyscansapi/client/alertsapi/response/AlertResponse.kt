@@ -8,7 +8,7 @@ data class AlertResponse(
 
 data class Alert(
   val alertUuid: String, // technically a uuid, but can be passed transparently to clients
-  val prisonerNumber: String,
+  val prisonNumber: String,
   val alertCode: AlertCode,
   val description: String? = null,
   // NB: more fields exist
