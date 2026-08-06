@@ -35,6 +35,7 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScan
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanSummaryResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanEntity
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanRepository
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanSummaryRow
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.ScanService
 import java.time.LocalDate
 import java.util.UUID
@@ -195,13 +196,11 @@ class ScanServiceTest {
             ),
           ),
         )
-      whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(prisonerNumbers, yearStart, today))
+      whenever(scanRepository.scanSummaryRowsForPrisoners(prisonerNumbers, yearStart, today))
         .thenReturn(
           listOf(
-            scanEntity("A1234BC"),
-            scanEntity("A1234BC"),
-            scanEntity("A1234BC"),
-            scanEntity("B1234AC"),
+            scanSummaryRow("B1234AC"),
+            scanSummaryRow("A1234BC", count = 3),
           ),
         )
 
@@ -257,8 +256,8 @@ class ScanServiceTest {
             ),
           ),
         )
-      whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(listOf(prisonerNumber), yearStart, today))
-        .thenReturn(listOf(scanEntity("A1234BC"), scanEntity("A1234BC"), scanEntity("A1234BC")))
+      whenever(scanRepository.scanSummaryRowsForPrisoners(listOf(prisonerNumber), yearStart, today))
+        .thenReturn(listOf(scanSummaryRow("A1234BC", count = 3)))
 
       val result = scanService.summariseScans(prisonerNumber)
 
@@ -296,8 +295,8 @@ class ScanServiceTest {
             ),
           ),
         )
-      whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(prisonerNumbers, yearStart, today))
-        .thenReturn(listOf(scanEntity("B1234AC"), scanEntity("B1234AC")))
+      whenever(scanRepository.scanSummaryRowsForPrisoners(prisonerNumbers, yearStart, today))
+        .thenReturn(listOf(scanSummaryRow("B1234AC", count = 2)))
 
       val result = scanService.summariseScans(prisonerNumbers)
 
@@ -360,13 +359,12 @@ class ScanServiceTest {
 
       whenever(prisonApiClient.getScanCareNeeds(listOf(prisonerNumber)))
         .thenReturn(listOf(PersonalCareNeedsResponse(offenderNo = prisonerNumber)))
-      whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(listOf(prisonerNumber), yearStart, today))
+      whenever(scanRepository.scanSummaryRowsForPrisoners(listOf(prisonerNumber), yearStart, today))
         .thenReturn(
           listOf(
-            scanEntity(prisonerNumber, outcome = "POSITIVE"),
-            scanEntity(prisonerNumber, outcome = "NEGATIVE"),
-            scanEntity(prisonerNumber, outcome = "NEGATIVE"),
-            scanEntity(prisonerNumber, outcome = "INCONCLUSIVE"),
+            scanSummaryRow(prisonerNumber, outcome = "POSITIVE"),
+            scanSummaryRow(prisonerNumber, outcome = "NEGATIVE", count = 2),
+            scanSummaryRow(prisonerNumber, outcome = "INCONCLUSIVE"),
           ),
         )
 
@@ -384,16 +382,8 @@ class ScanServiceTest {
 
       whenever(prisonApiClient.getScanCareNeeds(listOf(prisonerNumber)))
         .thenReturn(listOf(PersonalCareNeedsResponse(offenderNo = prisonerNumber)))
-      whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(listOf(prisonerNumber), yearStart, today))
-        .thenReturn(
-          listOf(
-            scanEntity(prisonerNumber),
-            scanEntity(prisonerNumber),
-            scanEntity(prisonerNumber),
-            scanEntity(prisonerNumber),
-            scanEntity(prisonerNumber),
-          ),
-        )
+      whenever(scanRepository.scanSummaryRowsForPrisoners(listOf(prisonerNumber), yearStart, today))
+        .thenReturn(listOf(scanSummaryRow(prisonerNumber, count = 5)))
 
       val result = scanService.summariseScans(prisonerNumber)
 
@@ -428,19 +418,19 @@ class ScanServiceTest {
           ),
         )
 
-      whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(prisonerNumbers, yearStart, today))
+      whenever(scanRepository.scanSummaryRowsForPrisoners(prisonerNumbers, yearStart, today))
         .thenReturn(
-          buildList {
+          listOf(
             // A1234BC has 67 dps scans
-            repeat(67) { add(scanEntity("A1234BC")) }
+            scanSummaryRow("A1234BC", count = 67),
             // B1234AC has 116 dps scans
-            repeat(116) { add(scanEntity("B1234AC")) }
+            scanSummaryRow("B1234AC", count = 116),
             // C1234AB has 101 dps scans
-            repeat(101) { add(scanEntity("C1234AB")) }
+            scanSummaryRow("C1234AB", count = 101),
             // D1234FG has 100 dps scans
-            repeat(100) { add(scanEntity("D1234FG")) }
+            scanSummaryRow("D1234FG", count = 100),
             // E1234HI has no dps scans
-          }.shuffled(),
+          ),
         )
 
       val result = scanService.summariseScans(prisonerNumbers)
@@ -482,7 +472,7 @@ class ScanServiceTest {
         // alerts do not interact with actual scan data, so can say there were none
         whenever(prisonApiClient.getScanCareNeeds(prisonerNumbers))
           .thenReturn(emptyList())
-        whenever(scanRepository.findByPrisonerNumberInAndScanDateBetween(prisonerNumbers, yearStart, today))
+        whenever(scanRepository.scanSummaryRowsForPrisoners(prisonerNumbers, yearStart, today))
           .thenReturn(emptyList())
       }
 
@@ -628,5 +618,15 @@ class ScanServiceTest {
   ).apply {
     // updates to entity that would be done by jpa/hibernate
     id = UUID.randomUUID()
+  }
+
+  private fun scanSummaryRow(
+    prisonerNumber: String,
+    outcome: String = "NEGATIVE",
+    count: Int = 1,
+  ) = object : ScanSummaryRow {
+    override val prisonerNumber: String = prisonerNumber
+    override val outcome: String = outcome
+    override val count: Int = count
   }
 }

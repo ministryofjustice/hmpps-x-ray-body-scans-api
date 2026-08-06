@@ -21,6 +21,7 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanSumma
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanEntity
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanRepository
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.filterByPrisonerNumber
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.groupOutcomes
 import java.time.Clock
 import java.time.LocalDate
 import java.time.temporal.TemporalAdjusters.firstDayOfYear
@@ -84,9 +85,7 @@ class ScanService(
   fun summariseScans(prisonerNumbers: List<String>, includeAlerts: Boolean = false): List<ScanSummaryResponse> {
     val (fromScanDate, toScanDate) = calendarYear()
     val nomisCounts = getNomisScanCounts(prisonerNumbers, fromScanDate, toScanDate)
-    val dpsScans = scanRepository
-      .findByPrisonerNumberInAndScanDateBetween(prisonerNumbers, fromScanDate, toScanDate)
-      .groupBy { it.prisonerNumber }
+    val dpsCounts = scanRepository.scanSummaryRowsForPrisoners(prisonerNumbers, fromScanDate, toScanDate).groupOutcomes()
 
     val relevantAlerts = if (includeAlerts) {
       getRelevantAlerts(prisonerNumbers)
@@ -96,10 +95,9 @@ class ScanService(
 
     return prisonerNumbers.map { prisonerNumber ->
       val nomisCount = nomisCounts[prisonerNumber] ?: 0
-      val scans = dpsScans[prisonerNumber] ?: emptyList()
-      val dpsCount = scans.size
+      val dpsOutcomes = dpsCounts[prisonerNumber] ?: emptyMap()
+      val dpsCount = dpsOutcomes.values.sum()
       val totalCount = nomisCount + dpsCount
-      val dpsOutcomes = scans.groupingBy { it.outcome.code }.eachCount()
       val remainingScans = scanAnnualLimit - totalCount
       val nearingScanLimit = totalCount >= nearingLimitThreshold
       val atScanLimit = remainingScans <= 0
