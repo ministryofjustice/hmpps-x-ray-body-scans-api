@@ -4,6 +4,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatList
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
@@ -42,6 +43,8 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.AlertResp
 class ScanServiceTest {
   companion object : FixedClock()
 
+  private val relevantAlertCodes = setOf("XIS", "XXRAY")
+
   private val codeRepository = mock<ReferenceDataCodeRepository>()
   private val scanRepository = mock<ScanRepository>()
   private val prisonApiClient = mock<PrisonApiClient>()
@@ -54,7 +57,7 @@ class ScanServiceTest {
     alertsApiClient,
     scanAnnualLimit = 116,
     nearingLimitThreshold = 100,
-    relevantAlertCodes = setOf("XIS", "XXRAY"),
+    relevantAlertCodes = relevantAlertCodes,
   )
 
   @Nested
@@ -485,7 +488,7 @@ class ScanServiceTest {
 
       @Test
       fun `returns alerts when requested`() {
-        whenever(alertsApiClient.getAlerts(prisonerNumbers))
+        whenever(alertsApiClient.getAlerts(prisonerNumbers, relevantAlertCodes))
           .thenReturn(
             AlertResponse(
               listOf(
@@ -522,8 +525,24 @@ class ScanServiceTest {
       }
 
       @Test
-      fun `filters alerts and returns empty list if no relevant codes`() {
-        whenever(alertsApiClient.getAlerts(prisonerNumbers))
+      fun `returns empty list if no relevant codes`() {
+        whenever(alertsApiClient.getAlerts(prisonerNumbers, relevantAlertCodes))
+          .thenReturn(AlertResponse(emptyList()))
+        val result = scanService.summariseScans(prisonerNumbers, includeAlerts = true)
+
+        val relevantAlerts = result.associate { it.prisonerNumber to it.relevantAlerts }
+        assertThat(relevantAlerts).isEqualTo(
+          mapOf(
+            "A1234AA" to emptyList<AlertResponseDto>(),
+            "B1234BB" to emptyList(),
+          ),
+        )
+      }
+
+      @Test
+      @Disabled("filtering is delegated to alerts-api")
+      fun `filters alerts`() {
+        whenever(alertsApiClient.getAlerts(prisonerNumbers, relevantAlertCodes))
           .thenReturn(
             AlertResponse(
               listOf(

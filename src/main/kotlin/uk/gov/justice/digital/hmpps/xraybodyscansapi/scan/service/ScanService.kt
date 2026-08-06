@@ -170,8 +170,11 @@ class ScanService(
     lastModifiedBy = lastModifiedBy,
   )
 
-  private fun getRelevantAlerts(prisonerNumbers: List<String>): Map<String, List<AlertResponse>> = alertsApiClient.getAlerts(prisonerNumbers)
+  private fun getRelevantAlerts(prisonerNumbers: List<String>): Map<String, List<AlertResponse>> = alertsApiClient.getAlerts(
+    prisonerNumbers = prisonerNumbers,
+    filterAlertCodes = relevantAlertCodes,
+  )
     .toList()
-    .filter { relevantAlertCodes.contains(it.alertCode.code) }
+    // .filter { relevantAlertCodes.contains(it.alertCode.code) } // delegated to alerts-api
     .groupBy({ it.prisonNumber }, { AlertResponse(it) })
 }
