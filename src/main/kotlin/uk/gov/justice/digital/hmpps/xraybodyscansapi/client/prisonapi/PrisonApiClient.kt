@@ -13,7 +13,10 @@ class PrisonApiClient(
   @Qualifier("prisonApiWebClient") private val webClient: WebClient,
 ) {
 
-  /** Returns a list of bscan PersonalCareNeedsResponses, one for each prisoner number given. */
+  /**
+   * Returns a list of bscan PersonalCareNeedsResponses, one for each prisoner number given.
+   * Requires ROLE_VIEW_PRISONER_DATA or ROLE_GLOBAL_SEARCH.
+   */
   fun getScanCareNeeds(offenderNos: List<String>): List<PersonalCareNeedsResponse> = try {
     webClient
       .post()

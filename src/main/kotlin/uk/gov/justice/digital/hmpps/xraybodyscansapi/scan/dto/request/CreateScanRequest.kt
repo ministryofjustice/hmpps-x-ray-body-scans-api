@@ -44,7 +44,7 @@ data class CreateScanRequest(
   )
   val outcome: String,
   @Schema(
-    description = "What type of item was detected, if any",
+    description = "What type of item was detected, if any (required for POSITIVE outcomes)",
     example = "INORGANIC",
     requiredMode = Schema.RequiredMode.NOT_REQUIRED,
     nullable = true,
