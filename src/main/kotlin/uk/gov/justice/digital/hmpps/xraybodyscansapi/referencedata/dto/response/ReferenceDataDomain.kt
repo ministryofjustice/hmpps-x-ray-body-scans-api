@@ -5,7 +5,10 @@ import io.swagger.v3.oas.annotations.media.Schema
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.repository.ReferenceDataDomainEntity
 import java.time.LocalDateTime
 
-@Schema(description = "Domains of data referenced in x-ray body scan records")
+@Schema(
+  description = "Domains of data referenced in x-ray body scan records",
+  accessMode = Schema.AccessMode.READ_ONLY,
+)
 data class ReferenceDataDomain(
   @Schema(
     description = "Internal code",

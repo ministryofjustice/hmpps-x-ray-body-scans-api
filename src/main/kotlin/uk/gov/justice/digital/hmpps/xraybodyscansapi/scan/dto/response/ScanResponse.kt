@@ -5,7 +5,10 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
 
-@Schema(description = "Response model for an x-ray body scan, may be nested in another response model")
+@Schema(
+  description = "Response model for an x-ray body scan, may be nested in another response model",
+  accessMode = Schema.AccessMode.READ_ONLY,
+)
 data class ScanResponse(
   @Schema(
     description = "Unique identifier for the scan as a UUIDv7",

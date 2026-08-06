@@ -4,7 +4,10 @@ import io.swagger.v3.oas.annotations.media.Schema
 import jakarta.validation.constraints.NotEmpty
 import jakarta.validation.constraints.Pattern
 
-@Schema(description = "Request to retrieve scan summaries for multiple prisoners")
+@Schema(
+  description = "Request to retrieve scan summaries for multiple prisoners",
+  accessMode = Schema.AccessMode.WRITE_ONLY,
+)
 data class BulkScanSummaryRequest(
   @Schema(
     description = "List of prisoner numbers to summarise",
