@@ -47,7 +47,6 @@ class ScanResourceIntTest(
     inner class HappyPath {
       @Test
       fun `returns details of a DPS scan`() {
-        val id = UUID.randomUUID()
         whenever(scanService.listScans(any(), any(), any()))
           .thenReturn(
             PageImpl(
@@ -95,7 +94,6 @@ class ScanResourceIntTest(
 
       @Test
       fun `returns details of a legacy NOMIS scan`() {
-        val id = UUID.randomUUID()
         whenever(scanService.listScans(any(), any(), any()))
           .thenReturn(
             PageImpl(
@@ -129,16 +127,22 @@ class ScanResourceIntTest(
       }
 
       @Test
-      fun `returns a page of scans`() {
+      fun `returns a page of DPS and legacy NOMIS scans`() {
         val scanIds = listOf(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID())
-        val scanDate = today.minusDays(5)
+        val legacyScanIds = listOf(legacyId, legacyId - 101)
         whenever(scanService.listScans(prisonerNumber, ListScansRequest(), PageRequest.of(0, 20, Sort.by("scanDate").descending()))).thenReturn(
           PageImpl(
             scanIds.mapIndexed { index, id ->
               dpsScanResponse(
                 originalId = id,
                 prisonerNumber = prisonerNumber,
-                scanDate = scanDate.plusDays(index.toLong()),
+                scanDate = scanDate.minusDays(index.toLong()),
+              )
+            } + legacyScanIds.mapIndexed { index, id ->
+              nomisScanResponse(
+                originalId = id,
+                prisonerNumber = prisonerNumber,
+                scanDate = scanDate.minusDays((scanIds.size + index).toLong()),
               )
             },
           ),
@@ -156,9 +160,11 @@ class ScanResourceIntTest(
             """
             {
               "content": [
-                {"id": "${scanIds[0]}", "prisonerNumber": "A1234BC"},
-                {"id": "${scanIds[1]}", "prisonerNumber": "A1234BC"},
-                {"id": "${scanIds[2]}", "prisonerNumber": "A1234BC"}
+                {"id": "${scanIds[0]}", "source": "DPS", "prisonerNumber": "A1234BC"},
+                {"id": "${scanIds[1]}", "source": "DPS", "prisonerNumber": "A1234BC"},
+                {"id": "${scanIds[2]}", "source": "DPS", "prisonerNumber": "A1234BC"},
+                {"id": "${legacyScanIds[0]}", "source": "NOMIS", "prisonerNumber": "A1234BC"},
+                {"id": "${legacyScanIds[1]}", "source": "NOMIS", "prisonerNumber": "A1234BC"}
               ]
             }
             """,
@@ -601,10 +607,10 @@ class ScanResourceIntTest(
   }
 
   private fun dpsScanResponse(
-    originalId: UUID = UUID.randomUUID(),
+    originalId: UUID = id,
     prisonerNumber: String,
     prisonId: String = "MDI",
-    scanDate: LocalDate = today.minusDays(1),
+    scanDate: LocalDate = this.scanDate,
     justification: String = "INTELLIGENCE",
     outcome: String = "NEGATIVE",
     typeOfFind: String? = null,
