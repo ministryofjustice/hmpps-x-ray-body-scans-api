@@ -144,6 +144,15 @@ class ScanServiceTest {
     }
 
     @Test
+    fun `throws validation error when attempting to retrieve no scans`() {
+      assertThatThrownBy {
+        scanService.listScans(prisonerNumber, null, PageRequest.of(0, 0, Sort.by("scanDate")))
+      }.hasMessage("Page size must not be less than one")
+      verifyNoInteractions(prisonApiClient)
+      verifyNoInteractions(scanRepository)
+    }
+
+    @Test
     fun `throws validation error when attempting to sort by an invalid field`() {
       assertThatThrownBy {
         scanService.listScans(prisonerNumber, null, PageRequest.of(0, 20, Sort.by("id")))

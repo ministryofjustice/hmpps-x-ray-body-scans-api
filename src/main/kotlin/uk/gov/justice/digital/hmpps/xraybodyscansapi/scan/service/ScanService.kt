@@ -54,8 +54,7 @@ class ScanService(
     }
 
     // if date range is greater than 1 year, limit page size
-    val today = LocalDate.now(clock)
-    val limitPageSize = query == null || query.fromScanDate == null || (query.toScanDate ?: today).toEpochDay() - query.fromScanDate.toEpochDay() > 366
+    val limitPageSize = query?.fromScanDate == null || (query.toScanDate ?: LocalDate.now(clock)).toEpochDay() - query.fromScanDate.toEpochDay() > 366
     if (limitPageSize && pageable.pageSize > 200) {
       throw ValidationException("Page size limit of 200 exceeded")
     }
