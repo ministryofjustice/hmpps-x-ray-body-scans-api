@@ -31,6 +31,7 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.ListScansR
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.ScanSummaryRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanSummaryResponse
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.UnifiedScanResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.ScanService
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 
@@ -93,7 +94,7 @@ class ScanResource(
     @ParameterObject
     @PageableDefault(page = 0, size = 20, sort = ["scanDate"], direction = Sort.Direction.DESC)
     pageable: Pageable,
-  ): Page<ScanResponse> = scanService.listScans(prisonerNumber, query, pageable)
+  ): Page<out UnifiedScanResponse> = scanService.listScans(prisonerNumber, query, pageable)
 
   @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE])
   @ResponseStatus(HttpStatus.CREATED)

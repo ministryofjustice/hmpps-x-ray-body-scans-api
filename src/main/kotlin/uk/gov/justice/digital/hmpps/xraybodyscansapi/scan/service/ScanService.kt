@@ -18,6 +18,7 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.ListScansR
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.AlertResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanSummaryResponse
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.UnifiedScanResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanEntity
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanRepository
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.filterByPrisonerNumber
@@ -42,7 +43,7 @@ class ScanService(
     prisonerNumber: String,
     query: ListScansRequest? = null,
     pageable: Pageable = PageRequest.of(0, 20, Sort.by("scanDate").descending()),
-  ): Page<ScanResponse> {
+  ): Page<out UnifiedScanResponse> {
     var specification = filterByPrisonerNumber(prisonerNumber)
     query?.let {
       specification = specification.and(query.toSpecification())
@@ -149,7 +150,7 @@ class ScanService(
     ?: throw ValidationException("Reference data with domain ${domain.name} and code $code not found")
 
   private fun ScanEntity.toDto(): ScanResponse = ScanResponse(
-    id = id,
+    originalId = id,
     prisonerNumber = prisonerNumber,
     prisonId = prisonId,
     scanDate = scanDate,

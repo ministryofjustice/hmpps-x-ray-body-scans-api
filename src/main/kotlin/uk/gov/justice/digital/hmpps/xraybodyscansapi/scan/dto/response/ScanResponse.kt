@@ -1,6 +1,8 @@
 package uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import io.swagger.v3.oas.annotations.media.Schema
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.Source
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
@@ -10,20 +12,15 @@ import java.util.UUID
   accessMode = Schema.AccessMode.READ_ONLY,
 )
 data class ScanResponse(
-  @Schema(
-    description = "Unique identifier for the scan as a UUIDv7",
-    type = "string",
-    format = "uuid",
-    requiredMode = Schema.RequiredMode.REQUIRED,
-  )
-  val id: UUID,
+  @JsonIgnore
+  val originalId: UUID,
 
   @Schema(
     description = "Prisoner number of the scanned prisoner",
     example = "A1234BC",
     requiredMode = Schema.RequiredMode.REQUIRED,
   )
-  val prisonerNumber: String,
+  override val prisonerNumber: String,
   @Schema(
     description = "The prison/establishment code where the scan took place",
     example = "MDI",
@@ -38,7 +35,7 @@ data class ScanResponse(
     format = "date",
     requiredMode = Schema.RequiredMode.REQUIRED,
   )
-  val scanDate: LocalDate,
+  override val scanDate: LocalDate,
 
   @Schema(
     description = "Why the scan was carried out (as a code)",
@@ -139,4 +136,20 @@ data class ScanResponse(
     requiredMode = Schema.RequiredMode.REQUIRED,
   )
   val lastModifiedBy: String,
-)
+) : UnifiedScanResponse {
+  @Schema(
+    description = "Unique DPS identifier for the scan as a UUIDv7",
+    type = "string",
+    format = "uuid",
+    requiredMode = Schema.RequiredMode.REQUIRED,
+  )
+  override val id: String = originalId.toString()
+
+  @Schema(
+    description = "This scan was recorded in DPS",
+    type = "string",
+    allowableValues = ["DPS"],
+    requiredMode = Schema.RequiredMode.REQUIRED,
+  )
+  override val source: Source = Source.DPS
+}

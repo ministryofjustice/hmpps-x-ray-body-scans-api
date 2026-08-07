@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.scan.resource
 
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -43,6 +44,54 @@ class ScanResourceIntTest(
     @DisplayName("Happy paths")
     inner class HappyPath {
       @Test
+      fun `returns details of a DPS scan`() {
+        val id = UUID.randomUUID()
+        whenever(scanService.listScans(any(), any(), any()))
+          .thenReturn(
+            PageImpl(
+              listOf(
+                scanResponse(
+                  originalId = id,
+                  prisonerNumber = prisonerNumber,
+                  scanDate = scanDate,
+                ),
+              ),
+            ),
+          )
+
+        webTestClient.get()
+          .uri("/prisoner/$prisonerNumber/scan")
+          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
+          .exchange()
+          .expectStatus().isOk
+          .expectHeader().contentType(MediaType.APPLICATION_JSON)
+          .expectBody()
+          .jsonPath("content").value<List<Map<String, Any>>> { scans ->
+            assertThat(scans).hasSize(1)
+            val scan = scans[0]
+            assertThat(scan).hasSize(18)
+            assertThat(scan["source"]).isEqualTo("DPS")
+            assertThat(scan["id"]).isEqualTo(id.toString())
+            assertThat(scan["prisonerNumber"]).isEqualTo(prisonerNumber)
+            assertThat(scan["prisonId"]).isEqualTo("MDI")
+            assertThat(scan["scanDate"]).isEqualTo(scanDate.toString())
+            assertThat(scan["justification"]).isEqualTo("INTELLIGENCE")
+            assertThat(scan["justificationDescription"]).isEqualTo("INTELLIGENCE")
+            assertThat(scan["outcome"]).isEqualTo("NEGATIVE")
+            assertThat(scan["outcomeDescription"]).isEqualTo("NEGATIVE")
+            assertThat(scan["typeOfFind"]).isNull()
+            assertThat(scan["typeOfFindDescription"]).isNull()
+            assertThat(scan["caseNoteId"]).isNull()
+            assertThat(scan["mergedAt"]).isNull()
+            assertThat(scan["mergedFromPrisonerNumber"]).isNull()
+            assertThat(scan["createdAt"]).isEqualTo(now.toString())
+            assertThat(scan["createdBy"]).isEqualTo("abc12ab")
+            assertThat(scan["lastModifiedAt"]).isEqualTo(now.toString())
+            assertThat(scan["lastModifiedBy"]).isEqualTo("abc12ab")
+          }
+      }
+
+      @Test
       fun `returns a page of scans`() {
         val scanIds = listOf(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID())
         val scanDate = today.minusDays(5)
@@ -50,7 +99,7 @@ class ScanResourceIntTest(
           PageImpl(
             scanIds.mapIndexed { index, id ->
               scanResponse(
-                id = id,
+                originalId = id,
                 prisonerNumber = prisonerNumber,
                 scanDate = scanDate.plusDays(index.toLong()),
               )
@@ -95,7 +144,7 @@ class ScanResourceIntTest(
           PageImpl(
             listOf(
               scanResponse(
-                id = id,
+                originalId = id,
                 prisonerNumber = prisonerNumber,
                 scanDate = LocalDate.of(2026, 5, 6),
               ),
@@ -211,7 +260,7 @@ class ScanResourceIntTest(
         whenever(scanService.createScan(eq(prisonerNumber), any()))
           .thenReturn(
             scanResponse(
-              id = id,
+              originalId = id,
               prisonerNumber = prisonerNumber,
               scanDate = scanDate,
             ),
@@ -239,7 +288,7 @@ class ScanResourceIntTest(
         whenever(scanService.createScan(eq(prisonerNumber), any()))
           .thenReturn(
             scanResponse(
-              id = id,
+              originalId = id,
               prisonerNumber = prisonerNumber,
               scanDate = today,
             ),
@@ -515,7 +564,7 @@ class ScanResourceIntTest(
   }
 
   private fun scanResponse(
-    id: UUID = UUID.randomUUID(),
+    originalId: UUID = UUID.randomUUID(),
     prisonerNumber: String,
     prisonId: String = "MDI",
     scanDate: LocalDate = today.minusDays(1),
@@ -524,7 +573,7 @@ class ScanResourceIntTest(
     typeOfFind: String? = null,
     createdBy: String = "abc12ab",
   ) = ScanResponse(
-    id = id,
+    originalId = originalId,
     prisonerNumber = prisonerNumber,
     prisonId = prisonId,
     scanDate = scanDate,
