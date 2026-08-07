@@ -10,3 +10,5 @@ fun filterByPrisonerNumber(prisonerNumber: String) = ScanEntity::prisonerNumber.
 fun filterFromScanDate(fromScanDate: LocalDate) = ScanEntity::scanDate.buildSpecForGreaterThanOrEqualTo(fromScanDate)
 
 fun filterToScanDate(toScanDate: LocalDate) = ScanEntity::scanDate.buildSpecForLessThan(toScanDate)
+
+val sortableFields = listOf("scanDate")

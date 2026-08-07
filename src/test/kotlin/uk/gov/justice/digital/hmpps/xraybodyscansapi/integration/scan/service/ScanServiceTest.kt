@@ -92,12 +92,21 @@ class ScanServiceTest {
       whenever(
         scanRepository.findAll(
           any<Specification<ScanEntity>>(),
-          eq(PageRequest.of(1, 10, Sort.by("id").ascending())),
+          eq(PageRequest.of(1, 10, Sort.by("scanDate").ascending())),
         ),
       ).thenReturn(PageImpl(listOf(scanEntity(prisonerNumber))))
 
-      val scans = scanService.listScans(prisonerNumber, pageable = PageRequest.of(1, 10, Sort.by("id").ascending()))
+      val scans = scanService.listScans(prisonerNumber, pageable = PageRequest.of(1, 10, Sort.by("scanDate").ascending()))
       assertThat(scans).hasSize(1)
+    }
+
+    @Test
+    fun `throws validation error when attempting to sort by an invalid field`() {
+      assertThatThrownBy {
+        scanService.listScans(prisonerNumber, null, PageRequest.of(0, 20, Sort.by("id")))
+      }.hasMessage("Sort order not supported (only [scanDate] are allowed)")
+      verifyNoInteractions(prisonApiClient)
+      verifyNoInteractions(scanRepository)
     }
   }
 
@@ -154,6 +163,7 @@ class ScanServiceTest {
       assertThatThrownBy {
         scanService.createScan(prisonerNumber, request)
       }.hasMessage("Reference data with domain ${domain.name} and code INVALID not found")
+      verifyNoInteractions(scanRepository)
     }
 
     @Test
@@ -170,6 +180,7 @@ class ScanServiceTest {
       assertThatThrownBy {
         scanService.createScan(prisonerNumber, request)
       }.hasMessage("typeOfFind is required for positive outcomes")
+      verifyNoInteractions(scanRepository)
     }
   }
 

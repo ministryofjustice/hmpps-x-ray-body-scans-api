@@ -23,6 +23,7 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanEntity
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanRepository
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.filterByPrisonerNumber
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.groupOutcomes
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.sortableFields
 import java.time.Clock
 import java.time.LocalDate
 import java.time.temporal.TemporalAdjusters.firstDayOfYear
@@ -44,11 +45,18 @@ class ScanService(
     query: ListScansRequest? = null,
     pageable: Pageable = PageRequest.of(0, 20, Sort.by("scanDate").descending()),
   ): Page<out UnifiedScanResponse> {
+    val allSortOrdersPermitted = pageable.sort.all {
+      sortableFields.contains(it.property)
+    }
+    if (!allSortOrdersPermitted) {
+      throw ValidationException("Sort order not supported (only $sortableFields are allowed)")
+    }
+
     var specification = filterByPrisonerNumber(prisonerNumber)
     query?.let {
       specification = specification.and(query.toSpecification())
     }
-    // TODO: impose limits on page request, eg max size or available sort columns?
+    // TODO: impose limits on page request, eg max size?
     return scanRepository.findAll(specification, pageable).map {
       it.toDto()
     }
