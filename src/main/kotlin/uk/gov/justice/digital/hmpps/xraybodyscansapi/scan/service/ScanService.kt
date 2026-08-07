@@ -45,6 +45,7 @@ class ScanService(
     query: ListScansRequest? = null,
     pageable: Pageable = PageRequest.of(0, 20, Sort.by("scanDate").descending()),
   ): Page<out UnifiedScanResponse> {
+    // limit sortable fields
     val allSortOrdersPermitted = pageable.sort.all {
       sortableFields.contains(it.property)
     }
@@ -52,11 +53,17 @@ class ScanService(
       throw ValidationException("Sort order not supported (only $sortableFields are allowed)")
     }
 
+    // if date range is greater than 1 year, limit page size
+    val today = LocalDate.now(clock)
+    val limitPageSize = query == null || query.fromScanDate == null || (query.toScanDate ?: today).toEpochDay() - query.fromScanDate.toEpochDay() > 366
+    if (limitPageSize && pageable.pageSize > 200) {
+      throw ValidationException("Page size limit of 200 exceeded")
+    }
+
     var specification = filterByPrisonerNumber(prisonerNumber)
     query?.let {
       specification = specification.and(query.toSpecification())
     }
-    // TODO: impose limits on page request, eg max size?
     return scanRepository.findAll(specification, pageable).map {
       it.toDto()
     }

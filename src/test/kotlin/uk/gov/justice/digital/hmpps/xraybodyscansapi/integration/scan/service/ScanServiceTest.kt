@@ -5,8 +5,11 @@ import org.assertj.core.api.Assertions.assertThatList
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.DisplayName
+import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.EnumSource
 import org.mockito.kotlin.any
@@ -18,6 +21,7 @@ import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
 import org.springframework.data.domain.PageImpl
 import org.springframework.data.domain.PageRequest
+import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
 import org.springframework.data.jpa.domain.Specification
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.alertsapi.AlertsApiClient
@@ -32,6 +36,7 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.dto.response.
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.repository.ReferenceDataCodeEntity
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.repository.ReferenceDataCodeRepository
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScanRequest
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.ListScansRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanSummaryResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanEntity
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanRepository
@@ -61,6 +66,7 @@ class ScanServiceTest {
     relevantAlertCodes = relevantAlertCodes,
   )
 
+  @DisplayName("Listing DPS and legacy NOMIS scans")
   @Nested
   inner class List {
     private val prisonerNumber = "A1234BC"
@@ -100,6 +106,43 @@ class ScanServiceTest {
       assertThat(scans).hasSize(1)
     }
 
+    @DisplayName("allows huge page sizes when date filters span a year or less")
+    @TestFactory
+    fun `allows huge page sizes when date filters span a year or less`() = listOf(
+      "with open-ended date filters" to ListScansRequest(fromScanDate = yearStart),
+      "with date filters spanning a year" to ListScansRequest(fromScanDate = yearStart.minusYears(1), toScanDate = yearStart),
+    ).map {
+      val (scenario, query) = it
+      DynamicTest.dynamicTest(scenario) {
+        whenever(
+          scanRepository.findAll(any<Specification<ScanEntity>>(), any<Pageable>()),
+        ).thenReturn(
+          PageImpl(emptyList()),
+        )
+
+        val scans = scanService.listScans(prisonerNumber, query, PageRequest.of(0, 1000, Sort.by("scanDate")))
+        assertThat(scans).isEmpty()
+      }
+    }
+
+    @DisplayName("throws validation error when attempting to retrieve too many scans")
+    @TestFactory
+    fun `throws validation error when attempting to retrieve too many scans`() = listOf(
+      "without filters" to null,
+      "with no date filters" to ListScansRequest(),
+      "with open-ended date filters" to ListScansRequest(toScanDate = today.minusDays(1)),
+      "with date filters spanning more than a year" to ListScansRequest(fromScanDate = yearStart.minusMonths(8)),
+    ).map {
+      val (scenario, query) = it
+      DynamicTest.dynamicTest(scenario) {
+        assertThatThrownBy {
+          scanService.listScans(prisonerNumber, query, PageRequest.of(0, 201, Sort.by("scanDate")))
+        }.hasMessage("Page size limit of 200 exceeded")
+        verifyNoInteractions(prisonApiClient)
+        verifyNoInteractions(scanRepository)
+      }
+    }
+
     @Test
     fun `throws validation error when attempting to sort by an invalid field`() {
       assertThatThrownBy {
@@ -110,6 +153,7 @@ class ScanServiceTest {
     }
   }
 
+  @DisplayName("Recording a new scan")
   @Nested
   inner class Create {
 
@@ -184,6 +228,7 @@ class ScanServiceTest {
     }
   }
 
+  @DisplayName("Summarising scans")
   @Nested
   inner class Summarise {
     @Test
@@ -474,6 +519,7 @@ class ScanServiceTest {
       )
     }
 
+    @DisplayName("Relevant alerts in scan summaries")
     @Nested
     inner class Alerts {
       val prisonerNumbers = listOf("A1234AA", "B1234BB")
