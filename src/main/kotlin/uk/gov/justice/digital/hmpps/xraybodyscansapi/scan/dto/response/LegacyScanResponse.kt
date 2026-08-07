@@ -28,6 +28,14 @@ data class LegacyScanResponse(
     requiredMode = Schema.RequiredMode.REQUIRED,
   )
   override val scanDate: LocalDate,
+
+  @Schema(
+    description = "Comment entered by staff",
+    type = "string",
+    nullable = true,
+    requiredMode = Schema.RequiredMode.REQUIRED,
+  )
+  val scanDetails: String? = null,
 ) : UnifiedScanResponse {
   @Schema(
     description = "Personal care need ID from NOMIS",
