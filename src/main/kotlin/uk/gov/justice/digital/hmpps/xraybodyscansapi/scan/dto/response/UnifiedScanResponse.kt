@@ -35,7 +35,8 @@ sealed interface UnifiedScanResponse {
     example = "YYYY-MM-DD",
     type = "string",
     format = "date",
+    nullable = true,
     requiredMode = Schema.RequiredMode.REQUIRED,
   )
-  val scanDate: LocalDate
+  val scanDate: LocalDate?
 }

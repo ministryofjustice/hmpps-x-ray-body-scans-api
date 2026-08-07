@@ -25,9 +25,10 @@ data class LegacyScanResponse(
     example = "YYYY-MM-DD",
     type = "string",
     format = "date",
+    nullable = true,
     requiredMode = Schema.RequiredMode.REQUIRED,
   )
-  override val scanDate: LocalDate,
+  override val scanDate: LocalDate?,
 
   @Schema(
     description = "Comment entered by staff",

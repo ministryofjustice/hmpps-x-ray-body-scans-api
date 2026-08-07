@@ -22,8 +22,7 @@ fun MutableList<PersonalCareNeed>.sortWith(sort: Sort) {
     property to direction
   }.toList()
   sortWith { careNeed1, careNeed2 ->
-    sortOrders.forEach { sortOrder ->
-      val (property, direction) = sortOrder
+    sortOrders.forEach { (property, direction) ->
       val property1 = property.get(careNeed1)
       val property2 = property.get(careNeed2)
       if (property1 == null) {
