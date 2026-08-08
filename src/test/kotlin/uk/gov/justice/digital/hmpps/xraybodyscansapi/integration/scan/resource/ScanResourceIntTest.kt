@@ -635,7 +635,7 @@ class ScanResourceIntTest(
   private fun nomisScanResponse(
     originalId: Long = legacyId,
     prisonerNumber: String,
-    scanDate: LocalDate = today.minusDays(1),
+    scanDate: LocalDate = this.scanDate,
     scanDetails: String? = "object detected",
   ) = LegacyScanResponse(
     originalId = originalId,

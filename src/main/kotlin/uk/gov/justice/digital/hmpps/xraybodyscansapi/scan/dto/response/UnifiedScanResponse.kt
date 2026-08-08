@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response
 
+import com.fasterxml.jackson.annotation.JsonIgnore
 import io.swagger.v3.oas.annotations.media.Schema
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.Source
 import java.time.LocalDate
@@ -16,6 +17,10 @@ sealed interface UnifiedScanResponse {
     requiredMode = Schema.RequiredMode.REQUIRED,
   )
   val source: Source
+
+  @get:JsonIgnore
+  val isLegacy: Boolean
+    get() = source == Source.NOMIS
 
   @get:Schema(
     description = "Unique identifier",
