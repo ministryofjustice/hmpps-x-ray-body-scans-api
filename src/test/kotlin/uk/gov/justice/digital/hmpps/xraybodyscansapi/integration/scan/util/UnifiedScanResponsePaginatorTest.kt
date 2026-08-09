@@ -237,12 +237,13 @@ class UnifiedScanResponsePaginatorTest {
       assertThat(page.totalPages).isEqualTo(4_000)
       assertThat(page.numberOfElements).isEqualTo(5)
       assertThat(page.content).hasSize(5)
-      assertThat(page.content).allMatch { it.isLegacy }
+      assertThat(page.content).allMatch { !it.isLegacy }
     }
   }
 
   // all comparison is via separately-tested `SortComparator` so can test paginating with one constant option
-  private val sort = Sort.by("scanDate", "id").descending()
+  private val sort = Sort.by(Sort.Direction.DESC, "scanDate")
+    .and(Sort.by(Sort.Direction.ASC, "source"))
   private fun pageRequest(pageNumber: Int = 0, pageSize: Int = 20): Pageable = PageRequest.of(pageNumber, pageSize, sort)
 
   private fun dpsScanResponse(originalId: UUID, scanDate: LocalDate) = ScanResponse(

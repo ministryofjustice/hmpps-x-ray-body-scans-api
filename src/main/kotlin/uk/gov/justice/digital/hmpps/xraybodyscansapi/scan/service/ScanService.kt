@@ -64,22 +64,27 @@ class ScanService(
       throw ValidationException("Page size limit of 200 exceeded")
     }
 
-    // create sort directive ensuring `id` is added to the end to break ties
+    // ensure non-empty sort directive
     val sort = pageable.sort.takeIf { it.isSorted }
       ?: Sort.by("scanDate").descending()
-    val sortWithTiebreak = sort
+    // …and add `id` at the end to break ties for scans of the same type
+    val sortWithIdTiebreak = sort
       .and(Sort.by(sort.last().direction, "id"))
+    // …and add reversed `source` at the end to break ties for mixed scans
+    val sortWithSourceTiebreak = sort
+      .and(Sort.by(sort.last().direction, "source").reverse())
 
     // target page
-    val pageable = PageRequest.of(pageable.pageNumber, pageable.pageSize, sortWithTiebreak)
+    val pageableWithIdTiebreak = PageRequest.of(pageable.pageNumber, pageable.pageSize, sortWithIdTiebreak)
+    val pageableWithSourceTiebreak = PageRequest.of(pageable.pageNumber, pageable.pageSize, sortWithSourceTiebreak)
 
     var specification = filterByPrisonerNumber(prisonerNumber)
     query?.let {
       specification = specification.and(query.toSpecification())
     }
-    val dpsScanSequence = getDpsScanSequence(specification, pageable)
-    val nomisScanSequence = getNomisScanSequence(prisonerNumber, pageable)
-    return dpsScanSequence.paginateWith(nomisScanSequence, pageable)
+    val dpsScanSequence = getDpsScanSequence(specification, pageableWithIdTiebreak)
+    val nomisScanSequence = getNomisScanSequence(prisonerNumber, pageableWithIdTiebreak)
+    return dpsScanSequence.paginateWith(nomisScanSequence, pageableWithSourceTiebreak)
   }
 
   private fun getDpsScanSequence(
