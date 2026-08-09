@@ -9,13 +9,12 @@ import org.springframework.data.domain.Sort
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.util.SortComparator
 import java.time.LocalDate
 import java.util.concurrent.atomic.AtomicLong
-import kotlin.reflect.KProperty1
 
 class SortComparatorTest {
   private val today: LocalDate = LocalDate.now()
 
   private class ExampleComparator(sort: Sort) : SortComparator<Example>(sort) {
-    override fun mapToProperty(name: String): KProperty1<Example, Comparable<*>?> = when (name) {
+    override fun getterForProperty(name: String): (Example) -> Comparable<*>? = when (name) {
       "id" -> Example::id
       "date" -> Example::date
       else -> throw IllegalArgumentException("cannot sort examples by $name")

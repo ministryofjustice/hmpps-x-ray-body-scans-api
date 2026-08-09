@@ -1,7 +1,6 @@
 package uk.gov.justice.digital.hmpps.xraybodyscansapi.util
 
 import org.springframework.data.domain.Sort
-import kotlin.reflect.KProperty1
 
 /**
  * Sorts objects using Spring Data domain object.
@@ -11,25 +10,25 @@ import kotlin.reflect.KProperty1
  */
 abstract class SortComparator<T>(sort: Sort) : Comparator<T> {
   val sortOrders = sort.map { sortOrder ->
-    val property = mapToProperty(sortOrder.property)
+    val getter = getterForProperty(sortOrder.property)
     val direction = sortOrder.direction
-    property to direction
+    getter to direction
   }.toList()
 
-  abstract fun mapToProperty(name: String): KProperty1<T, Comparable<*>?>
+  abstract fun getterForProperty(name: String): (T) -> Comparable<*>?
 
   override fun compare(object1: T, object2: T): Int {
-    sortOrders.forEach { (property, direction) ->
-      val property1 = property.get(object1)
-      val property2 = property.get(object2)
-      if (property1 == null) {
+    sortOrders.forEach { (getter, direction) ->
+      val value1 = getter(object1)
+      val value2 = getter(object2)
+      if (value1 == null) {
         return 1
       }
-      if (property2 == null) {
+      if (value2 == null) {
         return -1
       }
       @Suppress("UNCHECKED_CAST") // we know the two types are the same and comparable
-      val order = (property1 as Comparable<Any>).compareTo(property2)
+      val order = (value1 as Comparable<Any>).compareTo(value2)
       if (order != 0) {
         return if (direction == Sort.Direction.DESC) {
           -order
