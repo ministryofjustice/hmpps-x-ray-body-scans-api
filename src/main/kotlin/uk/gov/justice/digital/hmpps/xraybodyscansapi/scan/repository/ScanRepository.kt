@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository
 
+import org.springframework.data.jpa.repository.EntityGraph
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor
 import org.springframework.data.jpa.repository.Query
@@ -11,6 +12,11 @@ import java.util.UUID
 interface ScanRepository :
   JpaRepository<ScanEntity, UUID>,
   JpaSpecificationExecutor<ScanEntity> {
+  /** Find scans by id and eagerly load reference data */
+  @EntityGraph(attributePaths = ["justification", "outcome", "typeOfFind"])
+  fun findByIdIn(scanIds: List<UUID>): List<ScanEntity>
+
+  /** Summarise scan outcomes for given period and prisoners */
   @Query(
     """
     select prisonerNumber as prisonerNumber, outcome.code as outcome, count(*) as count

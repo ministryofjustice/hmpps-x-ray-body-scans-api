@@ -32,6 +32,7 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.util.UnifiedScanRespon
 import java.time.Clock
 import java.time.LocalDate
 import java.time.temporal.TemporalAdjusters.firstDayOfYear
+import java.util.UUID
 
 @Service
 class ScanService(
@@ -44,6 +45,10 @@ class ScanService(
   @Value($$"${scan.nearing-limit-threshold}") private val nearingLimitThreshold: Int,
   @Value($$"${scan.relevant-alert-codes:}") private val relevantAlertCodes: Set<String>,
 ) {
+  @Transactional(readOnly = true)
+  fun getScans(ids: List<UUID>): List<ScanResponse> = scanRepository.findByIdIn(ids)
+    .map { it.toDto() }
+
   @Transactional(readOnly = true)
   fun listScans(
     prisonerNumber: String,

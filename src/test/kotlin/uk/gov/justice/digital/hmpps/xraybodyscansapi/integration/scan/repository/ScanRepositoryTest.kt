@@ -52,6 +52,23 @@ class ScanRepositoryTest {
     assertThat(found.createdBy).isEqualTo("abc12a")
   }
 
+  @Test
+  fun `get scans by id`() {
+    val scanIds = scanRepository.saveAll(
+      listOf(
+        scanEntity(prisonerNumber, outcome = "POSITIVE", typeOfFind = "NOT_KNOWN"),
+        scanEntity(prisonerNumber, outcome = "NEGATIVE"),
+        scanEntity(prisonerNumber, outcome = "POSITIVE", typeOfFind = "INORGANIC"),
+      ),
+    ).map { it.id }
+
+    val scans = scanRepository.findByIdIn(scanIds)
+    assertThat(scans).hasSize(3)
+    assertThat(scans).allMatch {
+      it.prisonerNumber == prisonerNumber && it.justification.description == "Reasonable suspicion"
+    }
+  }
+
   @Nested
   inner class ScanSummaries {
     @Test
