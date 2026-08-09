@@ -6,16 +6,20 @@ import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
 import org.springframework.data.domain.Sort
+import org.springframework.data.jpa.domain.Specification
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.alertsapi.AlertsApiClient
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.PrisonApiClient
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.response.PersonalCareNeed
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.response.PersonalCareNeedComparator
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.dto.response.ReferenceDataDomains
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.repository.ReferenceDataCodeEntity
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.repository.ReferenceDataCodeRepository
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScanRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.ListScansRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.AlertResponse
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.LegacyScanResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanSummaryResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.UnifiedScanResponse
@@ -24,6 +28,7 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanReposit
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.filterByPrisonerNumber
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.groupOutcomes
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.sortableFields
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.util.UnifiedScanResponsePaginator
 import java.time.Clock
 import java.time.LocalDate
 import java.time.temporal.TemporalAdjusters.firstDayOfYear
@@ -59,13 +64,58 @@ class ScanService(
       throw ValidationException("Page size limit of 200 exceeded")
     }
 
+    // create sort directive ensuring `id` is added to the end to break ties
+    val sort = pageable.sort.takeIf { it.isSorted }
+      ?: Sort.by("scanDate").descending()
+    val sortWithTiebreak = sort
+      .and(Sort.by(sort.last().direction, "id"))
+
+    // target page
+    val pageable = PageRequest.of(pageable.pageNumber, pageable.pageSize, sortWithTiebreak)
+
     var specification = filterByPrisonerNumber(prisonerNumber)
     query?.let {
       specification = specification.and(query.toSpecification())
     }
-    return scanRepository.findAll(specification, pageable).map {
-      it.toDto()
-    }
+    val dpsScanSequence = getDpsScanSequence(specification, pageable)
+    val nomisScanSequence = getNomisScanSequence(prisonerNumber, pageable)
+    return dpsScanSequence.paginateWith(nomisScanSequence, pageable)
+  }
+
+  private fun getDpsScanSequence(
+    specification: Specification<ScanEntity>,
+    pageable: Pageable,
+  ): UnifiedScanResponsePaginator<ScanResponse> {
+    // get first page to know total number
+    val firstPage = scanRepository.findAll(specification, pageable.withPage(0))
+    val totalElements = firstPage.totalElements.toInt()
+
+    // add first page to subsequent pages up to target page maximum (no more could be needed)
+    val sequence = (
+      firstPage.asSequence() + (1..pageable.pageNumber).asSequence()
+        .flatMap { page ->
+          scanRepository.findAll(specification, pageable.withPage(page))
+        }
+      )
+      .map { it.toDto() }
+
+    return UnifiedScanResponsePaginator(totalElements, sequence)
+  }
+
+  private fun getNomisScanSequence(
+    prisonerNumber: String,
+    pageable: Pageable,
+  ): UnifiedScanResponsePaginator<LegacyScanResponse> {
+    // get all care needs and sort
+    val nomisScans = prisonApiClient.getScanCareNeeds(listOf(prisonerNumber)).firstOrNull()
+      ?.personalCareNeeds?.toMutableList()
+      ?: mutableListOf()
+    nomisScans.sortWith(PersonalCareNeedComparator(pageable.sort))
+
+    val sequence = nomisScans.asSequence()
+      .map { it.toDto(prisonerNumber) }
+
+    return UnifiedScanResponsePaginator(nomisScans.size, sequence)
   }
 
   @Transactional
@@ -181,6 +231,13 @@ class ScanService(
     createdBy = createdBy,
     lastModifiedAt = lastModifiedAt,
     lastModifiedBy = lastModifiedBy,
+  )
+
+  private fun PersonalCareNeed.toDto(prisonerNumber: String): LegacyScanResponse = LegacyScanResponse(
+    originalId = personalCareNeedId,
+    prisonerNumber = prisonerNumber,
+    scanDate = startDate,
+    scanDetails = commentText,
   )
 
   private fun getRelevantAlerts(prisonerNumbers: List<String>): Map<String, List<AlertResponse>> = alertsApiClient.getAlerts(

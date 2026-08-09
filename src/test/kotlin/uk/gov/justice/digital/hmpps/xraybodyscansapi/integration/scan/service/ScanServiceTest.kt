@@ -35,8 +35,11 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.FixedClock
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.dto.response.ReferenceDataDomains
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.repository.ReferenceDataCodeEntity
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.repository.ReferenceDataCodeRepository
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.Source
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScanRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.ListScansRequest
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.LegacyScanResponse
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanSummaryResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanEntity
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanRepository
@@ -72,11 +75,26 @@ class ScanServiceTest {
     private val prisonerNumber = "A1234BC"
 
     @Test
-    fun `returns a page of 20 scans for a prisoner`() {
+    fun `returns empty list when there are no scans for a prisoner`() {
       whenever(
         scanRepository.findAll(
           any<Specification<ScanEntity>>(),
-          eq(PageRequest.of(0, 20, Sort.by("scanDate").descending())),
+          eq(PageRequest.of(0, 20, Sort.by("scanDate", "id").descending())),
+        ),
+      ).thenReturn(PageImpl(emptyList()))
+      whenever(prisonApiClient.getScanCareNeeds(listOf(prisonerNumber)))
+        .thenReturn(emptyList())
+
+      val scans = scanService.listScans(prisonerNumber)
+      assertThat(scans).isEmpty()
+    }
+
+    @Test
+    fun `returns a page of 20 DPS scans for a prisoner`() {
+      whenever(
+        scanRepository.findAll(
+          any<Specification<ScanEntity>>(),
+          eq(PageRequest.of(0, 20, Sort.by("scanDate", "id").descending())),
         ),
       ).thenReturn(
         PageImpl(
@@ -87,23 +105,136 @@ class ScanServiceTest {
           ),
         ),
       )
-
-      val scans = scanService.listScans(prisonerNumber)
-      assertThat(scans).hasSize(3)
-      assertThatList(scans.content).allMatch { it.prisonerNumber == prisonerNumber }
-    }
-
-    @Test
-    fun `returns pages of scans as specified`() {
       whenever(
         scanRepository.findAll(
           any<Specification<ScanEntity>>(),
-          eq(PageRequest.of(1, 10, Sort.by("scanDate").ascending())),
+          eq(PageRequest.of(1, 20, Sort.by("scanDate", "id").descending())),
         ),
-      ).thenReturn(PageImpl(listOf(scanEntity(prisonerNumber))))
+      ).thenThrow(AssertionError("should not access page 1"))
+      whenever(prisonApiClient.getScanCareNeeds(listOf(prisonerNumber)))
+        .thenReturn(emptyList())
+
+      val scans = scanService.listScans(prisonerNumber)
+      assertThat(scans).hasSize(3)
+      assertThatList(scans.content).allMatch {
+        it.prisonerNumber == prisonerNumber && it.source == Source.DPS
+      }
+    }
+
+    @Test
+    fun `returns a page of 20 NOMIS scans for a prisoner`() {
+      whenever(
+        scanRepository.findAll(
+          any<Specification<ScanEntity>>(),
+          eq(PageRequest.of(0, 20, Sort.by("scanDate", "id").descending())),
+        ),
+      ).thenReturn(PageImpl(emptyList()))
+      whenever(
+        scanRepository.findAll(
+          any<Specification<ScanEntity>>(),
+          eq(PageRequest.of(1, 20, Sort.by("scanDate", "id").descending())),
+        ),
+      ).thenThrow(AssertionError("should not access page 1"))
+      whenever(prisonApiClient.getScanCareNeeds(listOf(prisonerNumber)))
+        .thenReturn(
+          listOf(
+            PersonalCareNeedsResponse(
+              offenderNo = prisonerNumber,
+              personalCareNeeds = listOf(bscan(today), bscan(today.minusDays(4)), bscan(today.minusMonths(1)), bscan(today.minusMonths(2))),
+            ),
+          ),
+        )
+
+      val scans = scanService.listScans(prisonerNumber)
+      assertThat(scans).hasSize(4)
+      assertThatList(scans.content).allMatch {
+        it.prisonerNumber == prisonerNumber && it.source == Source.NOMIS
+      }
+    }
+
+    @Test
+    fun `returns pages of DPS scans as specified`() {
+      whenever(
+        scanRepository.findAll(
+          any<Specification<ScanEntity>>(),
+          eq(PageRequest.of(0, 10, Sort.by("scanDate", "id").ascending())),
+        ),
+      ).thenReturn(
+        PageImpl(
+          MutableList(10) {
+            scanEntity(prisonerNumber, justification = "REASONABLE_SUSPICION")
+          },
+        ),
+      )
+      whenever(
+        scanRepository.findAll(
+          any<Specification<ScanEntity>>(),
+          eq(PageRequest.of(1, 10, Sort.by("scanDate", "id").ascending())),
+        ),
+      ).thenReturn(
+        PageImpl(
+          listOf(
+            scanEntity(prisonerNumber, justification = "INTELLIGENCE"),
+          ),
+        ),
+      )
+      whenever(
+        scanRepository.findAll(
+          any<Specification<ScanEntity>>(),
+          eq(PageRequest.of(2, 10, Sort.by("scanDate", "id").ascending())),
+        ),
+      ).thenThrow(AssertionError("should not access page 2"))
+      whenever(prisonApiClient.getScanCareNeeds(listOf(prisonerNumber)))
+        .thenReturn(emptyList())
 
       val scans = scanService.listScans(prisonerNumber, pageable = PageRequest.of(1, 10, Sort.by("scanDate").ascending()))
       assertThat(scans).hasSize(1)
+      val dpsScan = scans.content[0] as ScanResponse
+      assertThat(dpsScan.justification).isEqualTo("INTELLIGENCE")
+    }
+
+    @Test
+    fun `returns pages of DPS and NOMIS scans as specified`() {
+      whenever(
+        scanRepository.findAll(
+          any<Specification<ScanEntity>>(),
+          eq(PageRequest.of(0, 10, Sort.by("scanDate", "id").descending())),
+        ),
+      ).thenReturn(
+        PageImpl(
+          MutableList(10) {
+            scanEntity(prisonerNumber, justification = "REASONABLE_SUSPICION")
+          },
+        ),
+      )
+      whenever(
+        scanRepository.findAll(
+          any<Specification<ScanEntity>>(),
+          eq(PageRequest.of(1, 10, Sort.by("scanDate", "id").descending())),
+        ),
+      ).thenReturn(
+        PageImpl(
+          listOf(
+            scanEntity(prisonerNumber, justification = "INTELLIGENCE"),
+          ),
+        ),
+      )
+      whenever(prisonApiClient.getScanCareNeeds(listOf(prisonerNumber)))
+        .thenReturn(
+          listOf(
+            PersonalCareNeedsResponse(
+              offenderNo = prisonerNumber,
+              personalCareNeeds = listOf(bscan(today.minusWeeks(2))),
+            ),
+          ),
+        )
+
+      val scans = scanService.listScans(prisonerNumber, pageable = PageRequest.of(1, 10))
+      assertThat(scans).hasSize(2)
+      val dpsScan = scans.content[0] as ScanResponse
+      assertThat(dpsScan.justification).isEqualTo("INTELLIGENCE")
+      val nomisScan = scans.content[1] as LegacyScanResponse
+      assertThat(nomisScan.scanDetails).isEqualTo("notes")
     }
 
     @DisplayName("allows huge page sizes when date filters span a year or less")
@@ -116,11 +247,12 @@ class ScanServiceTest {
       DynamicTest.dynamicTest(scenario) {
         whenever(
           scanRepository.findAll(any<Specification<ScanEntity>>(), any<Pageable>()),
-        ).thenReturn(
-          PageImpl(emptyList()),
-        )
+        ).thenReturn(PageImpl(emptyList()))
+        whenever(
+          prisonApiClient.getScanCareNeeds(any()),
+        ).thenReturn(emptyList())
 
-        val scans = scanService.listScans(prisonerNumber, query, PageRequest.of(0, 1000, Sort.by("scanDate")))
+        val scans = scanService.listScans(prisonerNumber, query, PageRequest.of(0, 10_000, Sort.by("scanDate")))
         assertThat(scans).isEmpty()
       }
     }
@@ -618,15 +750,6 @@ class ScanServiceTest {
       }
     }
 
-    private fun bscan(startDate: String) = bscan(LocalDate.parse(startDate))
-    private fun bscan(startDate: LocalDate) = PersonalCareNeed(
-      personalCareNeedId = 1,
-      problemType = "BSCAN",
-      problemCode = "xyz",
-      problemStatus = "xyz",
-      startDate = startDate,
-    )
-
     private fun alert(prisonerNumber: String, type: String, code: String, id: String = "019fc832-57b9-704f-a907-8059720e37e8") = Alert(
       alertUuid = id,
       prisonNumber = prisonerNumber,
@@ -639,6 +762,17 @@ class ScanServiceTest {
       description = "",
     )
   }
+
+  private fun bscan(startDate: String) = bscan(LocalDate.parse(startDate))
+  private fun bscan(startDate: LocalDate) = PersonalCareNeed(
+    personalCareNeedId = 1,
+    problemType = "BSCAN",
+    problemCode = "BSC6.0",
+    problemStatus = "ON",
+    problemDescription = "Body Scan (6.0 µSv)",
+    commentText = "notes",
+    startDate = startDate,
+  )
 
   private fun makeReferenceDataWheneverNeeded(missingCodes: Set<Pair<String, String>> = emptySet()) {
     whenever(codeRepository.findByDomainAndCode(any<ReferenceDataDomains>(), any<String>())).thenAnswer { invocation ->
