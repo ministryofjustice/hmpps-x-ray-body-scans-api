@@ -18,10 +18,10 @@ import java.util.UUID
 @Entity
 @Table(name = "body_scan")
 class ScanEntity(
-  @Column(name = "prisoner_number", nullable = false)
+  @Column(name = "prisoner_number", length = 7, nullable = false)
   val prisonerNumber: String,
 
-  @Column(name = "prison_id", nullable = false)
+  @Column(name = "prison_id", length = 10, nullable = false)
   val prisonId: String,
 
   @Column(name = "scan_date", nullable = false)
@@ -37,9 +37,9 @@ class ScanEntity(
   @JoinColumn(name = "type_of_find")
   val typeOfFind: ReferenceDataCodeEntity? = null,
 
-  @Column(name = "created_by", nullable = false, updatable = false)
+  @Column(name = "created_by", length = 120, nullable = false, updatable = false)
   val createdBy: String,
-  @Column(name = "last_modified_by")
+  @Column(name = "last_modified_by", length = 120)
   val lastModifiedBy: String = createdBy,
 ) {
   @Id
@@ -50,7 +50,7 @@ class ScanEntity(
   @Column(name = "case_note_id")
   var caseNoteId: UUID? = null
 
-  @Column(name = "merged_from_prisoner_number")
+  @Column(name = "merged_from_prisoner_number", length = 7)
   var mergedFromPrisonerNumber: String? = null
 
   @Column(name = "merged_at")

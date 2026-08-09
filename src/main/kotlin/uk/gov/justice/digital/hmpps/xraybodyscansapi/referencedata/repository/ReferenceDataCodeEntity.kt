@@ -16,22 +16,22 @@ import java.time.LocalDateTime
 @Entity
 @Table(name = "reference_data_code")
 class ReferenceDataCodeEntity(
-  @Column(name = "domain", nullable = false)
+  @Column(name = "domain", length = 30, nullable = false)
   val domainCode: String,
 
-  @Column(name = "code", nullable = false)
+  @Column(name = "code", length = 30, nullable = false)
   val code: String,
 
-  @Column(name = "description", nullable = false)
+  @Column(name = "description", length = 120, nullable = false)
   val description: String,
 
   @Suppress("unused")
   @Column(name = "list_sequence", nullable = false)
   val listSequence: Int,
 
-  @Column(name = "created_by", nullable = false, updatable = false)
+  @Column(name = "created_by", length = 120, nullable = false, updatable = false)
   val createdBy: String,
-  @Column(name = "last_modified_by")
+  @Column(name = "last_modified_by", length = 120)
   val lastModifiedBy: String = createdBy,
 ) {
   @Id
@@ -54,6 +54,6 @@ class ReferenceDataCodeEntity(
   @Column(name = "deactivated_at")
   val deactivatedAt: LocalDateTime? = null
 
-  @Column(name = "deactivated_by")
+  @Column(name = "deactivated_by", length = 120)
   val deactivatedBy: String? = null
 }
