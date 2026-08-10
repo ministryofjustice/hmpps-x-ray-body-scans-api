@@ -12,7 +12,11 @@ class AlertsApiClient(
   @Qualifier("alertsApiWebClient") private val webClient: WebClient,
 ) {
   /** Bulk-get alerts for given prisoners. Requires ROLE_PRISONER_ALERTS__RO or ROLE_PRISONER_ALERTS__RW */
-  fun getAlerts(prisonerNumbers: List<String>, filterAlertCodes: Set<String>? = null): AlertResponse = try {
+  fun getAlerts(
+    prisonerNumbers: List<String>,
+    filterAlertCodes: Set<String>? = null,
+    username: String? = null,
+  ): AlertResponse = try {
     webClient.post().uri {
       it.path("/search/alerts/prison-numbers")
       filterAlertCodes?.let { codes ->
@@ -20,6 +24,11 @@ class AlertsApiClient(
       }
       it.build()
     }
+      .apply {
+        if (username != null) {
+          header("Username", username)
+        }
+      }
       .bodyValue(prisonerNumbers)
       .retrieve()
       .bodyToMono(object : ParameterizedTypeReference<AlertResponse>() {})

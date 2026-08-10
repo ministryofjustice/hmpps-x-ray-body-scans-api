@@ -2,6 +2,8 @@ package uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.wiremock
 
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
+import com.github.tomakehurst.wiremock.client.WireMock.absent
+import com.github.tomakehurst.wiremock.client.WireMock.equalTo
 import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.havingExactly
 import com.github.tomakehurst.wiremock.client.WireMock.post
@@ -49,11 +51,20 @@ class AlertsApiMockServer : WireMockServer(WIREMOCK_PORT) {
     ),
   )
 
-  fun stubBulkGetAlerts(body: String, filterAlertCodes: Set<String>? = null): StubMapping = stubFor(
+  fun stubBulkGetAlerts(
+    body: String,
+    filterAlertCodes: Set<String>? = null,
+    username: String? = null,
+  ): StubMapping = stubFor(
     post(urlPathEqualTo("/search/alerts/prison-numbers"))
       .also {
         if (filterAlertCodes != null) {
           it.withQueryParam("filterAlertCodes", havingExactly(*filterAlertCodes.toTypedArray()))
+        }
+        if (username != null) {
+          it.withHeader("Username", equalTo(username))
+        } else {
+          it.withHeader("Username", absent())
         }
       }
       .willReturn(
@@ -80,7 +91,7 @@ class AlertsApiMockServer : WireMockServer(WIREMOCK_PORT) {
                 "developerMessage": "Serious error in the system",
                 "moreInfo": null
               }
-              """,
+            """,
           ),
       ),
   )
