@@ -21,7 +21,7 @@ data class LegacyScanResponse(
   override val prisonerNumber: String,
 
   @Schema(
-    description = "Date the scan was performed",
+    description = "Date the scan was performed, if recorded",
     example = "YYYY-MM-DD",
     type = "string",
     format = "date",
@@ -47,6 +47,7 @@ data class LegacyScanResponse(
   @Schema(
     description = "This scan was recorded in NOMIS",
     type = "string",
+    defaultValue = "NOMIS",
     allowableValues = ["NOMIS"],
     requiredMode = Schema.RequiredMode.REQUIRED,
   )

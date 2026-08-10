@@ -29,7 +29,7 @@ data class ScanResponse(
   val prisonId: String,
 
   @Schema(
-    description = "Date the scan was performed (today or in the past)",
+    description = "Date the scan was performed",
     example = "YYYY-MM-DD",
     type = "string",
     format = "date",
@@ -148,6 +148,7 @@ data class ScanResponse(
   @Schema(
     description = "This scan was recorded in DPS",
     type = "string",
+    defaultValue = "DPS",
     allowableValues = ["DPS"],
     requiredMode = Schema.RequiredMode.REQUIRED,
   )
