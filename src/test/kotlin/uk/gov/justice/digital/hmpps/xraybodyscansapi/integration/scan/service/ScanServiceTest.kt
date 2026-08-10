@@ -44,6 +44,7 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanSumma
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanEntity
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanRepository
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanSummaryRow
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.IncludeAlerts
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.ScanService
 import java.time.LocalDate
 import java.util.UUID
@@ -676,7 +677,7 @@ class ScanServiceTest {
 
       @Test
       fun `returns alerts when requested`() {
-        whenever(alertsApiClient.getAlerts(prisonerNumbers, relevantAlertCodes))
+        whenever(alertsApiClient.getAlerts(prisonerNumbers, relevantAlertCodes, "abc12a"))
           .thenReturn(
             AlertResponse(
               listOf(
@@ -685,7 +686,7 @@ class ScanServiceTest {
               ),
             ),
           )
-        val result = scanService.summariseScans(prisonerNumbers, includeAlerts = true)
+        val result = scanService.summariseScans(prisonerNumbers, IncludeAlerts.WithUsername("abc12a"))
 
         val relevantAlerts = result.associate { it.prisonerNumber to it.relevantAlerts }
         assertThat(relevantAlerts).isEqualTo(
@@ -714,9 +715,9 @@ class ScanServiceTest {
 
       @Test
       fun `returns empty list if no relevant codes`() {
-        whenever(alertsApiClient.getAlerts(prisonerNumbers, relevantAlertCodes))
+        whenever(alertsApiClient.getAlerts(prisonerNumbers, relevantAlertCodes, "user3"))
           .thenReturn(AlertResponse(emptyList()))
-        val result = scanService.summariseScans(prisonerNumbers, includeAlerts = true)
+        val result = scanService.summariseScans(prisonerNumbers, IncludeAlerts.WithUsername("user3"))
 
         val relevantAlerts = result.associate { it.prisonerNumber to it.relevantAlerts }
         assertThat(relevantAlerts).isEqualTo(
@@ -730,7 +731,7 @@ class ScanServiceTest {
       @Test
       @Disabled("filtering is delegated to alerts-api")
       fun `filters alerts`() {
-        whenever(alertsApiClient.getAlerts(prisonerNumbers, relevantAlertCodes))
+        whenever(alertsApiClient.getAlerts(prisonerNumbers, relevantAlertCodes, "abc12a"))
           .thenReturn(
             AlertResponse(
               listOf(
@@ -738,7 +739,7 @@ class ScanServiceTest {
               ),
             ),
           )
-        val result = scanService.summariseScans(prisonerNumbers, includeAlerts = true)
+        val result = scanService.summariseScans(prisonerNumbers, IncludeAlerts.WithUsername("abc12a"))
 
         val relevantAlerts = result.associate { it.prisonerNumber to it.relevantAlerts }
         assertThat(relevantAlerts).isEqualTo(

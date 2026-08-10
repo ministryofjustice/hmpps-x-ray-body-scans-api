@@ -17,6 +17,7 @@ import org.springframework.http.MediaType
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanSummaryResponse
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.IncludeAlerts
 
 @DisplayName("Bulk x-ray body scans resource")
 class BulkScanResourceIntTest(
@@ -50,7 +51,7 @@ class BulkScanResourceIntTest(
           .returnResult().responseBody
 
         assertThat(result).isEqualTo(expected)
-        verify(scanService).summariseScans(eq(listOf("A1234BC", "B5678DE")), eq(false))
+        verify(scanService).summariseScans(eq(listOf("A1234BC", "B5678DE")), eq(IncludeAlerts.No))
       }
 
       @Test
@@ -80,7 +81,7 @@ class BulkScanResourceIntTest(
           .returnResult().responseBody
 
         assertThat(result).isEqualTo(listOf(response))
-        verify(scanService).summariseScans(eq(listOf("A1234BC")), eq(true))
+        verify(scanService).summariseScans(eq(listOf("A1234BC")), eq(IncludeAlerts.WithUsername("AUTH_ADM")))
       }
 
       @ParameterizedTest(name = "permits role {0}")
