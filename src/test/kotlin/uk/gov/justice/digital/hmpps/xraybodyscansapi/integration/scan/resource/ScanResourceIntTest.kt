@@ -23,22 +23,17 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCAN
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScanRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.ListScansRequest
-import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.LegacyScanResponse
-import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.IncludeAlerts
 import java.time.LocalDate
 import java.util.UUID
 
-@DisplayName("X-ray body scans resource")
+@DisplayName("Prisoner x-ray body scans resource")
 class ScanResourceIntTest(
   @Value($$"${scan.annual-limit}") scanAnnualLimit: Int,
   @Value($$"${scan.nearing-limit-threshold}") nearingLimitThreshold: Int,
 ) : BaseScanResourceIntTest(scanAnnualLimit, nearingLimitThreshold) {
 
   private val prisonerNumber = "A1234BC"
-  private val scanDate: LocalDate = today.minusDays(1)
-  private val id: UUID = UUID.randomUUID()
-  private val legacyId: Long = 13134
 
   @Nested
   @DisplayName("List scans endpoint")
@@ -53,7 +48,7 @@ class ScanResourceIntTest(
             PageImpl(
               listOf(
                 dpsScanResponse(
-                  originalId = id,
+                  originalId = scanId,
                   prisonerNumber = prisonerNumber,
                   scanDate = scanDate,
                 ),
@@ -73,7 +68,7 @@ class ScanResourceIntTest(
             val scan = scans[0]
             assertThat(scan).hasSize(18)
             assertThat(scan["source"]).isEqualTo("DPS")
-            assertThat(scan["id"]).isEqualTo(id.toString())
+            assertThat(scan["id"]).isEqualTo(scanId.toString())
             assertThat(scan["prisonerNumber"]).isEqualTo(prisonerNumber)
             assertThat(scan["prisonId"]).isEqualTo("MDI")
             assertThat(scan["scanDate"]).isEqualTo(scanDate.toString())
@@ -188,7 +183,7 @@ class ScanResourceIntTest(
           PageImpl(
             listOf(
               dpsScanResponse(
-                originalId = id,
+                originalId = scanId,
                 prisonerNumber = prisonerNumber,
                 scanDate = LocalDate.of(2026, 5, 6),
               ),
@@ -208,7 +203,7 @@ class ScanResourceIntTest(
             """
             {
               "content": [
-                {"id": "$id", "prisonerNumber": "A1234BC"}
+                {"id": "$scanId", "prisonerNumber": "A1234BC"}
               ]
             }
             """,
@@ -304,7 +299,7 @@ class ScanResourceIntTest(
         whenever(scanService.createScan(eq(prisonerNumber), any()))
           .thenReturn(
             dpsScanResponse(
-              originalId = id,
+              originalId = scanId,
               prisonerNumber = prisonerNumber,
               scanDate = scanDate,
             ),
@@ -319,7 +314,7 @@ class ScanResourceIntTest(
           .expectStatus().isCreated
           .expectHeader().contentType(MediaType.APPLICATION_JSON)
           .expectBody()
-          .jsonPath("$.id").isEqualTo(id)
+          .jsonPath("$.id").isEqualTo(scanId)
           .jsonPath("$.prisonerNumber").isEqualTo(prisonerNumber)
           .jsonPath("$.scanDate").isEqualTo(scanDate.toString())
 
@@ -332,7 +327,7 @@ class ScanResourceIntTest(
         whenever(scanService.createScan(eq(prisonerNumber), any()))
           .thenReturn(
             dpsScanResponse(
-              originalId = id,
+              originalId = scanId,
               prisonerNumber = prisonerNumber,
               scanDate = today,
             ),
@@ -606,42 +601,4 @@ class ScanResourceIntTest(
       }
     }
   }
-
-  private fun dpsScanResponse(
-    originalId: UUID = id,
-    prisonerNumber: String,
-    prisonId: String = "MDI",
-    scanDate: LocalDate = this.scanDate,
-    justification: String = "INTELLIGENCE",
-    outcome: String = "NEGATIVE",
-    typeOfFind: String? = null,
-    createdBy: String = "abc12ab",
-  ) = ScanResponse(
-    originalId = originalId,
-    prisonerNumber = prisonerNumber,
-    prisonId = prisonId,
-    scanDate = scanDate,
-    justification = justification,
-    justificationDescription = justification,
-    outcome = outcome,
-    outcomeDescription = outcome,
-    typeOfFind = typeOfFind,
-    typeOfFindDescription = typeOfFind,
-    createdAt = now,
-    createdBy = createdBy,
-    lastModifiedAt = now,
-    lastModifiedBy = createdBy,
-  )
-
-  private fun nomisScanResponse(
-    originalId: Long = legacyId,
-    prisonerNumber: String,
-    scanDate: LocalDate = this.scanDate,
-    scanDetails: String? = "object detected",
-  ) = LegacyScanResponse(
-    originalId = originalId,
-    prisonerNumber = prisonerNumber,
-    scanDate = scanDate,
-    scanDetails = scanDetails,
-  )
 }

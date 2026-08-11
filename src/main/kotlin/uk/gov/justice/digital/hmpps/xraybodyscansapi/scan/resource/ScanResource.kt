@@ -54,7 +54,7 @@ class ScanResource(
   @RequireReadRole
   @Operation(
     summary = "Retrieve x-ray body scans for a prisoner",
-    description = "Returns recorded x-ray body scans for the given prisoner. " +
+    description = "Returns x-ray body scans for the given prisoner recorded in DPS and NOMIS. " +
       "If the prisoner is not found, the list is empty. " +
       "Ensure the prisoner exists prior to use.",
     responses = [

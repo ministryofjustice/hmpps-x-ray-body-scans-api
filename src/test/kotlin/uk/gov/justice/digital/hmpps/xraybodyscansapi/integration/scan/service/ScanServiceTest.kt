@@ -70,6 +70,41 @@ class ScanServiceTest {
     relevantAlertCodes = relevantAlertCodes,
   )
 
+  @DisplayName("Get DPS scans")
+  @Nested
+  inner class Get {
+    private val ids = MutableList(3) { UUID.randomUUID() }
+
+    @Test
+    fun `returns empty list when no scans are found`() {
+      whenever(scanRepository.findByIdIn(ids))
+        .thenReturn(emptyList())
+
+      val scans = scanService.getScans(ids)
+      assertThat(scans).isEmpty()
+      verifyNoInteractions(prisonApiClient)
+    }
+
+    @Test
+    fun `returns list of scans`() {
+      whenever(scanRepository.findByIdIn(ids))
+        .thenReturn(
+          listOf(
+            scanEntity("A1111AA"),
+            scanEntity("B2222BB"),
+          ),
+        )
+
+      val scans = scanService.getScans(ids)
+      assertThat(scans).hasSize(2)
+      assertThat(scans.map { it.prisonerNumber to it.source }).containsExactly(
+        "A1111AA" to Source.DPS,
+        "B2222BB" to Source.DPS,
+      )
+      verifyNoInteractions(prisonApiClient)
+    }
+  }
+
   @DisplayName("Listing DPS and legacy NOMIS scans")
   @Nested
   inner class List {
