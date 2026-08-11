@@ -16,7 +16,9 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCAN
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.RequireReadRole
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.BulkScanSummaryRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanSummaryResponse
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.IncludeAlerts
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.ScanService
+import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 
 @RestController
@@ -29,6 +31,7 @@ import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
   produces = [MediaType.APPLICATION_JSON_VALUE],
 )
 class BulkScanResource(
+  private val authenticationHolder: HmppsAuthenticationHolder,
   private val scanService: ScanService,
 ) {
   @PostMapping("/summary", consumes = [MediaType.APPLICATION_JSON_VALUE])
@@ -69,5 +72,10 @@ class BulkScanResource(
     @RequestBody
     @Valid
     request: BulkScanSummaryRequest,
-  ): List<ScanSummaryResponse> = scanService.summariseScans(request.prisonerNumbers, request.includeAlerts)
+  ): List<ScanSummaryResponse> = scanService.summariseScans(
+    request.prisonerNumbers,
+    IncludeAlerts.from(request.includeAlerts) {
+      authenticationHolder.username ?: authenticationHolder.principal
+    },
+  )
 }

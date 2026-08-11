@@ -24,7 +24,8 @@ data class BulkScanSummaryRequest(
     >,
 
   @Schema(
-    description = "Whether relevant alerts should be included (alerts field is null otherwise)",
+    description = "Whether relevant alerts should be included (alerts field is null otherwise). " +
+      "Username must be set in the token",
     requiredMode = Schema.RequiredMode.NOT_REQUIRED,
   )
   val includeAlerts: Boolean = false,

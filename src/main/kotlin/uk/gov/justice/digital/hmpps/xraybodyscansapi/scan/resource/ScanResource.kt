@@ -32,7 +32,9 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.ScanSummar
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanSummaryResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.UnifiedScanResponse
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.IncludeAlerts
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.ScanService
+import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 
 @RestController
@@ -45,6 +47,7 @@ import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
   produces = [MediaType.APPLICATION_JSON_VALUE],
 )
 class ScanResource(
+  private val authenticationHolder: HmppsAuthenticationHolder,
   private val scanService: ScanService,
 ) {
   @GetMapping
@@ -207,5 +210,10 @@ class ScanResource(
     @ParameterObject
     @Valid
     request: ScanSummaryRequest,
-  ): ScanSummaryResponse = scanService.summariseScans(prisonerNumber, request.includeAlerts)
+  ): ScanSummaryResponse = scanService.summariseScans(
+    prisonerNumber,
+    IncludeAlerts.from(request.includeAlerts) {
+      authenticationHolder.username ?: authenticationHolder.principal
+    },
+  )
 }
