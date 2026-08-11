@@ -25,6 +25,7 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScan
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.ListScansRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.LegacyScanResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanResponse
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.IncludeAlerts
 import java.time.LocalDate
 import java.util.UUID
 
@@ -512,7 +513,7 @@ class ScanResourceIntTest(
             JsonCompareMode.STRICT,
           )
 
-        verify(scanService).summariseScans(eq(prisonerNumber), eq(false))
+        verify(scanService).summariseScans(eq(prisonerNumber), eq(IncludeAlerts.No))
       }
 
       @Test
@@ -548,7 +549,7 @@ class ScanResourceIntTest(
             JsonCompareMode.LENIENT,
           )
 
-        verify(scanService).summariseScans(eq(prisonerNumber), eq(true))
+        verify(scanService).summariseScans(eq(prisonerNumber), eq(IncludeAlerts.WithUsername("AUTH_ADM")))
       }
 
       @ParameterizedTest(name = "permits role {0}")

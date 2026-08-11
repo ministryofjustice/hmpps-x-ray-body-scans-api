@@ -149,18 +149,23 @@ class ScanService(
   }
 
   @Transactional(readOnly = true)
-  fun summariseScans(prisonerNumber: String, includeAlerts: Boolean = false): ScanSummaryResponse = summariseScans(listOf(prisonerNumber), includeAlerts).first()
+  fun summariseScans(
+    prisonerNumber: String,
+    includeAlerts: IncludeAlerts = IncludeAlerts.No,
+  ): ScanSummaryResponse = summariseScans(listOf(prisonerNumber), includeAlerts).first()
 
   @Transactional(readOnly = true)
-  fun summariseScans(prisonerNumbers: List<String>, includeAlerts: Boolean = false): List<ScanSummaryResponse> {
+  fun summariseScans(
+    prisonerNumbers: List<String>,
+    includeAlerts: IncludeAlerts = IncludeAlerts.No,
+  ): List<ScanSummaryResponse> {
     val (fromScanDate, toScanDate) = calendarYear()
     val nomisCounts = getNomisScanCounts(prisonerNumbers, fromScanDate, toScanDate)
     val dpsCounts = scanRepository.scanSummaryRowsForPrisoners(prisonerNumbers, fromScanDate, toScanDate).groupOutcomes()
 
-    val relevantAlerts = if (includeAlerts) {
-      getRelevantAlerts(prisonerNumbers)
-    } else {
-      null
+    val relevantAlerts = when (includeAlerts) {
+      is IncludeAlerts.WithUsername -> getRelevantAlerts(prisonerNumbers, includeAlerts.username)
+      is IncludeAlerts.No -> null
     }
 
     return prisonerNumbers.map { prisonerNumber ->
@@ -245,9 +250,13 @@ class ScanService(
     scanDetails = commentText,
   )
 
-  private fun getRelevantAlerts(prisonerNumbers: List<String>): Map<String, List<AlertResponse>> = alertsApiClient.getAlerts(
+  private fun getRelevantAlerts(
+    prisonerNumbers: List<String>,
+    username: String,
+  ): Map<String, List<AlertResponse>> = alertsApiClient.getAlerts(
     prisonerNumbers = prisonerNumbers,
     filterAlertCodes = relevantAlertCodes,
+    username = username,
   )
     .toList()
     // .filter { relevantAlertCodes.contains(it.alertCode.code) } // delegated to alerts-api

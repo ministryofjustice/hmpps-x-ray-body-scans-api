@@ -114,4 +114,23 @@ class AlertsApiClientTest {
       .extracting { (it as WebClientResponseException).statusCode.value() }
       .isEqualTo(status)
   }
+
+  @Test
+  fun `getAlerts passes username header to api`() {
+    alertsApi.stubBulkGetAlerts(
+      // language=json
+      """
+      {"content":  [
+        {"alertUuid":  "019fcc21-8aaf-75a8-9c27-ec1e006fe35e", "prisonNumber": "A1234AA", "alertCode":  {
+            "alertTypeCode": "X", "alertTypeDescription": "Security", "code": "XIS", "description": "Internal Secretor"
+          }, "description":  ""}
+      ]}
+      """,
+      username = "abc12a",
+    )
+
+    val result = client.getAlerts(prisonerNumbers, username = "abc12a")
+
+    assertThat(result.content.map { it.alertUuid }).isEqualTo(listOf("019fcc21-8aaf-75a8-9c27-ec1e006fe35e"))
+  }
 }
