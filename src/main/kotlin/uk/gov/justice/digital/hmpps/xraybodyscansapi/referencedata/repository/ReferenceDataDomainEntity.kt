@@ -16,14 +16,14 @@ import java.time.LocalDateTime
 @Table(name = "reference_data_domain")
 class ReferenceDataDomainEntity(
   @Id
-  @Column(name = "code", nullable = false, updatable = false)
+  @Column(name = "code", length = 30, nullable = false, updatable = false)
   val code: String,
-  @Column(name = "description", nullable = false)
+  @Column(name = "description", length = 120, nullable = false)
   val description: String,
 
-  @Column(name = "created_by", nullable = false, updatable = false)
+  @Column(name = "created_by", length = 120, nullable = false, updatable = false)
   val createdBy: String,
-  @Column(name = "last_modified_by", nullable = false)
+  @Column(name = "last_modified_by", length = 120, nullable = false)
   val lastModifiedBy: String = createdBy,
 ) {
   @CreationTimestamp
@@ -37,7 +37,7 @@ class ReferenceDataDomainEntity(
   @Column(name = "deactivated_at")
   val deactivatedAt: LocalDateTime? = null
 
-  @Column(name = "deactivated_by")
+  @Column(name = "deactivated_by", length = 120)
   val deactivatedBy: String? = null
 
   @OneToMany(mappedBy = "domainCode", fetch = FetchType.LAZY, cascade = [CascadeType.ALL], orphanRemoval = true)
