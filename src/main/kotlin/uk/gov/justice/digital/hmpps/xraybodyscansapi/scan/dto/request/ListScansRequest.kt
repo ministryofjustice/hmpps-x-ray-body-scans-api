@@ -9,7 +9,10 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.filterFromS
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.filterToScanDate
 import java.time.LocalDate
 
-@Schema(description = "Filters for listing scans")
+@Schema(
+  description = "Filters for listing scans",
+  accessMode = Schema.AccessMode.WRITE_ONLY,
+)
 data class ListScansRequest(
   @RequestParam(required = false)
   @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)

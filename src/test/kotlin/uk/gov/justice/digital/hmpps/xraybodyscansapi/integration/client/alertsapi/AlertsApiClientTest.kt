@@ -20,6 +20,8 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.wiremock.Alerts
 class AlertsApiClientTest {
   private lateinit var client: AlertsApiClient
 
+  private val relevantAlertCodes = setOf("XIS", "XXRAY")
+
   @BeforeEach
   fun resetMocks() {
     val webClient = WebClient.create("http://localhost:${alertsApi.port()}")
@@ -34,24 +36,25 @@ class AlertsApiClientTest {
       // language=json
       """
       {"content":  [
-        {"alertUuid":  "019fcc21-8aaf-75a8-9c27-ec1e006fe35e", "prisonerNumber": "A1234AA", "alertCode":  {
+        {"alertUuid":  "019fcc21-8aaf-75a8-9c27-ec1e006fe35e", "prisonNumber": "A1234AA", "alertCode":  {
           "alertTypeCode": "X", "alertTypeDescription": "Security", "code": "XIS", "description": "Internal Secretor"
         }, "description":  ""},
-        {"alertUuid":  "019fcc21-8df6-7278-8869-8fe992a46c68", "prisonerNumber": "B1234BB", "alertCode":  {
+        {"alertUuid":  "019fcc21-8df6-7278-8869-8fe992a46c68", "prisonNumber": "B1234BB", "alertCode":  {
           "alertTypeCode": "X", "alertTypeDescription": "Security", "code": "XXRAY", "description": "Do Not X-Ray Body Scan"
         }, "description":  ""}
       ]}
       """,
+      relevantAlertCodes,
     )
 
-    val result = client.getAlerts(prisonerNumbers)
+    val result = client.getAlerts(prisonerNumbers, relevantAlertCodes)
 
     assertThat(result).isEqualTo(
       AlertResponse(
         listOf(
           Alert(
             alertUuid = "019fcc21-8aaf-75a8-9c27-ec1e006fe35e",
-            prisonerNumber = "A1234AA",
+            prisonNumber = "A1234AA",
             alertCode = AlertCode(
               alertTypeCode = "X",
               alertTypeDescription = "Security",
@@ -62,7 +65,7 @@ class AlertsApiClientTest {
           ),
           Alert(
             alertUuid = "019fcc21-8df6-7278-8869-8fe992a46c68",
-            prisonerNumber = "B1234BB",
+            prisonNumber = "B1234BB",
             alertCode = AlertCode(
               alertTypeCode = "X",
               alertTypeDescription = "Security",

@@ -7,7 +7,10 @@ import jakarta.validation.constraints.PastOrPresent
 import org.springframework.format.annotation.DateTimeFormat
 import java.time.LocalDate
 
-@Schema(description = "Request model for creating an x-ray body scan.")
+@Schema(
+  description = "Request model for creating an x-ray body scan.",
+  accessMode = Schema.AccessMode.WRITE_ONLY,
+)
 data class CreateScanRequest(
   @NotNull
   @PastOrPresent(message = "scanDate must be today or in the past")
@@ -44,7 +47,7 @@ data class CreateScanRequest(
   )
   val outcome: String,
   @Schema(
-    description = "What type of item was detected, if any",
+    description = "What type of item was detected, if any (required for POSITIVE outcomes)",
     example = "INORGANIC",
     requiredMode = Schema.RequiredMode.NOT_REQUIRED,
     nullable = true,

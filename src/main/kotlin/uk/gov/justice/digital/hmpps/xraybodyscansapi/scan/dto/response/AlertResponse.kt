@@ -3,7 +3,10 @@ package uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response
 import io.swagger.v3.oas.annotations.media.Schema
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.alertsapi.response.Alert
 
-@Schema(description = "An active alert relevant to x-ray body scanning")
+@Schema(
+  description = "An active alert relevant to x-ray body scanning",
+  accessMode = Schema.AccessMode.READ_ONLY,
+)
 data class AlertResponse(
   @Schema(
     description = "Unique identifier for this alert assignment",

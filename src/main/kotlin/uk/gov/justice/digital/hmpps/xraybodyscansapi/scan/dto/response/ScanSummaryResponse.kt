@@ -3,7 +3,10 @@ package uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response
 import io.swagger.v3.oas.annotations.media.Schema
 import java.time.LocalDate
 
-@Schema(description = "Summary of x-ray body scans for a prisoner over a given time period")
+@Schema(
+  description = "Summary of x-ray body scans for a prisoner over a given time period",
+  accessMode = Schema.AccessMode.READ_ONLY,
+)
 data class ScanSummaryResponse(
 
   @Schema(
