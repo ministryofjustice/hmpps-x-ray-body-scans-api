@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.scan.resource
 
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -22,6 +23,7 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCAN
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScanRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.ListScansRequest
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.LegacyScanResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanResponse
 import java.time.LocalDate
 import java.util.UUID
@@ -35,6 +37,7 @@ class ScanResourceIntTest(
   private val prisonerNumber = "A1234BC"
   private val scanDate: LocalDate = today.minusDays(1)
   private val id: UUID = UUID.randomUUID()
+  private val legacyId: Long = 13134
 
   @Nested
   @DisplayName("List scans endpoint")
@@ -43,16 +46,103 @@ class ScanResourceIntTest(
     @DisplayName("Happy paths")
     inner class HappyPath {
       @Test
-      fun `returns a page of scans`() {
+      fun `returns details of a DPS scan`() {
+        whenever(scanService.listScans(any(), any(), any()))
+          .thenReturn(
+            PageImpl(
+              listOf(
+                dpsScanResponse(
+                  originalId = id,
+                  prisonerNumber = prisonerNumber,
+                  scanDate = scanDate,
+                ),
+              ),
+            ),
+          )
+
+        webTestClient.get()
+          .uri("/prisoner/$prisonerNumber/scan")
+          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
+          .exchange()
+          .expectStatus().isOk
+          .expectHeader().contentType(MediaType.APPLICATION_JSON)
+          .expectBody()
+          .jsonPath("content").value<List<Map<String, Any>>> { scans ->
+            assertThat(scans).hasSize(1)
+            val scan = scans[0]
+            assertThat(scan).hasSize(18)
+            assertThat(scan["source"]).isEqualTo("DPS")
+            assertThat(scan["id"]).isEqualTo(id.toString())
+            assertThat(scan["prisonerNumber"]).isEqualTo(prisonerNumber)
+            assertThat(scan["prisonId"]).isEqualTo("MDI")
+            assertThat(scan["scanDate"]).isEqualTo(scanDate.toString())
+            assertThat(scan["justification"]).isEqualTo("INTELLIGENCE")
+            assertThat(scan["justificationDescription"]).isEqualTo("INTELLIGENCE")
+            assertThat(scan["outcome"]).isEqualTo("NEGATIVE")
+            assertThat(scan["outcomeDescription"]).isEqualTo("NEGATIVE")
+            assertThat(scan["typeOfFind"]).isNull()
+            assertThat(scan["typeOfFindDescription"]).isNull()
+            assertThat(scan["caseNoteId"]).isNull()
+            assertThat(scan["mergedAt"]).isNull()
+            assertThat(scan["mergedFromPrisonerNumber"]).isNull()
+            assertThat(scan["createdAt"]).isEqualTo(now.toString())
+            assertThat(scan["createdBy"]).isEqualTo("abc12ab")
+            assertThat(scan["lastModifiedAt"]).isEqualTo(now.toString())
+            assertThat(scan["lastModifiedBy"]).isEqualTo("abc12ab")
+          }
+      }
+
+      @Test
+      fun `returns details of a legacy NOMIS scan`() {
+        whenever(scanService.listScans(any(), any(), any()))
+          .thenReturn(
+            PageImpl(
+              listOf(
+                nomisScanResponse(
+                  originalId = legacyId,
+                  prisonerNumber = prisonerNumber,
+                  scanDate = scanDate,
+                ),
+              ),
+            ),
+          )
+
+        webTestClient.get()
+          .uri("/prisoner/$prisonerNumber/scan")
+          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
+          .exchange()
+          .expectStatus().isOk
+          .expectHeader().contentType(MediaType.APPLICATION_JSON)
+          .expectBody()
+          .jsonPath("content").value<List<Map<String, Any>>> { scans ->
+            assertThat(scans).hasSize(1)
+            val scan = scans[0]
+            assertThat(scan).hasSize(5)
+            assertThat(scan["source"]).isEqualTo("NOMIS")
+            assertThat(scan["id"]).isEqualTo(legacyId.toString())
+            assertThat(scan["prisonerNumber"]).isEqualTo(prisonerNumber)
+            assertThat(scan["scanDate"]).isEqualTo(scanDate.toString())
+            assertThat(scan["scanDetails"]).isEqualTo("object detected")
+          }
+      }
+
+      @Test
+      fun `returns a page of DPS and legacy NOMIS scans`() {
         val scanIds = listOf(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID())
-        val scanDate = today.minusDays(5)
+        val legacyScanIds = listOf(legacyId, legacyId - 101)
         whenever(scanService.listScans(prisonerNumber, ListScansRequest(), PageRequest.of(0, 20, Sort.by("scanDate").descending()))).thenReturn(
           PageImpl(
             scanIds.mapIndexed { index, id ->
-              scanResponse(
-                id = id,
+              dpsScanResponse(
+                originalId = id,
                 prisonerNumber = prisonerNumber,
-                scanDate = scanDate.plusDays(index.toLong()),
+                scanDate = scanDate.minusDays(index.toLong()),
+              )
+            } + legacyScanIds.mapIndexed { index, id ->
+              nomisScanResponse(
+                originalId = id,
+                prisonerNumber = prisonerNumber,
+                scanDate = scanDate.minusDays((scanIds.size + index).toLong()),
               )
             },
           ),
@@ -70,9 +160,11 @@ class ScanResourceIntTest(
             """
             {
               "content": [
-                {"id": "${scanIds[0]}", "prisonerNumber": "A1234BC"},
-                {"id": "${scanIds[1]}", "prisonerNumber": "A1234BC"},
-                {"id": "${scanIds[2]}", "prisonerNumber": "A1234BC"}
+                {"id": "${scanIds[0]}", "source": "DPS", "prisonerNumber": "A1234BC"},
+                {"id": "${scanIds[1]}", "source": "DPS", "prisonerNumber": "A1234BC"},
+                {"id": "${scanIds[2]}", "source": "DPS", "prisonerNumber": "A1234BC"},
+                {"id": "${legacyScanIds[0]}", "source": "NOMIS", "prisonerNumber": "A1234BC"},
+                {"id": "${legacyScanIds[1]}", "source": "NOMIS", "prisonerNumber": "A1234BC"}
               ]
             }
             """,
@@ -94,8 +186,8 @@ class ScanResourceIntTest(
         ).thenReturn(
           PageImpl(
             listOf(
-              scanResponse(
-                id = id,
+              dpsScanResponse(
+                originalId = id,
                 prisonerNumber = prisonerNumber,
                 scanDate = LocalDate.of(2026, 5, 6),
               ),
@@ -210,8 +302,8 @@ class ScanResourceIntTest(
         val request = createScanRequest(scanDate = scanDate)
         whenever(scanService.createScan(eq(prisonerNumber), any()))
           .thenReturn(
-            scanResponse(
-              id = id,
+            dpsScanResponse(
+              originalId = id,
               prisonerNumber = prisonerNumber,
               scanDate = scanDate,
             ),
@@ -238,8 +330,8 @@ class ScanResourceIntTest(
         val request = createScanRequest(scanDate = today)
         whenever(scanService.createScan(eq(prisonerNumber), any()))
           .thenReturn(
-            scanResponse(
-              id = id,
+            dpsScanResponse(
+              originalId = id,
               prisonerNumber = prisonerNumber,
               scanDate = today,
             ),
@@ -514,17 +606,17 @@ class ScanResourceIntTest(
     }
   }
 
-  private fun scanResponse(
-    id: UUID = UUID.randomUUID(),
+  private fun dpsScanResponse(
+    originalId: UUID = id,
     prisonerNumber: String,
     prisonId: String = "MDI",
-    scanDate: LocalDate = today.minusDays(1),
+    scanDate: LocalDate = this.scanDate,
     justification: String = "INTELLIGENCE",
     outcome: String = "NEGATIVE",
     typeOfFind: String? = null,
     createdBy: String = "abc12ab",
   ) = ScanResponse(
-    id = id,
+    originalId = originalId,
     prisonerNumber = prisonerNumber,
     prisonId = prisonId,
     scanDate = scanDate,
@@ -538,5 +630,17 @@ class ScanResourceIntTest(
     createdBy = createdBy,
     lastModifiedAt = now,
     lastModifiedBy = createdBy,
+  )
+
+  private fun nomisScanResponse(
+    originalId: Long = legacyId,
+    prisonerNumber: String,
+    scanDate: LocalDate = this.scanDate,
+    scanDetails: String? = "object detected",
+  ) = LegacyScanResponse(
+    originalId = originalId,
+    prisonerNumber = prisonerNumber,
+    scanDate = scanDate,
+    scanDetails = scanDetails,
   )
 }
