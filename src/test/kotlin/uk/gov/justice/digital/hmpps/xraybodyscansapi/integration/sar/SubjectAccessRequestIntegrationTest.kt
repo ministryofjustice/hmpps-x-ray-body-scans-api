@@ -50,6 +50,7 @@ class SubjectAccessRequestIntegrationTest :
   @Sql("classpath:sar/test-data/reset.sql")
   @Sql("classpath:sar/test-data/scans.sql")
   override fun `SAR report should render as expected`() {
+    sarIntegrationTestHelper.stubFindPrisonNameWith("Moorland (HMP & YOI)")
     super.`SAR report should render as expected`()
   }
 }
