@@ -1,0 +1,43 @@
+{
+  "ReferenceDataCodeEntity": {
+    "code": "String",
+    "createdAt": "LocalDateTime",
+    "createdBy": "String",
+    "deactivatedAt": "LocalDateTime",
+    "deactivatedBy": "String",
+    "description": "String",
+    "domain": "ReferenceDataDomainEntity",
+    "domainCode": "String",
+    "id": "int",
+    "lastModifiedAt": "LocalDateTime",
+    "lastModifiedBy": "String",
+    "listSequence": "int"
+  },
+  "ReferenceDataDomainEntity": {
+    "code": "String",
+    "codes": "List",
+    "createdAt": "LocalDateTime",
+    "createdBy": "String",
+    "deactivatedAt": "LocalDateTime",
+    "deactivatedBy": "String",
+    "description": "String",
+    "lastModifiedAt": "LocalDateTime",
+    "lastModifiedBy": "String"
+  },
+  "ScanEntity": {
+    "caseNoteId": "UUID",
+    "createdAt": "LocalDateTime",
+    "createdBy": "String",
+    "id": "UUID",
+    "justification": "ReferenceDataCodeEntity",
+    "lastModifiedAt": "LocalDateTime",
+    "lastModifiedBy": "String",
+    "mergedAt": "LocalDateTime",
+    "mergedFromPrisonerNumber": "String",
+    "outcome": "ReferenceDataCodeEntity",
+    "prisonId": "String",
+    "prisonerNumber": "String",
+    "scanDate": "LocalDate",
+    "typeOfFind": "ReferenceDataCodeEntity"
+  }
+}

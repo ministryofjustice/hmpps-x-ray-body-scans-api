@@ -20,6 +20,9 @@ dependencies {
     implementation("org.webjars:swagger-ui:5.32.2")
   }
 
+  // Subject Access Request (SAR)
+  testImplementation("uk.gov.justice.service.hmpps:hmpps-subject-access-request-test-support:2.8.0")
+
   // Persistence
   implementation("org.springframework.boot:spring-boot-starter-data-jpa")
   implementation("com.fasterxml.uuid:java-uuid-generator:5.2.0")
