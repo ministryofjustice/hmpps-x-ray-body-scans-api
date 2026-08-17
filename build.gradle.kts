@@ -1,7 +1,7 @@
 @file:Suppress("UnstableApiUsage")
 
 plugins {
-  id("uk.gov.justice.hmpps.gradle-spring-boot") version "11.0.4"
+  id("uk.gov.justice.hmpps.gradle-spring-boot") version "11.0.5"
   kotlin("plugin.spring") version "2.4.10"
   kotlin("plugin.jpa") version "2.4.10"
 }
@@ -12,7 +12,7 @@ dependencies {
   implementation("org.springframework.boot:spring-boot-starter-webclient")
 
   // Monitoring
-  implementation("io.sentry:sentry-spring-boot-4:8.52.0")
+  implementation("io.sentry:sentry-spring-boot-4:8.53.0")
 
   // OpenAPI
   implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.0")
@@ -40,13 +40,13 @@ dependencies {
 
 kotlin {
   jvmToolchain(25)
+  compilerOptions {
+    freeCompilerArgs.add("-Xcollection-literals")
+    jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_25)
+  }
 }
 
 tasks {
-  withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
-    compilerOptions.jvmTarget = org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_25
-  }
-
   test {
     exclude("**/InitialiseDatabase.class")
   }
