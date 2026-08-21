@@ -1,3 +1,9 @@
+hmpps:
+  sar:
+    template:
+      enabled: true
+      path: /sar/templates/sar_template.mustache
+
 service:
   # TODO: will move to database to store dates when each prison goes live
   active-agencies:
