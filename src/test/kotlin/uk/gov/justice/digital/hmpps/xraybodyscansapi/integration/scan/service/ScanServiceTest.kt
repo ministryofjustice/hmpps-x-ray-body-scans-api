@@ -28,6 +28,9 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.alertsapi.AlertsApiC
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.alertsapi.response.Alert
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.alertsapi.response.AlertCode
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.alertsapi.response.AlertResponse
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.casenotes.CaseNotesApiClient
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.casenotes.request.CreateCaseNoteRequest
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.casenotes.response.CaseNoteResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.PrisonApiClient
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.response.PersonalCareNeed
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.response.PersonalCareNeedsResponse
@@ -36,6 +39,7 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.dto.response.
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.repository.ReferenceDataCodeEntity
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.repository.ReferenceDataCodeRepository
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.Source
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScanCaseNoteRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScanRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.ListScansRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.LegacyScanResponse
@@ -59,12 +63,14 @@ class ScanServiceTest {
   private val scanRepository = mock<ScanRepository>()
   private val prisonApiClient = mock<PrisonApiClient>()
   private val alertsApiClient = mock<AlertsApiClient>()
+  private val caseNotesApiClient = mock<CaseNotesApiClient>()
   private val scanService = ScanService(
     clock,
     codeRepository,
     scanRepository,
     prisonApiClient,
     alertsApiClient,
+    caseNotesApiClient,
     scanAnnualLimit = 116,
     nearingLimitThreshold = 100,
     relevantAlertCodes = relevantAlertCodes,
@@ -402,6 +408,55 @@ class ScanServiceTest {
         scanService.createScan(prisonerNumber, request)
       }.hasMessage("typeOfFind is required for positive outcomes")
       verifyNoInteractions(scanRepository)
+    }
+  }
+
+  @DisplayName("Creating a case note for a scan")
+  @Nested
+  inner class CreateCaseNote {
+    private val prisonerNumber = "A1234BC"
+    private val scanId = UUID.randomUUID()
+    private val caseNoteId = UUID.randomUUID()
+
+    @Test
+    fun `creates case note and saves its id to the scan`() {
+      val scan = scanEntity(prisonerNumber).apply { id = scanId }
+      whenever(scanRepository.findById(scanId)).thenReturn(java.util.Optional.of(scan))
+      whenever(caseNotesApiClient.createCaseNote(eq(prisonerNumber), any<CreateCaseNoteRequest>()))
+        .thenReturn(
+          CaseNoteResponse(
+            caseNoteId = caseNoteId.toString(),
+            offenderIdentifier = prisonerNumber,
+            type = "GEN",
+            subType = "XRBS",
+            text = "some text",
+            occurrenceDateTime = java.time.LocalDateTime.now(),
+          ),
+        )
+      whenever(scanRepository.save(any<ScanEntity>())).thenAnswer { it.getArgument(0) }
+
+      scanService.createCaseNote(prisonerNumber, scanId, CreateScanCaseNoteRequest(text = "some text"))
+
+      val caseNoteCaptor = argumentCaptor<CreateCaseNoteRequest>()
+      verify(caseNotesApiClient).createCaseNote(eq(prisonerNumber), caseNoteCaptor.capture())
+      assertThat(caseNoteCaptor.firstValue.type).isEqualTo("GEN")
+      assertThat(caseNoteCaptor.firstValue.subType).isEqualTo("XRBS")
+      assertThat(caseNoteCaptor.firstValue.text).isEqualTo("some text")
+
+      val scanCaptor = argumentCaptor<ScanEntity>()
+      verify(scanRepository).save(scanCaptor.capture())
+      assertThat(scanCaptor.firstValue.caseNoteId).isEqualTo(caseNoteId)
+    }
+
+    @Test
+    fun `throws validation error when scan is not found`() {
+      whenever(scanRepository.findById(scanId)).thenReturn(java.util.Optional.empty())
+
+      assertThatThrownBy {
+        scanService.createCaseNote(prisonerNumber, scanId, CreateScanCaseNoteRequest(text = "some text"))
+      }.hasMessage("Scan with id $scanId not found")
+
+      verifyNoInteractions(caseNotesApiClient)
     }
   }
 
