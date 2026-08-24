@@ -11,7 +11,7 @@ data class CreateScanCaseNoteRequest(
   @NotBlank
   @Schema(
     description = "The body text of the case note",
-    example = "TODO: Is this even needed?",
+    example = "Negative. No object found.",
     requiredMode = Schema.RequiredMode.REQUIRED,
   )
   val text: String,

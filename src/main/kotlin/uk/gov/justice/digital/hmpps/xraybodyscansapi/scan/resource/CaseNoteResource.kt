@@ -27,8 +27,8 @@ import java.util.UUID
 
 @RestController
 @Tag(
-  name = "X-Ray Body Scans",
-  description = "Endpoints for managing prisoner x-ray body scans.",
+  name = "X-Ray Body Scan Case Notes",
+  description = "Endpoints for managing prisoner x-ray body scan case notes.",
 )
 @RequestMapping(
   value = ["/scan/{scanId}/case-note"],
@@ -41,16 +41,11 @@ class CaseNoteResource(
   @RequireReadScanNoteRole
   @Operation(
     summary = "Get the case note associated with an x-ray body scan",
-    description = "Returns the case note details for the given scan. The scan must have an associated case note.",
+    description = "Returns the case note for the given scan. The scan must have an associated case note.",
     responses = [
       ApiResponse(
         responseCode = "200",
         description = "Case note returned successfully.",
-      ),
-      ApiResponse(
-        responseCode = "400",
-        description = "Scan not found or has no associated case note.",
-        content = [Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = Schema(implementation = ErrorResponse::class))],
       ),
       ApiResponse(
         responseCode = "401",
@@ -60,6 +55,11 @@ class CaseNoteResource(
       ApiResponse(
         responseCode = "403",
         description = "Forbidden. Token does not have the role $ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RO or $ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RW.",
+        content = [Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "Scan not found or has no associated case note.",
         content = [Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = Schema(implementation = ErrorResponse::class))],
       ),
       ApiResponse(
@@ -86,7 +86,7 @@ class CaseNoteResource(
       ),
       ApiResponse(
         responseCode = "400",
-        description = "Scan not found.",
+        description = "Invalid request or malformed body.",
         content = [Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = Schema(implementation = ErrorResponse::class))],
       ),
       ApiResponse(
@@ -97,6 +97,11 @@ class CaseNoteResource(
       ApiResponse(
         responseCode = "403",
         description = "Forbidden. Token does not have the role $ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RW.",
+        content = [Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = Schema(implementation = ErrorResponse::class))],
+      ),
+      ApiResponse(
+        responseCode = "404",
+        description = "Scan not found.",
         content = [Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = Schema(implementation = ErrorResponse::class))],
       ),
       ApiResponse(

@@ -11,7 +11,7 @@ data class ScanCaseNoteResponse(
   @Schema(description = "Full name of the case note author", example = "John Smith")
   val createdBy: String,
 
-  @Schema(description = "Date and time the event occurred", example = "2026-08-01T10:30:00")
+  @Schema(description = "Date and time the event occurred", example = "2026-08-01T00:00:00")
   val occurredAt: LocalDateTime,
 
   @Schema(description = "The body text of the case note", example = "X-ray body scan carried out with negative result.")
