@@ -1,8 +1,5 @@
 package uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.scan.resource
 
-import org.assertj.core.api.Assertions.assertThat
-import org.springframework.http.HttpStatus
-import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.NotFoundException
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
@@ -14,8 +11,10 @@ import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.DownstreamServiceException
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.NotFoundException
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RO
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RW
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScanCaseNoteRequest
@@ -40,13 +39,13 @@ class CaseNoteResourceIntTest(
 
       @Test
       fun `returns 200 and case note details`() {
-        val occurredAt = LocalDateTime.of(2026, 8, 1, 10, 30)
+        val occurredAt = LocalDateTime.of(2026, 8, 1, 0, 0)
         whenever(scanService.getScanCaseNote(eq(scanId))).thenReturn(
           ScanCaseNoteResponse(
             title = "X-Ray Body Scan",
             createdBy = "Bob Profileman",
             occurredAt = occurredAt,
-            text = "X-ray body scan carried out with negative result.",
+            text = "some text",
           ),
         )
 
@@ -58,8 +57,8 @@ class CaseNoteResourceIntTest(
           .expectBody()
           .jsonPath("$.title").isEqualTo("X-Ray Body Scan")
           .jsonPath("$.createdBy").isEqualTo("Bob Profileman")
-          .jsonPath("$.occurredAt").isEqualTo("2026-08-01T10:30:00")
-          .jsonPath("$.text").isEqualTo("X-ray body scan carried out with negative result.")
+          .jsonPath("$.occurredAt").isEqualTo("2026-08-01T00:00:00")
+          .jsonPath("$.text").isEqualTo("some text")
 
         verify(scanService).getScanCaseNote(eq(scanId))
       }
@@ -157,13 +156,13 @@ class CaseNoteResourceIntTest(
           .uri(uri)
           .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RW)))
           .contentType(MediaType.APPLICATION_JSON)
-          .bodyValue(CreateScanCaseNoteRequest(text = "X-ray body scan carried out with negative result."))
+          .bodyValue(CreateScanCaseNoteRequest(text = "some text"))
           .exchange()
           .expectStatus().isCreated
 
         verify(scanService).createCaseNote(
           eq(scanId),
-          eq(CreateScanCaseNoteRequest(text = "X-ray body scan carried out with negative result.")),
+          eq(CreateScanCaseNoteRequest(text = "some text")),
         )
       }
     }

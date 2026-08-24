@@ -445,6 +445,7 @@ class ScanServiceTest {
       assertThat(caseNoteCaptor.firstValue.type).isEqualTo("GEN")
       assertThat(caseNoteCaptor.firstValue.subType).isEqualTo("XRBS")
       assertThat(caseNoteCaptor.firstValue.text).isEqualTo("some text")
+      assertThat(caseNoteCaptor.firstValue.occurrenceDateTime).isEqualTo(today.minusDays(1).atStartOfDay())
 
       val scanCaptor = argumentCaptor<ScanEntity>()
       verify(scanRepository).save(scanCaptor.capture())

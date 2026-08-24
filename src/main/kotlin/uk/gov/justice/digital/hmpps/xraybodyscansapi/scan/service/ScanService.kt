@@ -2,7 +2,6 @@ package uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service
 
 import jakarta.validation.ValidationException
 import org.springframework.beans.factory.annotation.Value
-import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.NotFoundException
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Pageable
@@ -16,15 +15,16 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.casenotes.request.Cr
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.PrisonApiClient
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.response.PersonalCareNeed
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.response.PersonalCareNeedComparator
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.NotFoundException
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.dto.response.ReferenceDataDomains
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.repository.ReferenceDataCodeEntity
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.repository.ReferenceDataCodeRepository
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScanCaseNoteRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScanRequest
-import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanCaseNoteResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.ListScansRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.AlertResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.LegacyScanResponse
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanCaseNoteResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanSummaryResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.UnifiedScanResponse
@@ -217,7 +217,7 @@ class ScanService(
     }
     val caseNote = caseNotesApiClient.createCaseNote(
       scan.prisonerNumber,
-      CreateCaseNoteRequest(type = "GEN", subType = "XRBS", text = request.text),
+      CreateCaseNoteRequest(type = "GEN", subType = "XRBS", text = request.text, occurrenceDateTime = scan.scanDate.atStartOfDay()),
     )
     scan.caseNoteId = UUID.fromString(caseNote.caseNoteId)
     scanRepository.save(scan)
