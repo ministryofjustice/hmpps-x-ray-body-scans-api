@@ -6,7 +6,10 @@ data class CaseNoteResponse(
   val caseNoteId: String,
   val offenderIdentifier: String,
   val type: String,
+  val typeDescription: String,
   val subType: String,
+  val subTypeDescription: String,
   val text: String,
   val occurrenceDateTime: LocalDateTime,
+  val authorName: String,
 )

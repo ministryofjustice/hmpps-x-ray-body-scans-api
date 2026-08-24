@@ -428,14 +428,17 @@ class ScanServiceTest {
             caseNoteId = caseNoteId.toString(),
             offenderIdentifier = prisonerNumber,
             type = "GEN",
+            typeDescription = "General",
             subType = "XRBS",
+            subTypeDescription = "X-Ray Body Scan",
             text = "some text",
             occurrenceDateTime = java.time.LocalDateTime.now(),
+            authorName = "John Smith",
           ),
         )
       whenever(scanRepository.save(any<ScanEntity>())).thenAnswer { it.getArgument(0) }
 
-      scanService.createCaseNote(prisonerNumber, scanId, CreateScanCaseNoteRequest(text = "some text"))
+      scanService.createCaseNote(scanId, CreateScanCaseNoteRequest(text = "some text"))
 
       val caseNoteCaptor = argumentCaptor<CreateCaseNoteRequest>()
       verify(caseNotesApiClient).createCaseNote(eq(prisonerNumber), caseNoteCaptor.capture())
@@ -449,11 +452,11 @@ class ScanServiceTest {
     }
 
     @Test
-    fun `throws validation error when scan is not found`() {
+    fun `throws entity not found exception when scan is not found`() {
       whenever(scanRepository.findById(scanId)).thenReturn(java.util.Optional.empty())
 
       assertThatThrownBy {
-        scanService.createCaseNote(prisonerNumber, scanId, CreateScanCaseNoteRequest(text = "some text"))
+        scanService.createCaseNote(scanId, CreateScanCaseNoteRequest(text = "some text"))
       }.hasMessage("Scan with id $scanId not found")
 
       verifyNoInteractions(caseNotesApiClient)

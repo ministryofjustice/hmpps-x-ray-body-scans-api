@@ -11,7 +11,6 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
-import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.wiremock.HmppsAuthApiExtension
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.wiremock.HmppsAuthApiExtension.Companion.hmppsAuth
 import uk.gov.justice.hmpps.test.kotlin.auth.JwtAuthorisationHelper
@@ -39,9 +38,10 @@ abstract class IntegrationTestBase {
   }
 
   protected fun endpointIsProtected(
-    /** This request should be successful given properly authorised token (valid url and payload) */
+    /** This request should be successful given a properly authorised token (valid url and payload) */
     request: WebTestClient.RequestHeadersSpec<*>,
-    requiresWriteRole: Boolean = false,
+    readRole: String,
+    writeRole: String? = null,
     afterEach: (() -> Unit)? = null,
   ): List<DynamicTest> = buildList {
     val request = request.header("Content-Type", "application/json")
@@ -66,11 +66,11 @@ abstract class IntegrationTestBase {
       },
     )
 
-    if (requiresWriteRole) {
+    if (writeRole != null) {
       add(
-        DynamicTest.dynamicTest("returns 403 given no write role") {
+        DynamicTest.dynamicTest("returns 403 given read-only role") {
           request
-            .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO, "ROLE_PRISONER_SEARCH")))
+            .headers(setAuthorisation(roles = listOf(readRole)))
             .exchange()
             .expectStatus().isForbidden
           afterEach?.invoke()
@@ -78,7 +78,7 @@ abstract class IntegrationTestBase {
       )
     } else {
       add(
-        DynamicTest.dynamicTest("returns 403 given no read role") {
+        DynamicTest.dynamicTest("returns 403 given wrong role") {
           request
             .headers(setAuthorisation(roles = listOf("ROLE_PRISONER_SEARCH")))
             .exchange()

@@ -15,6 +15,7 @@ class ReferenceDataResourceIntTest : IntegrationTestBase() {
   @TestFactory
   fun `endpoint is protected`() = endpointIsProtected(
     webTestClient.get().uri("/reference-data"),
+    readRole = ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO,
   )
 
   @Test

@@ -22,4 +22,15 @@ class CaseNotesApiClient(
   } catch (e: Exception) {
     throw DownstreamServiceException("Case Notes API create case note request failed", e)
   }
+
+  fun getCaseNote(prisonerNumber: String, caseNoteId: String): CaseNoteResponse = try {
+    webClient
+      .get()
+      .uri("/case-notes/{prisonerNumber}/{caseNoteId}", prisonerNumber, caseNoteId)
+      .retrieve()
+      .bodyToMono(CaseNoteResponse::class.java)
+      .block()!!
+  } catch (e: Exception) {
+    throw DownstreamServiceException("Case Notes API get case note request failed", e)
+  }
 }

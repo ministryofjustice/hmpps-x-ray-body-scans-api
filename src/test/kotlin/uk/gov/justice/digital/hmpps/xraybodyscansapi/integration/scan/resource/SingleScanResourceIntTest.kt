@@ -104,6 +104,7 @@ class SingleScanResourceIntTest(
       fun `endpoint is protected`() = endpointIsProtected(
         webTestClient.get()
           .uri("/scans/$scanId"),
+        readRole = ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO,
         afterEach = {
           verifyNoInteractions(scanService)
         },
