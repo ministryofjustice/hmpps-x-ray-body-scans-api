@@ -10,16 +10,21 @@ import org.springframework.data.jpa.domain.Specification
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.alertsapi.AlertsApiClient
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.casenotes.CaseNotesApiClient
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.casenotes.request.CreateCaseNoteRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.PrisonApiClient
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.response.PersonalCareNeed
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.response.PersonalCareNeedComparator
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.NotFoundException
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.dto.response.ReferenceDataDomains
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.repository.ReferenceDataCodeEntity
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.repository.ReferenceDataCodeRepository
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScanCaseNoteRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScanRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.ListScansRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.AlertResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.LegacyScanResponse
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanCaseNoteResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanSummaryResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.UnifiedScanResponse
@@ -41,6 +46,7 @@ class ScanService(
   private val scanRepository: ScanRepository,
   private val prisonApiClient: PrisonApiClient,
   private val alertsApiClient: AlertsApiClient,
+  private val caseNotesApiClient: CaseNotesApiClient,
   @Value($$"${scan.annual-limit}") private val scanAnnualLimit: Int,
   @Value($$"${scan.nearing-limit-threshold}") private val nearingLimitThreshold: Int,
   @Value($$"${scan.relevant-alert-codes:}") private val relevantAlertCodes: Set<String>,
@@ -202,6 +208,34 @@ class ScanService(
         toScanDate = toScanDate,
       )
     }
+  }
+
+  @Transactional
+  fun createCaseNote(scanId: UUID, request: CreateScanCaseNoteRequest) {
+    val scan = scanRepository.findById(scanId).orElseThrow {
+      NotFoundException("Scan with id $scanId not found")
+    }
+    val caseNote = caseNotesApiClient.createCaseNote(
+      scan.prisonerNumber,
+      CreateCaseNoteRequest(type = "GEN", subType = "XRBS", text = request.text, occurrenceDateTime = scan.scanDate.atStartOfDay()),
+    )
+    scan.caseNoteId = UUID.fromString(caseNote.caseNoteId)
+    scanRepository.save(scan)
+  }
+
+  @Transactional(readOnly = true)
+  fun getScanCaseNote(scanId: UUID): ScanCaseNoteResponse {
+    val scan = scanRepository.findById(scanId).orElseThrow {
+      NotFoundException("Scan with id $scanId not found")
+    }
+    val caseNoteId = scan.caseNoteId ?: throw NotFoundException("Scan with id $scanId has no associated case note")
+    val caseNote = caseNotesApiClient.getCaseNote(scan.prisonerNumber, caseNoteId.toString())
+    return ScanCaseNoteResponse(
+      title = caseNote.subTypeDescription,
+      createdBy = caseNote.authorName,
+      occurredAt = caseNote.occurrenceDateTime,
+      text = caseNote.text,
+    )
   }
 
   private fun calendarYear(): Pair<LocalDate, LocalDate> {

@@ -5,6 +5,8 @@ api:
     base-url: "https://prison-api-dev.prison.service.justice.gov.uk"
   alerts-api:
     base-url: "https://alerts-api-dev.hmpps.service.justice.gov.uk"
+  case-notes-api:
+    base-url: "https://dev.offender-case-notes.service.justice.gov.uk"
 
 springdoc:
   api-docs:

@@ -33,6 +33,17 @@ class XRayBodyScansApiExceptionHandler {
       ),
     ).also { log.info("Validation exception: {}", e.message) }
 
+  @ExceptionHandler(NotFoundException::class)
+  fun handleNotFoundException(e: NotFoundException): ResponseEntity<ErrorResponse> = ResponseEntity
+    .status(NOT_FOUND)
+    .body(
+      ErrorResponse(
+        status = NOT_FOUND,
+        userMessage = "Not found: ${e.message}",
+        developerMessage = e.message,
+      ),
+    ).also { log.info("Entity not found exception: {}", e.message) }
+
   @ExceptionHandler(NoResourceFoundException::class)
   fun handleNoResourceFoundException(e: NoResourceFoundException): ResponseEntity<ErrorResponse> = ResponseEntity
     .status(NOT_FOUND)
@@ -158,3 +169,5 @@ class XRayBodyScansApiExceptionHandler {
 
 // In case we want to handle them differently later down the line:
 class DownstreamServiceException(message: String, cause: Throwable) : Exception(message, cause)
+
+class NotFoundException(message: String) : Exception(message)

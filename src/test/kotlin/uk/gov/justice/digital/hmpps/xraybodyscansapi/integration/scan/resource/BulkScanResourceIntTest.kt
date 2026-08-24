@@ -114,6 +114,7 @@ class BulkScanResourceIntTest(
         webTestClient.post()
           .uri("/bulk/summary")
           .bodyValue("""{"prisonerNumbers":["A1234BC"]}"""),
+        readRole = ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO,
         afterEach = {
           verifyNoInteractions(scanService)
         },

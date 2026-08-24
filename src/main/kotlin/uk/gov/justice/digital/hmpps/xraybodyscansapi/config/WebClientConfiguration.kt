@@ -30,9 +30,16 @@ class WebClientConfiguration(
   @Value($$"${api.alerts-api.base-url}") private val alertsApiBaseUri: String,
   @Value($$"${api.alerts-api.timeout:30s}") private val alertsApiTimeout: Duration,
   @Value($$"${api.alerts-api.health-timeout:20s}") private val alertsApiHealthTimeout: Duration,
+
+  @Value($$"${api.case-notes-api.base-url}") private val caseNotesApiBaseUri: String,
+  @Value($$"${api.case-notes-api.timeout:30s}") private val caseNotesApiTimeout: Duration,
+  @Value($$"${api.case-notes-api.health-timeout:20s}") private val caseNotesApiHealthTimeout: Duration,
 ) {
   @Bean
   fun hmppsAuthHealthWebClient(builder: Builder): WebClient = builder.healthWebClient(hmppsAuthBaseUri, hmppsAuthHealthTimeout)
+
+  @Bean
+  fun caseNotesApiHealthWebClient(builder: Builder): WebClient = builder.healthWebClient(caseNotesApiBaseUri, caseNotesApiHealthTimeout)
 
   @Bean
   fun prisonApiHealthWebClient(builder: Builder): WebClient = builder.healthWebClient(prisonApiBaseUri, prisonApiHealthTimeout)
@@ -62,6 +69,18 @@ class WebClientConfiguration(
     "hmpps-x-ray-body-scans-api",
     alertsApiBaseUri,
     alertsApiTimeout,
+  )
+
+  @Bean
+  @RequestScope
+  fun caseNotesApiWebClient(
+    clientRegistrationRepository: ClientRegistrationRepository,
+    builder: Builder,
+  ) = builder.authorisedWebClient(
+    authorizedClientManagerUserEnhanced(clientRegistrationRepository),
+    "hmpps-x-ray-body-scans-api",
+    caseNotesApiBaseUri,
+    caseNotesApiTimeout,
   )
 
   private fun authorizedClientManagerUserEnhanced(clients: ClientRegistrationRepository): OAuth2AuthorizedClientManager {
