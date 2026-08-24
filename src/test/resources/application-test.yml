@@ -17,6 +17,14 @@ springdoc:
   swagger-ui:
     enabled: true
 
+hmpps:
+  sar:
+    tests:
+      expected-api-response.path: /sar/test-data/expected-api-response.json
+      expected-render-result.path: /sar/test-data/expected-render-result.html
+      expected-flyway-schema-version: "5"
+      expected-jpa-entity-schema.path: /sar/test-data/expected-jpa-entity-schema.json
+
 spring:
   datasource:
     url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;MODE=PostgreSQL

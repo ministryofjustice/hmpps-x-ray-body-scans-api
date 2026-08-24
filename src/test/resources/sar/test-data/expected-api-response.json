@@ -1,0 +1,18 @@
+[
+  {
+    "person": "A1234BC",
+    "date": "2026-08-13",
+    "justification": "Reasonable suspicion",
+    "outcome": "Item detected",
+    "find": "Inorganic",
+    "establishment": "MDI"
+  },
+  {
+    "person": "A1234BC",
+    "date": "2026-08-01",
+    "justification": "Intelligence-led",
+    "outcome": "No item detected",
+    "find": null,
+    "establishment": "LEI"
+  }
+]
