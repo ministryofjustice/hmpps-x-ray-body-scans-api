@@ -12,7 +12,7 @@ dependencies {
   implementation("org.springframework.boot:spring-boot-starter-webclient")
 
   // Monitoring
-  implementation("io.sentry:sentry-spring-boot-4:8.53.0")
+  implementation("io.sentry:sentry-spring-boot-4:8.54.0")
 
   // OpenAPI
   implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.0")
