@@ -432,7 +432,8 @@ class ScanServiceTest {
             subType = "XRBS",
             subTypeDescription = "X-Ray Body Scan",
             text = "some text",
-            occurrenceDateTime = java.time.LocalDateTime.now(),
+            creationDateTime = now,
+            occurrenceDateTime = today.minusDays(1).atStartOfDay(),
             authorName = "John Smith",
           ),
         )

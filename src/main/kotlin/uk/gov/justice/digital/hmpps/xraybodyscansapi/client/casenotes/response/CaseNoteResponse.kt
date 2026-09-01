@@ -10,6 +10,7 @@ data class CaseNoteResponse(
   val subType: String,
   val subTypeDescription: String,
   val text: String,
+  val creationDateTime: LocalDateTime,
   val occurrenceDateTime: LocalDateTime,
   val authorName: String,
 )

@@ -30,7 +30,7 @@ import java.util.UUID
 class SingleScanResource(
   private val scanService: ScanService,
 ) {
-  @GetMapping("/scans/{id}")
+  @GetMapping("/scans/{scanId}")
   @RequireReadRole
   @Operation(
     summary = "Retrieve an x-ray body scan recorded in DPS by id",
@@ -63,6 +63,6 @@ class SingleScanResource(
   )
   fun getScan(
     @PathVariable
-    id: UUID,
-  ): ResponseEntity<ScanResponse> = ResponseEntity.ofNullable(scanService.getScans(listOf(id)).firstOrNull())
+    scanId: UUID,
+  ): ResponseEntity<ScanResponse> = ResponseEntity.ofNullable(scanService.getScans(listOf(scanId)).firstOrNull())
 }

@@ -233,6 +233,7 @@ class ScanService(
     return ScanCaseNoteResponse(
       title = caseNote.subTypeDescription,
       createdBy = caseNote.authorName,
+      createdAt = caseNote.creationDateTime,
       occurredAt = caseNote.occurrenceDateTime,
       text = caseNote.text,
     )

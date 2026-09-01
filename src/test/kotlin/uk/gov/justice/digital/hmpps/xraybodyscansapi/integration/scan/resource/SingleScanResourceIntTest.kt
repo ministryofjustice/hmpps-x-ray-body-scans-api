@@ -117,7 +117,7 @@ class SingleScanResourceIntTest(
           .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
           .exchange()
           .expectErrorResponse(
-            userMessageContains = "Parameter id must be of type java.util.UUID",
+            userMessageContains = "Parameter scanId must be of type java.util.UUID",
             developerMessageContains = "Failed to convert value",
           )
         verifyNoInteractions(scanService)
