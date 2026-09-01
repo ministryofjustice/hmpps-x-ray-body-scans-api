@@ -3,6 +3,7 @@ package uk.gov.justice.digital.hmpps.xraybodyscansapi.client.casenotes
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
+import org.springframework.web.reactive.function.client.bodyToMono
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.casenotes.request.CreateCaseNoteRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.casenotes.response.CaseNoteResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.DownstreamServiceException
@@ -17,7 +18,7 @@ class CaseNotesApiClient(
       .uri("/case-notes/{prisonerNumber}", prisonerNumber)
       .bodyValue(request)
       .retrieve()
-      .bodyToMono(CaseNoteResponse::class.java)
+      .bodyToMono<CaseNoteResponse>()
       .block()!!
   } catch (e: Exception) {
     throw DownstreamServiceException("Case Notes API create case note request failed", e)
@@ -28,7 +29,7 @@ class CaseNotesApiClient(
       .get()
       .uri("/case-notes/{prisonerNumber}/{caseNoteId}", prisonerNumber, caseNoteId)
       .retrieve()
-      .bodyToMono(CaseNoteResponse::class.java)
+      .bodyToMono<CaseNoteResponse>()
       .block()!!
   } catch (e: Exception) {
     throw DownstreamServiceException("Case Notes API get case note request failed", e)
