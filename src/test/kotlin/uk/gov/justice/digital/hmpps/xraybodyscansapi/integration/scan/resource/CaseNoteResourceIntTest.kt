@@ -13,6 +13,7 @@ import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
+import org.springframework.test.json.JsonCompareMode
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.DownstreamServiceException
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.NotFoundException
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RO
@@ -39,11 +40,12 @@ class CaseNoteResourceIntTest(
 
       @Test
       fun `returns 200 and case note details`() {
-        val occurredAt = LocalDateTime.of(2026, 8, 1, 0, 0)
+        val occurredAt = LocalDateTime.of(2026, 7, 26, 0, 0)
         whenever(scanService.getScanCaseNote(eq(scanId))).thenReturn(
           ScanCaseNoteResponse(
             title = "X-Ray Body Scan",
             createdBy = "Bob Profileman",
+            createdAt = now,
             occurredAt = occurredAt,
             text = "some text",
           ),
@@ -55,10 +57,19 @@ class CaseNoteResourceIntTest(
           .exchange()
           .expectStatus().isOk
           .expectBody()
-          .jsonPath("$.title").isEqualTo("X-Ray Body Scan")
-          .jsonPath("$.createdBy").isEqualTo("Bob Profileman")
-          .jsonPath("$.occurredAt").isEqualTo("2026-08-01T00:00:00")
-          .jsonPath("$.text").isEqualTo("some text")
+          .json(
+            // language=json
+            """
+            {
+              "title": "X-Ray Body Scan",
+              "createdBy": "Bob Profileman",
+              "createdAt": "2026-07-27T09:10:11.123",
+              "occurredAt": "2026-07-26T00:00:00",
+              "text": "some text"
+            }
+            """,
+            JsonCompareMode.STRICT,
+          )
 
         verify(scanService).getScanCaseNote(eq(scanId))
       }
@@ -69,7 +80,8 @@ class CaseNoteResourceIntTest(
           ScanCaseNoteResponse(
             title = "X-Ray Body Scan",
             createdBy = "Bob Profileman",
-            occurredAt = LocalDateTime.now(),
+            createdAt = now,
+            occurredAt = now,
             text = "some text",
           ),
         )
