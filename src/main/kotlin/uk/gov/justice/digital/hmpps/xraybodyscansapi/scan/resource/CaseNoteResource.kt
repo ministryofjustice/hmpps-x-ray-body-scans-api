@@ -114,5 +114,5 @@ class CaseNoteResource(
   fun createCaseNote(
     @PathVariable scanId: UUID,
     @RequestBody @Valid request: CreateScanCaseNoteRequest,
-  ) = scanService.createCaseNote(scanId, request)
+  ): ScanCaseNoteResponse = scanService.createCaseNote(scanId, request)
 }

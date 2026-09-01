@@ -211,7 +211,7 @@ class ScanService(
   }
 
   @Transactional
-  fun createCaseNote(scanId: UUID, request: CreateScanCaseNoteRequest) {
+  fun createCaseNote(scanId: UUID, request: CreateScanCaseNoteRequest): ScanCaseNoteResponse {
     val scan = scanRepository.findById(scanId).orElseThrow {
       NotFoundException("Scan with id $scanId not found")
     }
@@ -221,6 +221,7 @@ class ScanService(
     )
     scan.caseNoteId = UUID.fromString(caseNote.caseNoteId)
     scanRepository.save(scan)
+    return ScanCaseNoteResponse(caseNote)
   }
 
   @Transactional(readOnly = true)
@@ -230,13 +231,7 @@ class ScanService(
     }
     val caseNoteId = scan.caseNoteId ?: throw NotFoundException("Scan with id $scanId has no associated case note")
     val caseNote = caseNotesApiClient.getCaseNote(scan.prisonerNumber, caseNoteId.toString())
-    return ScanCaseNoteResponse(
-      title = caseNote.subTypeDescription,
-      createdBy = caseNote.authorName,
-      createdAt = caseNote.creationDateTime,
-      occurredAt = caseNote.occurrenceDateTime,
-      text = caseNote.text,
-    )
+    return ScanCaseNoteResponse(caseNote)
   }
 
   private fun calendarYear(): Pair<LocalDate, LocalDate> {
