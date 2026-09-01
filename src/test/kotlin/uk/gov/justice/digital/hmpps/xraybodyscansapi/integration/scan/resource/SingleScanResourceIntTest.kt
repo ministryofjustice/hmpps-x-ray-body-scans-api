@@ -31,7 +31,7 @@ class SingleScanResourceIntTest(
           .thenReturn(listOf(dpsScanResponse(scanId, "A1234BC")))
 
         webTestClient.get()
-          .uri("/scans/$scanId")
+          .uri("/scan/$scanId")
           .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
           .exchange()
           .expectStatus().isOk
@@ -71,7 +71,7 @@ class SingleScanResourceIntTest(
           .thenReturn(emptyList())
 
         webTestClient.get()
-          .uri("/scans/$scanId")
+          .uri("/scan/$scanId")
           .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
           .exchange()
           .expectStatus().isNotFound
@@ -89,7 +89,7 @@ class SingleScanResourceIntTest(
           .thenReturn(listOf(dpsScanResponse(scanId, "A1234BC")))
 
         webTestClient.get()
-          .uri("/scans/$scanId")
+          .uri("/scan/$scanId")
           .headers(setAuthorisation(roles = listOf(role)))
           .exchange()
           .expectStatus().isOk
@@ -103,7 +103,7 @@ class SingleScanResourceIntTest(
       @DisplayName("endpoint is protected")
       fun `endpoint is protected`() = endpointIsProtected(
         webTestClient.get()
-          .uri("/scans/$scanId"),
+          .uri("/scan/$scanId"),
         readRole = ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO,
         afterEach = {
           verifyNoInteractions(scanService)
@@ -113,7 +113,7 @@ class SingleScanResourceIntTest(
       @Test
       fun `returns 400 when id is not a UUID`() {
         webTestClient.get()
-          .uri("/scans/1234")
+          .uri("/scan/1234")
           .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
           .exchange()
           .expectErrorResponse(

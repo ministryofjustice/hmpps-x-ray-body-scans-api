@@ -30,7 +30,7 @@ import java.util.UUID
 class SingleScanResource(
   private val scanService: ScanService,
 ) {
-  @GetMapping("/scans/{scanId}")
+  @GetMapping("/scan/{scanId}")
   @RequireReadRole
   @Operation(
     summary = "Retrieve an x-ray body scan recorded in DPS by id",
