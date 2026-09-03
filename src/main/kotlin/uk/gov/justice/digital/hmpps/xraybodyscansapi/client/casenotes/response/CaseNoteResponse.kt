@@ -2,6 +2,10 @@ package uk.gov.justice.digital.hmpps.xraybodyscansapi.client.casenotes.response
 
 import java.time.LocalDateTime
 
+data class CaseNoteAmendment(
+  val additionalNoteText: String,
+)
+
 data class CaseNoteResponse(
   val caseNoteId: String,
   val offenderIdentifier: String,
@@ -13,4 +17,5 @@ data class CaseNoteResponse(
   val creationDateTime: LocalDateTime,
   val occurrenceDateTime: LocalDateTime,
   val authorName: String,
+  val amendments: List<CaseNoteAmendment>,
 )

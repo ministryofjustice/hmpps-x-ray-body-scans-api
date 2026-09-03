@@ -9,4 +9,5 @@ data class SarScanResponse(
   val outcome: String,
   val find: String?,
   val establishment: String,
+  val additionalDetails: String?,
 )
