@@ -64,7 +64,7 @@ class SubjectAccessRequestIntegrationTest :
         }
       """.trimIndent(),
       getPrn(),
-      "01a067dc-332f-754e-b41f-d8fe1eaeba89"
+      "01a067dc-332f-754e-b41f-d8fe1eaeba89",
     )
   }
 

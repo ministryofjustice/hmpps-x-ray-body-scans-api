@@ -52,7 +52,7 @@ class CaseNotesApiMockServer : WireMockServer(WIREMOCK_PORT) {
     prisonerNumber: String,
     caseNoteId: String,
   ): StubMapping = stubFor(
-    get(urlPathEqualTo("/case-notes/${prisonerNumber}/${caseNoteId}"))
+    get(urlPathEqualTo("/case-notes/$prisonerNumber/$caseNoteId"))
       .willReturn(
         aResponse()
           .withHeader("Content-Type", "application/json")
