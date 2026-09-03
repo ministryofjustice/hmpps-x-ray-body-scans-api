@@ -1,9 +1,9 @@
 package uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi
 
 import org.springframework.beans.factory.annotation.Qualifier
-import org.springframework.core.ParameterizedTypeReference
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
+import org.springframework.web.reactive.function.client.bodyToMono
 import org.springframework.web.util.UriBuilder
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.response.PersonalCareNeedsResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.DownstreamServiceException
@@ -28,7 +28,7 @@ class PrisonApiClient(
       }
       .bodyValue(offenderNos)
       .retrieve()
-      .bodyToMono(object : ParameterizedTypeReference<List<PersonalCareNeedsResponse>>() {})
+      .bodyToMono<List<PersonalCareNeedsResponse>>()
       .block()
       .orEmpty()
   } catch (e: Exception) {
