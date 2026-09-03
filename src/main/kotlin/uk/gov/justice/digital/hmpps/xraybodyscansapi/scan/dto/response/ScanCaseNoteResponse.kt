@@ -12,8 +12,11 @@ data class ScanCaseNoteResponse(
   @Schema(description = "The unique case note id", format = "uuid", example = "341c845e-fadc-4ec8-9330-81c83968c1a8")
   val id: String,
 
-  @Schema(description = "The case note sub-type description, used as the title", example = "X-Ray Body Scan")
-  val title: String,
+  @Schema(description = "The case note type description, used as part of the title", example = "General")
+  val typeDescription: String,
+
+  @Schema(description = "The case note sub-type description, used as part of the title", example = "X-ray body scan")
+  val subTypeDescription: String,
 
   @Schema(description = "Username of this case note's author", example = "John Smith")
   val createdBy: String,
@@ -29,7 +32,8 @@ data class ScanCaseNoteResponse(
 ) {
   constructor(caseNote: CaseNoteResponse) : this(
     id = caseNote.caseNoteId,
-    title = caseNote.subTypeDescription,
+    typeDescription = caseNote.typeDescription,
+    subTypeDescription = caseNote.subTypeDescription,
     createdBy = caseNote.authorName,
     createdAt = caseNote.creationDateTime,
     occurredAt = caseNote.occurrenceDateTime,

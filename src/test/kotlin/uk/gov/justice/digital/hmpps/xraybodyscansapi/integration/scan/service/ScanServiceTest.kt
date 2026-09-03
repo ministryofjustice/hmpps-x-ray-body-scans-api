@@ -440,7 +440,7 @@ class ScanServiceTest {
             type = "GEN",
             typeDescription = "General",
             subType = "XRBS",
-            subTypeDescription = "X-Ray Body Scan",
+            subTypeDescription = "X-ray body scan",
             text = "some text",
             creationDateTime = now,
             occurrenceDateTime = occurredAt,
@@ -464,7 +464,8 @@ class ScanServiceTest {
       assertThat(scanCaptor.firstValue.caseNoteId).isEqualTo(caseNoteId)
 
       assertThat(response.id).isEqualTo(caseNoteId.toString())
-      assertThat(response.title).isEqualTo("X-Ray Body Scan")
+      assertThat(response.typeDescription).isEqualTo("General")
+      assertThat(response.subTypeDescription).isEqualTo("X-ray body scan")
       assertThat(response.text).isEqualTo("some text")
       assertThat(response.createdBy).isEqualTo("John Smith")
       assertThat(response.createdAt).isEqualTo(now)

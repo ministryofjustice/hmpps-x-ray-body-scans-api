@@ -45,7 +45,8 @@ class CaseNoteResourceIntTest(
         whenever(scanService.getScanCaseNote(eq(scanId))).thenReturn(
           ScanCaseNoteResponse(
             id = caseNoteId,
-            title = "X-Ray Body Scan",
+            typeDescription = "General",
+            subTypeDescription = "X-ray body scan",
             createdBy = "Bob Profileman",
             createdAt = now,
             occurredAt = occurredAt,
@@ -64,7 +65,8 @@ class CaseNoteResourceIntTest(
             """
             {
               "id": "$caseNoteId",
-              "title": "X-Ray Body Scan",
+              "typeDescription": "General",
+              "subTypeDescription": "X-ray body scan",
               "createdBy": "Bob Profileman",
               "createdAt": "2026-07-27T09:10:11.123",
               "occurredAt": "2026-07-26T00:00:00",
@@ -82,7 +84,8 @@ class CaseNoteResourceIntTest(
         whenever(scanService.getScanCaseNote(eq(scanId))).thenReturn(
           ScanCaseNoteResponse(
             id = caseNoteId,
-            title = "X-Ray Body Scan",
+            typeDescription = "General",
+            subTypeDescription = "X-ray body scan",
             createdBy = "Bob Profileman",
             createdAt = now,
             occurredAt = occurredAt,
@@ -169,7 +172,8 @@ class CaseNoteResourceIntTest(
         whenever(scanService.createCaseNote(eq(scanId), any())).thenReturn(
           ScanCaseNoteResponse(
             id = caseNoteId,
-            title = "X-Ray Body Scan",
+            typeDescription = "General",
+            subTypeDescription = "X-ray body scan",
             text = "some text",
             createdBy = "Bob Profileman",
             createdAt = now,
@@ -190,7 +194,8 @@ class CaseNoteResourceIntTest(
             """
             {
               "id": "$caseNoteId",
-              "title": "X-Ray Body Scan",
+              "typeDescription": "General",
+              "subTypeDescription": "X-ray body scan",
               "createdBy": "Bob Profileman",
               "createdAt": "2026-07-27T09:10:11.123",
               "occurredAt": "2026-07-26T00:00:00",
