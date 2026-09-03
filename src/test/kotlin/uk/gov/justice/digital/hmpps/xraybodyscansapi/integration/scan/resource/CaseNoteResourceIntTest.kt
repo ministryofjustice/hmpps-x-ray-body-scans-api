@@ -29,6 +29,8 @@ class CaseNoteResourceIntTest(
 ) : BaseScanResourceIntTest(scanAnnualLimit, nearingLimitThreshold) {
 
   private val uri = "/scan/$scanId/case-note"
+  private val caseNoteId = "341c845e-fadc-4ec8-9330-81c83968c1a8"
+  private val occurredAt = LocalDateTime.of(2026, 7, 26, 0, 0, 0, 0)
 
   @Nested
   @DisplayName("GET case note")
@@ -40,9 +42,9 @@ class CaseNoteResourceIntTest(
 
       @Test
       fun `returns 200 and case note details`() {
-        val occurredAt = LocalDateTime.of(2026, 7, 26, 0, 0)
         whenever(scanService.getScanCaseNote(eq(scanId))).thenReturn(
           ScanCaseNoteResponse(
+            id = caseNoteId,
             title = "X-Ray Body Scan",
             createdBy = "Bob Profileman",
             createdAt = now,
@@ -61,6 +63,7 @@ class CaseNoteResourceIntTest(
             // language=json
             """
             {
+              "id": "$caseNoteId",
               "title": "X-Ray Body Scan",
               "createdBy": "Bob Profileman",
               "createdAt": "2026-07-27T09:10:11.123",
@@ -78,10 +81,11 @@ class CaseNoteResourceIntTest(
       fun `also permits RW role`() {
         whenever(scanService.getScanCaseNote(eq(scanId))).thenReturn(
           ScanCaseNoteResponse(
+            id = caseNoteId,
             title = "X-Ray Body Scan",
             createdBy = "Bob Profileman",
             createdAt = now,
-            occurredAt = now,
+            occurredAt = occurredAt,
             text = "some text",
           ),
         )
@@ -162,7 +166,16 @@ class CaseNoteResourceIntTest(
 
       @Test
       fun `returns 201 when case note is created successfully`() {
-        whenever(scanService.createCaseNote(eq(scanId), any())).then { }
+        whenever(scanService.createCaseNote(eq(scanId), any())).thenReturn(
+          ScanCaseNoteResponse(
+            id = caseNoteId,
+            title = "X-Ray Body Scan",
+            text = "some text",
+            createdBy = "Bob Profileman",
+            createdAt = now,
+            occurredAt = occurredAt,
+          ),
+        )
 
         webTestClient.post()
           .uri(uri)
@@ -171,6 +184,21 @@ class CaseNoteResourceIntTest(
           .bodyValue(CreateScanCaseNoteRequest(text = "some text"))
           .exchange()
           .expectStatus().isCreated
+          .expectBody()
+          .json(
+            // language=json
+            """
+            {
+              "id": "$caseNoteId",
+              "title": "X-Ray Body Scan",
+              "createdBy": "Bob Profileman",
+              "createdAt": "2026-07-27T09:10:11.123",
+              "occurredAt": "2026-07-26T00:00:00",
+              "text": "some text"
+            }
+            """,
+            JsonCompareMode.STRICT,
+          )
 
         verify(scanService).createCaseNote(
           eq(scanId),

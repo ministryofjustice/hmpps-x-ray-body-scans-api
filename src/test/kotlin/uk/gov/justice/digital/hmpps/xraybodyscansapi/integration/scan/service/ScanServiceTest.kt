@@ -430,6 +430,7 @@ class ScanServiceTest {
     @Test
     fun `creates case note and saves its id to the scan`() {
       val scan = scanEntity(prisonerNumber).apply { id = scanId }
+      val occurredAt = scan.scanDate.atStartOfDay()
       whenever(scanRepository.findById(scanId)).thenReturn(java.util.Optional.of(scan))
       whenever(caseNotesApiClient.createCaseNote(eq(prisonerNumber), any<CreateCaseNoteRequest>()))
         .thenReturn(
@@ -442,25 +443,32 @@ class ScanServiceTest {
             subTypeDescription = "X-Ray Body Scan",
             text = "some text",
             creationDateTime = now,
-            occurrenceDateTime = today.minusDays(1).atStartOfDay(),
+            occurrenceDateTime = occurredAt,
             authorName = "John Smith",
             amendments = emptyList(),
           ),
         )
       whenever(scanRepository.save(any<ScanEntity>())).thenAnswer { it.getArgument(0) }
 
-      scanService.createCaseNote(scanId, CreateScanCaseNoteRequest(text = "some text"))
+      val response = scanService.createCaseNote(scanId, CreateScanCaseNoteRequest(text = "some text"))
 
       val caseNoteCaptor = argumentCaptor<CreateCaseNoteRequest>()
       verify(caseNotesApiClient).createCaseNote(eq(prisonerNumber), caseNoteCaptor.capture())
       assertThat(caseNoteCaptor.firstValue.type).isEqualTo("GEN")
       assertThat(caseNoteCaptor.firstValue.subType).isEqualTo("XRBS")
       assertThat(caseNoteCaptor.firstValue.text).isEqualTo("some text")
-      assertThat(caseNoteCaptor.firstValue.occurrenceDateTime).isEqualTo(today.minusDays(1).atStartOfDay())
+      assertThat(caseNoteCaptor.firstValue.occurrenceDateTime).isEqualTo(occurredAt)
 
       val scanCaptor = argumentCaptor<ScanEntity>()
       verify(scanRepository).save(scanCaptor.capture())
       assertThat(scanCaptor.firstValue.caseNoteId).isEqualTo(caseNoteId)
+
+      assertThat(response.id).isEqualTo(caseNoteId.toString())
+      assertThat(response.title).isEqualTo("X-Ray Body Scan")
+      assertThat(response.text).isEqualTo("some text")
+      assertThat(response.createdBy).isEqualTo("John Smith")
+      assertThat(response.createdAt).isEqualTo(now)
+      assertThat(response.occurredAt).isEqualTo(occurredAt)
     }
 
     @Test
