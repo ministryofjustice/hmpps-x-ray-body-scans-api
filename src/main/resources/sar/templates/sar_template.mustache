@@ -2,11 +2,14 @@
 {{#.}}
     <h2>Body scan</h2>
     <table class="summary-list">
-        <tr><td>Person</td><td>{{ optionalValue person }}</td></tr>
         <tr><td>Date</td><td>{{ optionalValue (formatDate date) }}</td></tr>
         <tr><td>Justification</td><td>{{ optionalValue justification }}</td></tr>
         <tr><td>Outcome</td><td>{{ optionalValue outcome }}</td></tr>
         <tr><td>Find</td><td>{{ optionalValue find }}</td></tr>
         <tr><td>Establishment</td><td>{{ getPrisonName establishment }}</td></tr>
+    </table>
+    <table class="data-table">
+        <tr><td>Additional details</td></tr>
+        <tr><td>{{ optionalValue additionalDetails }}</td></tr>
     </table>
 {{/.}}

@@ -182,7 +182,12 @@ class ScanServiceTest {
           listOf(
             PersonalCareNeedsResponse(
               offenderNo = prisonerNumber,
-              personalCareNeeds = listOf(bscan(today), bscan(today.minusDays(4)), bscan(today.minusMonths(1)), bscan(today.minusMonths(2))),
+              personalCareNeeds = listOf(
+                bscan(today),
+                bscan(today.minusDays(4)),
+                bscan(today.minusMonths(1)),
+                bscan(today.minusMonths(2)),
+              ),
             ),
           ),
         )
@@ -229,7 +234,8 @@ class ScanServiceTest {
       whenever(prisonApiClient.getScanCareNeeds(listOf(prisonerNumber)))
         .thenReturn(emptyList())
 
-      val scans = scanService.listScans(prisonerNumber, pageable = PageRequest.of(1, 10, Sort.by("scanDate").ascending()))
+      val scans =
+        scanService.listScans(prisonerNumber, pageable = PageRequest.of(1, 10, Sort.by("scanDate").ascending()))
       assertThat(scans).hasSize(1)
       val dpsScan = scans.content[0] as ScanResponse
       assertThat(dpsScan.justification).isEqualTo("INTELLIGENCE")
@@ -283,7 +289,10 @@ class ScanServiceTest {
     @TestFactory
     fun `allows huge page sizes when date filters span a year or less`() = listOf(
       "with open-ended date filters" to ListScansRequest(fromScanDate = yearStart),
-      "with date filters spanning a year" to ListScansRequest(fromScanDate = yearStart.minusYears(1), toScanDate = yearStart),
+      "with date filters spanning a year" to ListScansRequest(
+        fromScanDate = yearStart.minusYears(1),
+        toScanDate = yearStart,
+      ),
     ).map {
       val (scenario, query) = it
       DynamicTest.dynamicTest(scenario) {
@@ -436,6 +445,7 @@ class ScanServiceTest {
             creationDateTime = now,
             occurrenceDateTime = occurredAt,
             authorName = "John Smith",
+            amendments = emptyList(),
           ),
         )
       whenever(scanRepository.save(any<ScanEntity>())).thenAnswer { it.getArgument(0) }
@@ -592,7 +602,12 @@ class ScanServiceTest {
           listOf(
             PersonalCareNeedsResponse(
               offenderNo = "A1234BC",
-              personalCareNeeds = listOf(bscan("2026-01-10"), bscan("2026-01-02"), bscan("2026-01-03"), bscan("2026-01-04")),
+              personalCareNeeds = listOf(
+                bscan("2026-01-10"),
+                bscan("2026-01-02"),
+                bscan("2026-01-03"),
+                bscan("2026-01-04"),
+              ),
             ),
           ),
         )
@@ -743,6 +758,7 @@ class ScanServiceTest {
         val nearingScanLimit: Boolean,
         val atScanLimit: Boolean,
       )
+
       val simpleResult = result.map {
         SimplifiedSummary(
           prisonerNumber = it.prisonerNumber,
@@ -854,7 +870,12 @@ class ScanServiceTest {
       }
     }
 
-    private fun alert(prisonerNumber: String, type: String, code: String, id: String = "019fc832-57b9-704f-a907-8059720e37e8") = Alert(
+    private fun alert(
+      prisonerNumber: String,
+      type: String,
+      code: String,
+      id: String = "019fc832-57b9-704f-a907-8059720e37e8",
+    ) = Alert(
       alertUuid = id,
       prisonNumber = prisonerNumber,
       alertCode = AlertCode(

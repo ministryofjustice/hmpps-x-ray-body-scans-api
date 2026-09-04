@@ -5,7 +5,8 @@
     "justification": "Reasonable suspicion",
     "outcome": "Item detected",
     "find": "Inorganic",
-    "establishment": "MDI"
+    "establishment": "MDI",
+    "additionalDetails": "The outcome was Item detected and further actions were taken.\n\nMore details added:\n\nFollow up actions have been taken against this person"
   },
   {
     "person": "A1234BC",
@@ -13,6 +14,7 @@
     "justification": "Intelligence-led",
     "outcome": "No item detected",
     "find": null,
-    "establishment": "LEI"
+    "establishment": "LEI",
+    "additionalDetails": null
   }
 ]
