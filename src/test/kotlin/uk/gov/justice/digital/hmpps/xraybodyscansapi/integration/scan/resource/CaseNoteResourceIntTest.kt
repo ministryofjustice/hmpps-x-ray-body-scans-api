@@ -19,6 +19,7 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.NotFoundException
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RO
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RW
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScanCaseNoteRequest
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanCaseNoteAmendmentResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanCaseNoteResponse
 import java.time.LocalDateTime
 
@@ -70,7 +71,71 @@ class CaseNoteResourceIntTest(
               "createdBy": "Bob Profileman",
               "createdAt": "2026-07-27T09:10:11.123",
               "occurredAt": "2026-07-26T00:00:00",
-              "text": "some text"
+              "text": "some text",
+              "amendments": []
+            }
+            """,
+            JsonCompareMode.STRICT,
+          )
+
+        verify(scanService).getScanCaseNote(eq(scanId))
+      }
+
+      @Test
+      fun `returns 200 and case note details with amendments`() {
+        whenever(scanService.getScanCaseNote(eq(scanId))).thenReturn(
+          ScanCaseNoteResponse(
+            id = caseNoteId,
+            typeDescription = "General",
+            subTypeDescription = "X-ray body scan",
+            createdBy = "Bob Profileman",
+            createdAt = now.minusHours(3),
+            occurredAt = occurredAt,
+            text = "some text",
+            amendments = listOf(
+              ScanCaseNoteAmendmentResponse(
+                text = "amendment 1",
+                createdBy = "Another User",
+                createdAt = now.minusHours(2),
+              ),
+              ScanCaseNoteAmendmentResponse(
+                text = "amendment 2",
+                createdBy = "Another User 2",
+                createdAt = now,
+              ),
+            ),
+          ),
+        )
+
+        webTestClient.get()
+          .uri(uri)
+          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RO)))
+          .exchange()
+          .expectStatus().isOk
+          .expectBody()
+          .json(
+            // language=json
+            """
+            {
+              "id": "$caseNoteId",
+              "typeDescription": "General",
+              "subTypeDescription": "X-ray body scan",
+              "createdBy": "Bob Profileman",
+              "createdAt": "2026-07-27T06:10:11.123",
+              "occurredAt": "2026-07-26T00:00:00",
+              "text": "some text",
+              "amendments": [
+                {
+                  "text": "amendment 1",
+                  "createdBy": "Another User",
+                  "createdAt": "2026-07-27T07:10:11.123"
+                },
+                {
+                  "text": "amendment 2",
+                  "createdBy": "Another User 2",
+                  "createdAt": "2026-07-27T09:10:11.123"
+                }
+              ]
             }
             """,
             JsonCompareMode.STRICT,
@@ -199,7 +264,8 @@ class CaseNoteResourceIntTest(
               "createdBy": "Bob Profileman",
               "createdAt": "2026-07-27T09:10:11.123",
               "occurredAt": "2026-07-26T00:00:00",
-              "text": "some text"
+              "text": "some text",
+              "amendments": []
             }
             """,
             JsonCompareMode.STRICT,

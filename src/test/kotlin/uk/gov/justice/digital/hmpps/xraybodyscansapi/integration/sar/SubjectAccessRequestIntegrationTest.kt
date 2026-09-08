@@ -46,6 +46,7 @@ class SubjectAccessRequestIntegrationTest :
   override fun setupTestData() {
     hmppsAuth.stubGrantToken()
     caseNotesApi.stubGetCaseNote(
+      // language=json
       """
         {
           "caseNoteId": "01a067dc-332f-754e-b41f-d8fe1eaeba89",
@@ -59,10 +60,14 @@ class SubjectAccessRequestIntegrationTest :
           "occurrenceDateTime": "2026-01-01T00:00:00",
           "authorName": "Author",
           "amendments": [
-            { "additionalNoteText": "Follow up actions have been taken against this person" }
+            {
+              "additionalNoteText": "Follow up actions have been taken against this person",
+              "creationDateTime": "2026-01-03T12:30:00",
+              "authorName": "Different Author"
+            }
           ]
         }
-      """.trimIndent(),
+      """,
       getPrn(),
       "01a067dc-332f-754e-b41f-d8fe1eaeba89",
     )

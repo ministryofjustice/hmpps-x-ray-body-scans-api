@@ -5,7 +5,7 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.casenotes.response.C
 import java.time.LocalDateTime
 
 @Schema(
-  description = "Case note associated with an x-ray body scan.",
+  description = "Case note associated with an x-ray body scan",
   accessMode = Schema.AccessMode.READ_ONLY,
 )
 data class ScanCaseNoteResponse(
@@ -18,7 +18,7 @@ data class ScanCaseNoteResponse(
   @Schema(description = "The case note sub-type description, used as part of the title", example = "X-ray body scan")
   val subTypeDescription: String,
 
-  @Schema(description = "Username of this case note's author", example = "John Smith")
+  @Schema(description = "Name of this case note’s author", example = "John Smith")
   val createdBy: String,
 
   @Schema(description = "Date and time the case note was created", example = "2026-08-01T00:00:00")
@@ -29,6 +29,9 @@ data class ScanCaseNoteResponse(
 
   @Schema(description = "The body text of the case note", example = "X-ray body scan carried out with negative result.")
   val text: String,
+
+  @Schema(description = "Additional details added later to the case note")
+  val amendments: List<ScanCaseNoteAmendmentResponse> = emptyList(),
 ) {
   constructor(caseNote: CaseNoteResponse) : this(
     id = caseNote.caseNoteId,
@@ -38,5 +41,6 @@ data class ScanCaseNoteResponse(
     createdAt = caseNote.creationDateTime,
     occurredAt = caseNote.occurrenceDateTime,
     text = caseNote.text,
+    amendments = caseNote.amendments.map { ScanCaseNoteAmendmentResponse(it) },
   )
 }
