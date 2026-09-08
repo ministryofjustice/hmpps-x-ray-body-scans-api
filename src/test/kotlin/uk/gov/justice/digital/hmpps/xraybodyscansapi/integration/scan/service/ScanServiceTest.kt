@@ -450,14 +450,22 @@ class ScanServiceTest {
         )
       whenever(scanRepository.save(any<ScanEntity>())).thenAnswer { it.getArgument(0) }
 
-      val response = scanService.createCaseNote(scanId, CreateScanCaseNoteRequest(text = "some text"))
+      val response = scanService.createCaseNote(
+        scanId,
+        CreateScanCaseNoteRequest(
+          text = "some text",
+          prisonId = "MDI",
+        ),
+      )
 
       val caseNoteCaptor = argumentCaptor<CreateCaseNoteRequest>()
       verify(caseNotesApiClient).createCaseNote(eq(prisonerNumber), caseNoteCaptor.capture())
-      assertThat(caseNoteCaptor.firstValue.type).isEqualTo("GEN")
-      assertThat(caseNoteCaptor.firstValue.subType).isEqualTo("XRBS")
-      assertThat(caseNoteCaptor.firstValue.text).isEqualTo("some text")
-      assertThat(caseNoteCaptor.firstValue.occurrenceDateTime).isEqualTo(occurredAt)
+      val createCaseNoteRequest = caseNoteCaptor.firstValue
+      assertThat(createCaseNoteRequest.type).isEqualTo("GEN")
+      assertThat(createCaseNoteRequest.subType).isEqualTo("XRBS")
+      assertThat(createCaseNoteRequest.text).isEqualTo("some text")
+      assertThat(createCaseNoteRequest.locationId).isEqualTo("MDI")
+      assertThat(createCaseNoteRequest.occurrenceDateTime).isEqualTo(occurredAt)
 
       val scanCaptor = argumentCaptor<ScanEntity>()
       verify(scanRepository).save(scanCaptor.capture())
@@ -477,7 +485,13 @@ class ScanServiceTest {
       whenever(scanRepository.findById(scanId)).thenReturn(java.util.Optional.empty())
 
       assertThatThrownBy {
-        scanService.createCaseNote(scanId, CreateScanCaseNoteRequest(text = "some text"))
+        scanService.createCaseNote(
+          scanId,
+          CreateScanCaseNoteRequest(
+            text = "some text",
+            prisonId = "MDI",
+          ),
+        )
       }.hasMessage("Scan with id $scanId not found")
 
       verifyNoInteractions(caseNotesApiClient)

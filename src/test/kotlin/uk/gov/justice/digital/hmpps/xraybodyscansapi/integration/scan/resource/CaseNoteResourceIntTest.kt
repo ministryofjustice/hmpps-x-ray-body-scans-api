@@ -250,7 +250,7 @@ class CaseNoteResourceIntTest(
           .uri(uri)
           .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RW)))
           .contentType(MediaType.APPLICATION_JSON)
-          .bodyValue(CreateScanCaseNoteRequest(text = "some text"))
+          .bodyValue(CreateScanCaseNoteRequest(text = "some text", prisonId = "MDI"))
           .exchange()
           .expectStatus().isCreated
           .expectBody()
@@ -273,7 +273,7 @@ class CaseNoteResourceIntTest(
 
         verify(scanService).createCaseNote(
           eq(scanId),
-          eq(CreateScanCaseNoteRequest(text = "some text")),
+          eq(CreateScanCaseNoteRequest(text = "some text", prisonId = "MDI")),
         )
       }
     }
@@ -291,7 +291,7 @@ class CaseNoteResourceIntTest(
           .uri(uri)
           .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RW)))
           .contentType(MediaType.APPLICATION_JSON)
-          .bodyValue(CreateScanCaseNoteRequest(text = "some text"))
+          .bodyValue(CreateScanCaseNoteRequest(text = "some text", prisonId = "MDI"))
           .exchange()
           .expectErrorResponse(
             status = HttpStatus.NOT_FOUND,
@@ -309,7 +309,7 @@ class CaseNoteResourceIntTest(
           .uri(uri)
           .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RW)))
           .contentType(MediaType.APPLICATION_JSON)
-          .bodyValue(CreateScanCaseNoteRequest(text = "some text"))
+          .bodyValue(CreateScanCaseNoteRequest(text = "some text", prisonId = "MDI"))
           .exchange()
           .expectStatus().is5xxServerError
       }
@@ -320,7 +320,23 @@ class CaseNoteResourceIntTest(
           .uri(uri)
           .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RW)))
           .contentType(MediaType.APPLICATION_JSON)
-          .bodyValue(CreateScanCaseNoteRequest(text = ""))
+          .bodyValue(CreateScanCaseNoteRequest(text = "", prisonId = "MDI"))
+          .exchange()
+          .expectErrorResponse(
+            userMessageContains = "Validation failure",
+            developerMessageContains = "must not be blank",
+          )
+
+        verifyNoInteractions(scanService)
+      }
+
+      @Test
+      fun `returns 400 when prison ID is blank`() {
+        webTestClient.post()
+          .uri(uri)
+          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RW)))
+          .contentType(MediaType.APPLICATION_JSON)
+          .bodyValue(CreateScanCaseNoteRequest(text = "some text", prisonId = ""))
           .exchange()
           .expectErrorResponse(
             userMessageContains = "Validation failure",
@@ -350,7 +366,7 @@ class CaseNoteResourceIntTest(
       fun `endpoint is protected`() = endpointIsProtected(
         webTestClient.post()
           .uri(uri)
-          .bodyValue(CreateScanCaseNoteRequest(text = "some text")),
+          .bodyValue(CreateScanCaseNoteRequest(text = "some text", prisonId = "MDI")),
         readRole = ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RO,
         writeRole = ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RW,
         afterEach = { verifyNoInteractions(scanService) },

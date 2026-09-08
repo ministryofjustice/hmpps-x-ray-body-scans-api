@@ -6,5 +6,6 @@ data class CreateCaseNoteRequest(
   val type: String,
   val subType: String,
   val text: String,
+  val locationId: String,
   val occurrenceDateTime: LocalDateTime? = null,
 )
