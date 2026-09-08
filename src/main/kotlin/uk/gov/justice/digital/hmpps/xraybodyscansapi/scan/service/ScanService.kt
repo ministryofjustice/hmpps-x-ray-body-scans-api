@@ -217,7 +217,13 @@ class ScanService(
     }
     val caseNote = caseNotesApiClient.createCaseNote(
       scan.prisonerNumber,
-      CreateCaseNoteRequest(type = "GEN", subType = "XRBS", text = request.text, occurrenceDateTime = scan.scanDate.atStartOfDay()),
+      CreateCaseNoteRequest(
+        type = "GEN",
+        subType = "XRBS",
+        text = request.text,
+        locationId = request.prisonId,
+        occurrenceDateTime = scan.scanDate.atStartOfDay(),
+      ),
     )
     scan.caseNoteId = UUID.fromString(caseNote.caseNoteId)
     scanRepository.save(scan)
