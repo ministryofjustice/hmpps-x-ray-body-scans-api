@@ -4,6 +4,8 @@ import java.time.LocalDateTime
 
 data class CaseNoteAmendment(
   val additionalNoteText: String,
+  val creationDateTime: LocalDateTime,
+  val authorName: String,
 )
 
 data class CaseNoteResponse(

@@ -56,17 +56,15 @@ class SubjectAccessRequestService(
     return if (mappedScans.isEmpty()) null else HmppsSubjectAccessRequestContent(content = mappedScans)
   }
 
-  companion object {
-    fun caseNoteToSarText(caseNote: CaseNoteResponse): String {
-      val output = mutableListOf(
-        caseNote.text,
-      )
-      caseNote.amendments.forEach {
-        output.add("\nMore details added:\n")
-        output.add(it.additionalNoteText)
-      }
-
-      return output.joinToString("\n")
+  private fun caseNoteToSarText(caseNote: CaseNoteResponse): String {
+    val output = mutableListOf(
+      caseNote.text,
+    )
+    caseNote.amendments.forEach {
+      output.add("\nMore details added:\n")
+      output.add(it.additionalNoteText)
     }
+
+    return output.joinToString("\n")
   }
 }

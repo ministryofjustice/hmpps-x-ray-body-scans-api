@@ -15,4 +15,12 @@ data class CreateScanCaseNoteRequest(
     requiredMode = Schema.RequiredMode.REQUIRED,
   )
   val text: String,
+
+  @NotBlank
+  @Schema(
+    description = "The establishment where the scan took place",
+    example = "MDI",
+    requiredMode = Schema.RequiredMode.REQUIRED,
+  )
+  val prisonId: String,
 )
