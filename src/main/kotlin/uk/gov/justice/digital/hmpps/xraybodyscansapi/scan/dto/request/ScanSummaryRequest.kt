@@ -8,6 +8,12 @@ import io.swagger.v3.oas.annotations.media.Schema
 )
 data class ScanSummaryRequest(
   @Schema(
+    description = "Whether to include the latest scan details",
+    requiredMode = Schema.RequiredMode.NOT_REQUIRED,
+  )
+  val includeLatestScan: Boolean = false,
+
+  @Schema(
     description = "Whether relevant alerts should be included (alerts field is null otherwise). " +
       "Username must be set in the token",
     requiredMode = Schema.RequiredMode.NOT_REQUIRED,

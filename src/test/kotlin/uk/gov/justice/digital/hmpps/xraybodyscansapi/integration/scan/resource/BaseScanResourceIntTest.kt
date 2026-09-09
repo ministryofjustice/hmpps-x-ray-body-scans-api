@@ -10,6 +10,7 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.AlertResp
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.LegacyScanResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanSummaryResponse
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.UnifiedScanResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.ScanService
 import java.time.LocalDate
 import java.util.UUID
@@ -78,6 +79,7 @@ abstract class BaseScanResourceIntTest(
     remainingScans: Int = scanAnnualLimit - totalCount,
     nearingScanLimit: Boolean = totalCount >= nearingLimitThreshold,
     atScanLimit: Boolean = remainingScans <= 0,
+    latestScan: UnifiedScanResponse? = null,
     relevantAlerts: List<AlertResponse>? = null,
   ) = ScanSummaryResponse(
     prisonerNumber = prisonerNumber,
@@ -91,6 +93,7 @@ abstract class BaseScanResourceIntTest(
     annualLimit = scanAnnualLimit,
     nearingScanLimit = nearingScanLimit,
     atScanLimit = atScanLimit,
+    latestScan = latestScan,
     relevantAlerts = relevantAlerts,
     fromScanDate = yearStart,
     toScanDate = today,

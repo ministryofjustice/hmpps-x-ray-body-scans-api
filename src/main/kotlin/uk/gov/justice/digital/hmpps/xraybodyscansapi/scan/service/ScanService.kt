@@ -13,6 +13,7 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.alertsapi.AlertsApiC
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.casenotes.CaseNotesApiClient
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.casenotes.request.CreateCaseNoteRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.PrisonApiClient
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.response.PersonalCareNeed
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.response.PersonalCareNeedComparator
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.NotFoundException
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.dto.response.ReferenceDataDomains
@@ -32,6 +33,7 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanReposit
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.filterByPrisonerNumber
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.groupOutcomes
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.sortableFields
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.util.UnifiedScanResponseComparator
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.util.UnifiedScanResponsePaginator
 import java.time.Clock
 import java.time.LocalDate
@@ -161,31 +163,61 @@ class ScanService(
   @Transactional(readOnly = true)
   fun summariseScans(
     prisonerNumber: String,
+    includeLatestScan: Boolean = false,
     includeAlerts: IncludeAlerts = IncludeAlerts.No,
-  ): ScanSummaryResponse = summariseScans(listOf(prisonerNumber), includeAlerts).first()
+  ): ScanSummaryResponse = summariseScans(
+    prisonerNumbers = listOf(prisonerNumber),
+    includeLatestScans = includeLatestScan,
+    includeAlerts = includeAlerts,
+  ).first()
 
   @Transactional(readOnly = true)
   fun summariseScans(
     prisonerNumbers: List<String>,
+    includeLatestScans: Boolean = false,
     includeAlerts: IncludeAlerts = IncludeAlerts.No,
   ): List<ScanSummaryResponse> {
     val (fromScanDate, toScanDate) = calendarYear()
-    val nomisCounts = getNomisScanCounts(prisonerNumbers, fromScanDate, toScanDate)
-    val dpsCounts = scanRepository.scanSummaryRowsForPrisoners(prisonerNumbers, fromScanDate, toScanDate).groupOutcomes()
+
+    val nomisScans = getLatestNomisScansAndCounts(prisonerNumbers, fromScanDate, toScanDate)
+    val dpsCounts = scanRepository.scanSummaryRowsForPrisoners(prisonerNumbers, fromScanDate, toScanDate)
+      .groupOutcomes()
+    val latestDpsScans = if (includeLatestScans) {
+      scanRepository.latestScansForPrisoners(prisonerNumbers, fromScanDate, toScanDate)
+        .associate { it.prisonerNumber to it.toDto() }
+    } else {
+      emptyMap()
+    }
 
     val relevantAlerts = when (includeAlerts) {
       is IncludeAlerts.WithUsername -> getRelevantAlerts(prisonerNumbers, includeAlerts.username)
       is IncludeAlerts.No -> null
     }
 
+    val latestScanComparator = UnifiedScanResponseComparator(Sort.by("scanDate").descending())
+
     return prisonerNumbers.map { prisonerNumber ->
-      val nomisCount = nomisCounts[prisonerNumber] ?: 0
+      val (nomisCount, latestPersonalCareNeed) = nomisScans[prisonerNumber] ?: (0 to null)
       val dpsOutcomes = dpsCounts[prisonerNumber] ?: emptyMap()
       val dpsCount = dpsOutcomes.values.sum()
       val totalCount = nomisCount + dpsCount
       val remainingScans = scanAnnualLimit - totalCount
       val nearingScanLimit = totalCount >= nearingLimitThreshold
       val atScanLimit = remainingScans <= 0
+
+      val latestScan: UnifiedScanResponse? = if (includeLatestScans) {
+        val latestDpsScan = latestDpsScans[prisonerNumber]
+        val latestNomisScan = latestPersonalCareNeed?.let { LegacyScanResponse(prisonerNumber, it) }
+        when {
+          latestDpsScan != null && latestNomisScan != null -> minOf(latestDpsScan, latestNomisScan, latestScanComparator)
+          latestDpsScan != null -> latestDpsScan
+          latestNomisScan != null -> latestNomisScan
+          else -> null
+        }
+      } else {
+        null
+      }
+
       ScanSummaryResponse(
         prisonerNumber = prisonerNumber,
         nomisCount = nomisCount,
@@ -198,6 +230,7 @@ class ScanService(
         remainingScans = remainingScans,
         nearingScanLimit = nearingScanLimit,
         atScanLimit = atScanLimit,
+        latestScan = latestScan,
         relevantAlerts = if (relevantAlerts != null) {
           relevantAlerts[prisonerNumber] ?: emptyList()
         } else {
@@ -245,17 +278,23 @@ class ScanService(
     return startOfYear to today
   }
 
-  private fun getNomisScanCounts(
+  private fun getLatestNomisScansAndCounts(
     prisonerNumbers: List<String>,
     fromScanDate: LocalDate,
     toScanDate: LocalDate,
-  ): Map<String, Int> = prisonApiClient
-    .getScanCareNeeds(prisonerNumbers)
-    .associate { res ->
-      res.offenderNo to res.personalCareNeeds.count { bscan ->
-        bscan.startDate != null && !bscan.startDate.isBefore(fromScanDate) && !bscan.startDate.isAfter(toScanDate)
+  ): Map<String, Pair<Int, PersonalCareNeed?>> {
+    val personalCareNeedComparator = PersonalCareNeedComparator(Sort.by("scanDate").descending())
+    return prisonApiClient
+      .getScanCareNeeds(prisonerNumbers)
+      .associate { res ->
+        val personalCareNeeds = res.personalCareNeeds.filter { personalCareNeed ->
+          personalCareNeed.startDate != null && !personalCareNeed.startDate.isBefore(fromScanDate) && !personalCareNeed.startDate.isAfter(toScanDate)
+        }.sortedWith(personalCareNeedComparator)
+        val nomisScanCount = personalCareNeeds.size
+        val latestPersonalCareNeed = personalCareNeeds.firstOrNull()
+        res.offenderNo to (nomisScanCount to latestPersonalCareNeed)
       }
-    }
+  }
 
   private fun findReferenceDataOrThrowValidationError(
     domain: ReferenceDataDomains,

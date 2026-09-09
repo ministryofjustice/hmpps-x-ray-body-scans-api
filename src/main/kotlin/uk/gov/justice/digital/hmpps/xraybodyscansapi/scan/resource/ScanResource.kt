@@ -169,8 +169,8 @@ class ScanResource(
   @GetMapping("/summary")
   @RequireReadRole
   @Operation(
-    summary = "Count x-ray body scans for a prisoner",
-    description = "Returns the total number of x-ray body scans for the given prisoner this calendar year and how many remain. " +
+    summary = "Summarise x-ray body scans for a prisoner",
+    description = "Returns scan summaries for each of the given prisoner for this calendar year. " +
       "If the prisoner is not found, the count will default to zero. " +
       "Ensure the prisoner exists prior to use.",
     responses = [
@@ -211,8 +211,9 @@ class ScanResource(
     @Valid
     request: ScanSummaryRequest,
   ): ScanSummaryResponse = scanService.summariseScans(
-    prisonerNumber,
-    IncludeAlerts.from(request.includeAlerts) {
+    prisonerNumber = prisonerNumber,
+    includeLatestScan = request.includeLatestScan,
+    includeAlerts = IncludeAlerts.from(request.includeAlerts) {
       authenticationHolder.username ?: authenticationHolder.principal
     },
   )
