@@ -2,6 +2,7 @@ package uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response
 
 import com.fasterxml.jackson.annotation.JsonIgnore
 import io.swagger.v3.oas.annotations.media.Schema
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.response.PersonalCareNeed
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.Source
 import java.time.LocalDate
 
@@ -38,6 +39,13 @@ data class LegacyScanResponse(
   )
   val scanDetails: String? = null,
 ) : UnifiedScanResponse {
+  constructor(prisonerNumber: String, personalCareNeed: PersonalCareNeed) : this(
+    originalId = personalCareNeed.personalCareNeedId,
+    prisonerNumber = prisonerNumber,
+    scanDate = personalCareNeed.startDate,
+    scanDetails = personalCareNeed.commentText,
+  )
+
   @Schema(
     description = "Personal care need ID from NOMIS",
     requiredMode = Schema.RequiredMode.REQUIRED,

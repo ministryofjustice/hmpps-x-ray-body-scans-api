@@ -13,7 +13,6 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.alertsapi.AlertsApiC
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.casenotes.CaseNotesApiClient
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.casenotes.request.CreateCaseNoteRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.PrisonApiClient
-import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.response.PersonalCareNeed
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.client.prisonapi.response.PersonalCareNeedComparator
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.NotFoundException
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.dto.response.ReferenceDataDomains
@@ -129,7 +128,7 @@ class ScanService(
     nomisScans.sortWith(PersonalCareNeedComparator(pageable.sort))
 
     val sequence = nomisScans.asSequence()
-      .map { it.toDto(prisonerNumber) }
+      .map { LegacyScanResponse(prisonerNumber, it) }
 
     return UnifiedScanResponsePaginator(nomisScans.size, sequence)
   }
@@ -282,13 +281,6 @@ class ScanService(
     createdBy = createdBy,
     lastModifiedAt = lastModifiedAt,
     lastModifiedBy = lastModifiedBy,
-  )
-
-  private fun PersonalCareNeed.toDto(prisonerNumber: String): LegacyScanResponse = LegacyScanResponse(
-    originalId = personalCareNeedId,
-    prisonerNumber = prisonerNumber,
-    scanDate = startDate,
-    scanDetails = commentText,
   )
 
   private fun getRelevantAlerts(
