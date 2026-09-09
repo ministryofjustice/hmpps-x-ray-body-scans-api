@@ -470,7 +470,7 @@ class ScanResourceIntTest(
     inner class HappyPath {
       @Test
       fun `returns scan summary for this calendar year`() {
-        whenever(scanService.summariseScans(any<String>(), any()))
+        whenever(scanService.summariseScans(any<String>(), any(), any()))
           .thenReturn(
             summaryResponse(
               prisonerNumber = prisonerNumber,
@@ -502,6 +502,7 @@ class ScanResourceIntTest(
               "remainingScans": 110,
               "nearingScanLimit": false,
               "atScanLimit": false,
+              "latestScan": null,
               "relevantAlerts": null,
               "fromScanDate": "2026-01-01",
               "toScanDate": "2026-07-27"
@@ -510,12 +511,82 @@ class ScanResourceIntTest(
             JsonCompareMode.STRICT,
           )
 
-        verify(scanService).summariseScans(eq(prisonerNumber), eq(IncludeAlerts.No))
+        verify(scanService).summariseScans(eq(prisonerNumber), eq(false), eq(IncludeAlerts.No))
+      }
+
+      @Test
+      fun `returns latest scan when requested which happens to be from DPS`() {
+        whenever(scanService.summariseScans(any<String>(), any(), any()))
+          .thenReturn(
+            summaryResponse(
+              prisonerNumber = prisonerNumber,
+              nomisCount = 1,
+              dpsCount = 1,
+              latestScan = dpsScanResponse(prisonerNumber = prisonerNumber),
+            ),
+          )
+
+        webTestClient.get()
+          .uri("/prisoner/$prisonerNumber/scan/summary?includeLatestScan=true")
+          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
+          .exchange()
+          .expectStatus().isOk
+          .expectBody().json(
+            // language=json
+            """
+            {
+              "prisonerNumber": "$prisonerNumber",
+              "latestScan": {
+                "source": "DPS",
+                "id": "$scanId",
+                "prisonerNumber": "$prisonerNumber"
+              }
+            }
+            """,
+            JsonCompareMode.LENIENT,
+          )
+
+        verify(scanService).summariseScans(eq(prisonerNumber), eq(true), eq(IncludeAlerts.No))
+      }
+
+      @Test
+      fun `returns latest scan when requested which happens to be from NOMIS`() {
+        whenever(scanService.summariseScans(any<String>(), any(), any()))
+          .thenReturn(
+            summaryResponse(
+              prisonerNumber = prisonerNumber,
+              nomisCount = 1,
+              dpsCount = 1,
+              latestScan = nomisScanResponse(prisonerNumber = prisonerNumber),
+            ),
+          )
+
+        webTestClient.get()
+          .uri("/prisoner/$prisonerNumber/scan/summary?includeLatestScan=true")
+          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
+          .exchange()
+          .expectStatus().isOk
+          .expectBody().json(
+            // language=json
+            """
+            {
+              "prisonerNumber": "$prisonerNumber",
+              "latestScan": {
+                "source": "NOMIS",
+                "id": "$legacyId",
+                "prisonerNumber": "$prisonerNumber"
+              }
+            }
+            """,
+            JsonCompareMode.LENIENT,
+          )
+
+        verify(scanService).summariseScans(eq(prisonerNumber), eq(true), eq(IncludeAlerts.No))
       }
 
       @Test
       fun `returns relevant alerts when requested`() {
-        whenever(scanService.summariseScans(any<String>(), any()))
+        whenever(scanService.summariseScans(any<String>(), any(), any()))
           .thenReturn(
             summaryResponse(
               prisonerNumber = prisonerNumber,
@@ -546,7 +617,7 @@ class ScanResourceIntTest(
             JsonCompareMode.LENIENT,
           )
 
-        verify(scanService).summariseScans(eq(prisonerNumber), eq(IncludeAlerts.WithUsername("AUTH_ADM")))
+        verify(scanService).summariseScans(eq(prisonerNumber), eq(false), eq(IncludeAlerts.WithUsername("AUTH_ADM")))
       }
 
       @ParameterizedTest(name = "permits role {0}")

@@ -84,6 +84,12 @@ data class ScanSummaryResponse(
   val atScanLimit: Boolean,
 
   @Schema(
+    description = "Latest scan details, if requested and one was recorded in DPS or NOMIS and null otherwise",
+    requiredMode = Schema.RequiredMode.NOT_REQUIRED,
+  )
+  val latestScan: UnifiedScanResponse? = null,
+
+  @Schema(
     description = "Relevant active alerts for this prisoner, if requested and null otherwise",
     requiredMode = Schema.RequiredMode.REQUIRED,
   )

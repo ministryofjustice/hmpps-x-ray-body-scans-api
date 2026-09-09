@@ -73,8 +73,9 @@ class BulkScanResource(
     @Valid
     request: BulkScanSummaryRequest,
   ): List<ScanSummaryResponse> = scanService.summariseScans(
-    request.prisonerNumbers,
-    IncludeAlerts.from(request.includeAlerts) {
+    prisonerNumbers = request.prisonerNumbers,
+    includeLatestScans = request.includeLatestScans,
+    includeAlerts = IncludeAlerts.from(request.includeAlerts) {
       authenticationHolder.username ?: authenticationHolder.principal
     },
   )

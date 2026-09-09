@@ -16,6 +16,7 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
@@ -545,6 +546,7 @@ class ScanServiceTest {
           remainingScans = 111,
           nearingScanLimit = false,
           atScanLimit = false,
+          latestScan = null,
           relevantAlerts = null,
           fromScanDate = yearStart,
           toScanDate = today,
@@ -561,12 +563,14 @@ class ScanServiceTest {
           remainingScans = 114,
           nearingScanLimit = false,
           atScanLimit = false,
+          latestScan = null,
           relevantAlerts = null,
           fromScanDate = yearStart,
           toScanDate = today,
         ),
       )
       verifyNoInteractions(alertsApiClient)
+      verify(scanRepository, never()).latestScansForPrisoners(any(), any(), any())
     }
 
     @Test
@@ -600,12 +604,14 @@ class ScanServiceTest {
           remainingScans = 111,
           nearingScanLimit = false,
           atScanLimit = false,
+          latestScan = null,
           relevantAlerts = null,
           fromScanDate = yearStart,
           toScanDate = today,
         ),
       )
       verifyNoInteractions(alertsApiClient)
+      verify(scanRepository, never()).latestScansForPrisoners(any(), any(), any())
     }
 
     @Test
@@ -644,6 +650,7 @@ class ScanServiceTest {
           remainingScans = 112,
           nearingScanLimit = false,
           atScanLimit = false,
+          latestScan = null,
           relevantAlerts = null,
           fromScanDate = yearStart,
           toScanDate = today,
@@ -660,6 +667,7 @@ class ScanServiceTest {
           remainingScans = 114,
           nearingScanLimit = false,
           atScanLimit = false,
+          latestScan = null,
           relevantAlerts = null,
           fromScanDate = yearStart,
           toScanDate = today,
@@ -676,12 +684,14 @@ class ScanServiceTest {
           remainingScans = 116,
           nearingScanLimit = false,
           atScanLimit = false,
+          latestScan = null,
           relevantAlerts = null,
           fromScanDate = yearStart,
           toScanDate = today,
         ),
       )
       verifyNoInteractions(alertsApiClient)
+      verify(scanRepository, never()).latestScansForPrisoners(any(), any(), any())
     }
 
     @Test
@@ -795,6 +805,108 @@ class ScanServiceTest {
       )
     }
 
+    @DisplayName("Latest scans in summaries")
+    @Nested
+    inner class LatestScans {
+      val prisonerNumbers = listOf("A1234AA", "B1234BB") // second person has no scans
+
+      @Test
+      fun `returns null latest scan when requested`() {
+        whenever(prisonApiClient.getScanCareNeeds(prisonerNumbers))
+          .thenReturn(emptyList())
+        whenever(scanRepository.latestScansForPrisoners(prisonerNumbers, yearStart, today))
+          .thenReturn(emptyList())
+        whenever(scanRepository.scanSummaryRowsForPrisoners(prisonerNumbers, yearStart, today))
+          .thenReturn(emptyList())
+
+        val result = scanService.summariseScans(prisonerNumbers, includeLatestScans = true)
+        val latestScans = result.associate { it.prisonerNumber to it.latestScan }
+
+        assertThat(latestScans).isEqualTo(
+          mapOf(
+            "A1234AA" to null,
+            "B1234BB" to null,
+          ),
+        )
+      }
+
+      @Test
+      fun `returns latest DPS scan when requested`() {
+        whenever(prisonApiClient.getScanCareNeeds(prisonerNumbers))
+          .thenReturn(emptyList())
+        whenever(scanRepository.latestScansForPrisoners(prisonerNumbers, yearStart, today))
+          .thenReturn(listOf(scanEntity("A1234AA", today.minusDays(2))))
+        whenever(scanRepository.scanSummaryRowsForPrisoners(prisonerNumbers, yearStart, today))
+          .thenReturn(emptyList()) // inconsistent with latest scan, but ignored for this test
+
+        val result = scanService.summariseScans(prisonerNumbers, includeLatestScans = true)
+        val latestScans = result.associate { it.prisonerNumber to it.latestScan }
+
+        assertThat(latestScans).hasSize(2)
+        assertThat(latestScans["B1234BB"]).isNull()
+
+        val scan = latestScans["A1234AA"] as? ScanResponse
+        assertThat(scan?.scanDate).isEqualTo(today.minusDays(2))
+      }
+
+      @Test
+      fun `returns latest NOMIS scan when requested`() {
+        whenever(prisonApiClient.getScanCareNeeds(prisonerNumbers))
+          .thenReturn(listOf(personalCareNeeds("A1234AA", bscan(today.minusDays(2)), bscan(today.minusDays(1)))))
+        whenever(scanRepository.latestScansForPrisoners(prisonerNumbers, yearStart, today))
+          .thenReturn(emptyList())
+        whenever(scanRepository.scanSummaryRowsForPrisoners(prisonerNumbers, yearStart, today))
+          .thenReturn(emptyList())
+
+        val result = scanService.summariseScans(prisonerNumbers, includeLatestScans = true)
+        val latestScans = result.associate { it.prisonerNumber to it.latestScan }
+
+        assertThat(latestScans).hasSize(2)
+        assertThat(latestScans["B1234BB"]).isNull()
+
+        val scan = latestScans["A1234AA"] as? LegacyScanResponse
+        assertThat(scan?.scanDate).isEqualTo(today.minusDays(1))
+      }
+
+      @Test
+      fun `returns latest NOMIS scan (when older DPS scans exist) when requested`() {
+        whenever(prisonApiClient.getScanCareNeeds(prisonerNumbers))
+          .thenReturn(listOf(personalCareNeeds("A1234AA", bscan(today.minusDays(3)), bscan(today.minusDays(1)))))
+        whenever(scanRepository.latestScansForPrisoners(prisonerNumbers, yearStart, today))
+          .thenReturn(listOf(scanEntity("A1234AA", today.minusDays(2))))
+        whenever(scanRepository.scanSummaryRowsForPrisoners(prisonerNumbers, yearStart, today))
+          .thenReturn(emptyList()) // inconsistent with latest scans, but ignored for this test
+
+        val result = scanService.summariseScans(prisonerNumbers, includeLatestScans = true)
+        val latestScans = result.associate { it.prisonerNumber to it.latestScan }
+
+        assertThat(latestScans).hasSize(2)
+        assertThat(latestScans["B1234BB"]).isNull()
+
+        val scan = latestScans["A1234AA"] as? LegacyScanResponse
+        assertThat(scan?.scanDate).isEqualTo(today.minusDays(1))
+      }
+
+      @Test
+      fun `returns latest DPS scan (when older NOMIS scans exist) when requested`() {
+        whenever(prisonApiClient.getScanCareNeeds(prisonerNumbers))
+          .thenReturn(listOf(personalCareNeeds("A1234AA", bscan(today.minusDays(3)), bscan(today.minusDays(3)))))
+        whenever(scanRepository.latestScansForPrisoners(prisonerNumbers, yearStart, today))
+          .thenReturn(listOf(scanEntity("A1234AA", today.minusDays(2))))
+        whenever(scanRepository.scanSummaryRowsForPrisoners(prisonerNumbers, yearStart, today))
+          .thenReturn(emptyList()) // inconsistent with latest scans, but ignored for this test
+
+        val result = scanService.summariseScans(prisonerNumbers, includeLatestScans = true)
+        val latestScans = result.associate { it.prisonerNumber to it.latestScan }
+
+        assertThat(latestScans).hasSize(2)
+        assertThat(latestScans["B1234BB"]).isNull()
+
+        val scan = latestScans["A1234AA"] as? ScanResponse
+        assertThat(scan?.scanDate).isEqualTo(today.minusDays(2))
+      }
+    }
+
     @DisplayName("Relevant alerts in scan summaries")
     @Nested
     inner class Alerts {
@@ -820,7 +932,7 @@ class ScanServiceTest {
               ),
             ),
           )
-        val result = scanService.summariseScans(prisonerNumbers, IncludeAlerts.WithUsername("abc12a"))
+        val result = scanService.summariseScans(prisonerNumbers, includeAlerts = IncludeAlerts.WithUsername("abc12a"))
 
         val relevantAlerts = result.associate { it.prisonerNumber to it.relevantAlerts }
         assertThat(relevantAlerts).isEqualTo(
@@ -851,7 +963,7 @@ class ScanServiceTest {
       fun `returns empty list if no relevant codes`() {
         whenever(alertsApiClient.getAlerts(prisonerNumbers, relevantAlertCodes, "user3"))
           .thenReturn(AlertResponse(emptyList()))
-        val result = scanService.summariseScans(prisonerNumbers, IncludeAlerts.WithUsername("user3"))
+        val result = scanService.summariseScans(prisonerNumbers, includeAlerts = IncludeAlerts.WithUsername("user3"))
 
         val relevantAlerts = result.associate { it.prisonerNumber to it.relevantAlerts }
         assertThat(relevantAlerts).isEqualTo(
@@ -873,7 +985,7 @@ class ScanServiceTest {
               ),
             ),
           )
-        val result = scanService.summariseScans(prisonerNumbers, IncludeAlerts.WithUsername("abc12a"))
+        val result = scanService.summariseScans(prisonerNumbers, includeAlerts = IncludeAlerts.WithUsername("abc12a"))
 
         val relevantAlerts = result.associate { it.prisonerNumber to it.relevantAlerts }
         assertThat(relevantAlerts).isEqualTo(
@@ -883,25 +995,30 @@ class ScanServiceTest {
           ),
         )
       }
-    }
 
-    private fun alert(
-      prisonerNumber: String,
-      type: String,
-      code: String,
-      id: String = "019fc832-57b9-704f-a907-8059720e37e8",
-    ) = Alert(
-      alertUuid = id,
-      prisonNumber = prisonerNumber,
-      alertCode = AlertCode(
-        alertTypeCode = type,
-        alertTypeDescription = type,
-        code = code,
-        description = code,
-      ),
-      description = "",
-    )
+      private fun alert(
+        prisonerNumber: String,
+        type: String,
+        code: String,
+        id: String = "019fc832-57b9-704f-a907-8059720e37e8",
+      ) = Alert(
+        alertUuid = id,
+        prisonNumber = prisonerNumber,
+        alertCode = AlertCode(
+          alertTypeCode = type,
+          alertTypeDescription = type,
+          code = code,
+          description = code,
+        ),
+        description = "",
+      )
+    }
   }
+
+  private fun personalCareNeeds(prisonerNumber: String, vararg careNeeds: PersonalCareNeed) = PersonalCareNeedsResponse(
+    offenderNo = prisonerNumber,
+    personalCareNeeds = careNeeds.toList(),
+  )
 
   private fun bscan(startDate: String) = bscan(LocalDate.parse(startDate))
   private fun bscan(startDate: LocalDate) = PersonalCareNeed(
@@ -942,6 +1059,7 @@ class ScanServiceTest {
 
   private fun scanEntity(
     prisonerNumber: String,
+    scanDate: LocalDate = today.minusDays(1),
     prisonId: String = "MDI",
     justification: String = "INTELLIGENCE",
     outcome: String = "NEGATIVE",
@@ -950,7 +1068,7 @@ class ScanServiceTest {
   ) = ScanEntity(
     prisonerNumber = prisonerNumber,
     prisonId = prisonId,
-    scanDate = today.minusDays(1),
+    scanDate = scanDate,
     justification = referenceData(ReferenceDataDomains.JUSTIFICATION, justification),
     outcome = referenceData(ReferenceDataDomains.OUTCOME, outcome),
     typeOfFind = typeOfFind?.let { referenceData(ReferenceDataDomains.TYPE_OF_FIND, typeOfFind) },

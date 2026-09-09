@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.scan.repository
 
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -69,11 +70,66 @@ class ScanRepositoryTest {
     }
   }
 
+  @DisplayName("Latest scans")
+  @Nested
+  inner class LatestScans {
+    @Test
+    fun `empty scans list`() {
+      val latestScans = scanRepository.latestScansForPrisoners(listOf(prisonerNumber), startOfYear, today)
+        .associateBy { it.prisonerNumber }
+      assertThat(latestScans).isEmpty()
+    }
+
+    @Test
+    fun `get latest scans`() {
+      scanRepository.saveAll(
+        listOf(
+          // person with 1 scan in date range
+          scanEntity("A1111AA", justification = "INTELLIGENCE"),
+
+          // person with 3 scans in date range
+          scanEntity(
+            "B2222BB",
+            // least recently created but older scan date
+            scanDate = scanDate.minusDays(1),
+            outcome = "NEGATIVE",
+          ),
+          scanEntity(
+            "B2222BB",
+            // not most recently created but newest scan date
+            scanDate = scanDate,
+            outcome = "POSITIVE",
+          ),
+          scanEntity(
+            "B2222BB",
+            // most recently created but older scan date
+            scanDate = scanDate.minusDays(3),
+            outcome = "NEGATIVE",
+          ),
+
+          // prisoner number not requested
+          scanEntity("C3333CC"),
+
+          // date not in range
+          scanEntity("D4444DD", scanDate = startOfYear.minusDays(1)),
+        ),
+      )
+
+      val latestScans = scanRepository.latestScansForPrisoners(listOf("A1111AA", "B2222BB", "D4444DD"), startOfYear, today)
+        .associateBy { it.prisonerNumber }
+      assertThat(latestScans).hasSize(2)
+      assertThat(latestScans["A1111AA"]?.justification?.description).isEqualTo("Intelligence-led")
+      assertThat(latestScans["B2222BB"]?.outcome?.description).isEqualTo("Item detected")
+    }
+  }
+
+  @DisplayName("Scan summaries")
   @Nested
   inner class ScanSummaries {
     @Test
     fun `empty summary`() {
-      val summary = scanRepository.scanSummaryRowsForPrisoners(listOf(prisonerNumber), startOfYear, today).groupOutcomes()
+      val summary = scanRepository.scanSummaryRowsForPrisoners(listOf(prisonerNumber), startOfYear, today)
+        .groupOutcomes()
       assertThat(summary).isEmpty()
     }
 
@@ -90,7 +146,8 @@ class ScanRepositoryTest {
         ),
       )
 
-      val summary = scanRepository.scanSummaryRowsForPrisoners(listOf(prisonerNumber, "B2222BB"), startOfYear, today).groupOutcomes()
+      val summary = scanRepository.scanSummaryRowsForPrisoners(listOf(prisonerNumber, "B2222BB"), startOfYear, today)
+        .groupOutcomes()
       assertThat(summary).isEqualTo(
         mapOf(
           prisonerNumber to mapOf(

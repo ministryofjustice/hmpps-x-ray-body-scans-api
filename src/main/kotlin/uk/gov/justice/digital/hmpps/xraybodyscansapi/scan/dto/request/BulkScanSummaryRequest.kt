@@ -24,6 +24,12 @@ data class BulkScanSummaryRequest(
     >,
 
   @Schema(
+    description = "Whether to include the latest scan details for each prisoner",
+    requiredMode = Schema.RequiredMode.NOT_REQUIRED,
+  )
+  val includeLatestScans: Boolean = false,
+
+  @Schema(
     description = "Whether relevant alerts should be included (alerts field is null otherwise). " +
       "Username must be set in the token",
     requiredMode = Schema.RequiredMode.NOT_REQUIRED,
