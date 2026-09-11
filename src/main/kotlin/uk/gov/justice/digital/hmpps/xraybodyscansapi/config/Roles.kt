@@ -8,6 +8,9 @@ const val ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO = "ROLE_X_RAY_BODY_SCANS_API_
 /** Read-write access to x-ray body scans */
 const val ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW = "ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW"
 
+/** Admin access to x-ray body scans – should not be given to most services */
+const val ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__ADMIN = "ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__ADMIN"
+
 /** Read-write access to case notes associated with x-ray body scans */
 const val ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RW = "ROLE_X_RAY_BODY_SCANS_API__CASE_NOTE_DATA__RW"
 
@@ -19,6 +22,9 @@ annotation class RequireReadRole
 
 @PreAuthorize("hasRole('$ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW')")
 annotation class RequireWriteRole
+
+@PreAuthorize("hasRole('$ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__ADMIN')")
+annotation class RequireAdminRole
 
 @PreAuthorize("hasAnyRole('$ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RO', '$ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RW')")
 annotation class RequireReadScanNoteRole

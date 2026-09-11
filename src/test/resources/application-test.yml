@@ -22,7 +22,7 @@ hmpps:
     tests:
       expected-api-response.path: /sar/test-data/expected-api-response.json
       expected-render-result.path: /sar/test-data/expected-render-result.html
-      expected-flyway-schema-version: "5"
+      expected-flyway-schema-version: "6"
       expected-jpa-entity-schema.path: /sar/test-data/expected-jpa-entity-schema.json
 
 spring:

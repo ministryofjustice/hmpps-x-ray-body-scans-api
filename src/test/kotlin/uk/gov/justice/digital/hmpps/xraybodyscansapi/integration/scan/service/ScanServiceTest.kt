@@ -499,6 +499,42 @@ class ScanServiceTest {
     }
   }
 
+  @DisplayName("Deleting scans")
+  @Nested
+  inner class Delete {
+    private val ids = MutableList(3) { UUID.randomUUID() }
+
+    @Test
+    fun `returns empty list when no scans found`() {
+      whenever(scanRepository.findByIdIn(ids))
+        .thenReturn(emptyList())
+
+      val scans = scanService.deleteScans(ids, "Recorded in error")
+      assertThat(scans).isEmpty()
+      verifyNoInteractions(prisonApiClient)
+    }
+
+    @Test
+    fun `deletes list of scans`() {
+      whenever(scanRepository.findAllById(ids))
+        .thenReturn(
+          listOf(
+            scanEntity("A1111AA"),
+            scanEntity("B2222BB"),
+          ),
+        )
+      whenever(scanRepository.save(any<ScanEntity>()))
+        .thenAnswer { it.getArgument(0) }
+
+      val deletedScans = scanService.deleteScans(ids, "Recorded in error")
+      assertThat(deletedScans).hasSize(2)
+      assertThat(deletedScans.map { it.prisonerNumber to listOf(it.source, it.deletedAt, it.deletedReason) }).containsExactly(
+        "A1111AA" to listOf(Source.DPS, now, "Recorded in error"),
+        "B2222BB" to listOf(Source.DPS, now, "Recorded in error"),
+      )
+    }
+  }
+
   @DisplayName("Summarising scans")
   @Nested
   inner class Summarise {
