@@ -11,6 +11,7 @@ import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType
 import org.springframework.test.json.JsonCompareMode
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__ADMIN
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW
 
@@ -65,18 +66,6 @@ class SingleScanResourceIntTest(
           )
       }
 
-      @Test
-      fun `returns 404 when no scan is found`() {
-        whenever(scanService.getScans(listOf(scanId)))
-          .thenReturn(emptyList())
-
-        webTestClient.get()
-          .uri("/scan/$scanId")
-          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
-          .exchange()
-          .expectStatus().isNotFound
-      }
-
       @ParameterizedTest(name = "permits role {0}")
       @ValueSource(
         strings = [
@@ -121,6 +110,134 @@ class SingleScanResourceIntTest(
             developerMessageContains = "Failed to convert value",
           )
         verifyNoInteractions(scanService)
+      }
+
+      @Test
+      fun `returns 404 when no scan is found`() {
+        whenever(scanService.getScans(listOf(scanId)))
+          .thenReturn(emptyList())
+
+        webTestClient.get()
+          .uri("/scan/$scanId")
+          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
+          .exchange()
+          .expectStatus().isNotFound
+      }
+    }
+  }
+
+  @Nested
+  @DisplayName("Deleting a single scan by id")
+  inner class Delete {
+    @Nested
+    @DisplayName("Happy paths")
+    inner class HappyPath {
+      @Test
+      fun `deletes a scan when one is found`() {
+        whenever(scanService.deleteScans(listOf(scanId), "Recorded in error"))
+          .thenReturn(listOf(dpsScanResponse(scanId, "A1234BC", deleted = now to "Recorded in error")))
+
+        webTestClient.delete()
+          .uri("/scan/$scanId?reason=Recorded+in+error")
+          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__ADMIN)))
+          .exchange()
+          .expectStatus().isOk
+          .expectHeader().contentType(MediaType.APPLICATION_JSON)
+          .expectBody()
+          .json(
+            // language=json
+            """
+            {
+              "id": "$scanId",
+              "source": "DPS",
+              "prisonerNumber": "A1234BC",
+              "prisonId": "MDI",
+              "scanDate": "2026-07-26",
+              "justification": "INTELLIGENCE",
+              "justificationDescription": "INTELLIGENCE",
+              "outcome": "NEGATIVE",
+              "outcomeDescription": "NEGATIVE",
+              "typeOfFind": null,
+              "typeOfFindDescription": null,
+              "caseNoteId": null,
+              "mergedFromPrisonerNumber": null,
+              "mergedAt": null,
+              "createdAt": "2026-07-27T09:10:11.123",
+              "createdBy": "abc12ab",
+              "lastModifiedAt": "2026-07-27T09:10:11.123",
+              "lastModifiedBy": "abc12ab",
+              "deletedAt": "2026-07-27T09:10:11.123",
+              "deletedReason": "Recorded in error"
+            }
+            """,
+            JsonCompareMode.STRICT,
+          )
+      }
+    }
+
+    @Nested
+    @DisplayName("Sad paths")
+    inner class SadPath {
+      @TestFactory
+      @DisplayName("endpoint is protected")
+      fun `endpoint is protected`() = endpointIsProtected(
+        webTestClient.delete()
+          .uri("/scan/$scanId?reason=Recorded+in+error"),
+        readRole = ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__ADMIN,
+        afterEach = {
+          verifyNoInteractions(scanService)
+        },
+      )
+
+      @Test
+      fun `returns 400 when id is not a UUID`() {
+        webTestClient.delete()
+          .uri("/scan/1234?reason=Recorded+in+error")
+          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__ADMIN)))
+          .exchange()
+          .expectErrorResponse(
+            userMessageContains = "Parameter scanId must be of type java.util.UUID",
+            developerMessageContains = "Failed to convert value",
+          )
+        verifyNoInteractions(scanService)
+      }
+
+      @Test
+      fun `returns 400 when reason is missing`() {
+        webTestClient.delete()
+          .uri("/scan/$scanId")
+          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__ADMIN)))
+          .exchange()
+          .expectErrorResponse(
+            userMessageContains = "Parameter specified as non-null is null",
+            developerMessageContains = "Parameter specified as non-null is null",
+          )
+        verifyNoInteractions(scanService)
+      }
+
+      @Test
+      fun `returns 400 when reason is blank`() {
+        webTestClient.delete()
+          .uri("/scan/$scanId?reason=")
+          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__ADMIN)))
+          .exchange()
+          .expectErrorResponse(
+            userMessageContains = "deleteScanRequest.reason: must not be blank",
+            developerMessageContains = "deleteScanRequest.reason: must not be blank",
+          )
+        verifyNoInteractions(scanService)
+      }
+
+      @Test
+      fun `returns 404 when no scan is found`() {
+        whenever(scanService.deleteScans(listOf(scanId), "Recorded in error"))
+          .thenReturn(emptyList())
+
+        webTestClient.delete()
+          .uri("/scan/$scanId?reason=Recorded+in+error")
+          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__ADMIN)))
+          .exchange()
+          .expectStatus().isNotFound
       }
     }
   }

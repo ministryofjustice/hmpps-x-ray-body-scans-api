@@ -13,6 +13,7 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanSumma
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.UnifiedScanResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.ScanService
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.util.UUID
 
 @Import(FixedClockConfiguration::class)
@@ -37,6 +38,7 @@ abstract class BaseScanResourceIntTest(
     outcome: String = "NEGATIVE",
     typeOfFind: String? = null,
     createdBy: String = "abc12ab",
+    deleted: Pair<LocalDateTime, String>? = null,
   ) = ScanResponse(
     originalId = originalId,
     prisonerNumber = prisonerNumber,
@@ -52,6 +54,8 @@ abstract class BaseScanResourceIntTest(
     createdBy = createdBy,
     lastModifiedAt = now,
     lastModifiedBy = createdBy,
+    deletedAt = deleted?.first,
+    deletedReason = deleted?.second,
   )
 
   protected val legacyId: Long = 13134

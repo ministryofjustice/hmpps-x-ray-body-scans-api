@@ -39,7 +39,7 @@ class ReferenceDataResource(
       ),
       ApiResponse(
         responseCode = "400",
-        description = "Invalid request. Check the prisoner number and filters.",
+        description = "Invalid request.",
         content = [Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = Schema(implementation = ErrorResponse::class))],
       ),
       ApiResponse(

@@ -37,6 +37,7 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.util.UnifiedScanRespon
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.util.UnifiedScanResponsePaginator
 import java.time.Clock
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.temporal.TemporalAdjusters.firstDayOfYear
 import java.util.UUID
 
@@ -159,6 +160,14 @@ class ScanService(
 
     return saved.toDto()
   }
+
+  @Transactional
+  fun deleteScans(ids: List<UUID>, reason: String): List<ScanResponse> = scanRepository.findAllById(ids)
+    .map { scanEntity ->
+      scanEntity.deletedAt = LocalDateTime.now(clock)
+      scanEntity.deletedReason = reason
+      scanRepository.save(scanEntity).toDto()
+    }
 
   @Transactional(readOnly = true)
   fun summariseScans(
@@ -320,6 +329,8 @@ class ScanService(
     createdBy = createdBy,
     lastModifiedAt = lastModifiedAt,
     lastModifiedBy = lastModifiedBy,
+    deletedAt = deletedAt,
+    deletedReason = deletedReason,
   )
 
   private fun getRelevantAlerts(

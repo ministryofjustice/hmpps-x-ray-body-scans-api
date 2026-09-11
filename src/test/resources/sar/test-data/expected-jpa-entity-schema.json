@@ -28,6 +28,8 @@
     "caseNoteId": "UUID",
     "createdAt": "LocalDateTime",
     "createdBy": "String",
+    "deletedAt": "LocalDateTime",
+    "deletedReason": "String",
     "id": "UUID",
     "justification": "ReferenceDataCodeEntity",
     "lastModifiedAt": "LocalDateTime",

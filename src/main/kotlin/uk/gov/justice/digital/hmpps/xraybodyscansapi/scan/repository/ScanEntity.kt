@@ -63,4 +63,10 @@ class ScanEntity(
   @UpdateTimestamp
   @Column(name = "last_modified_at", nullable = false)
   val lastModifiedAt: LocalDateTime = LocalDateTime.now()
+
+  @Column(name = "deleted_at")
+  var deletedAt: LocalDateTime? = null
+
+  @Column(name = "deleted_reason", length = 255)
+  var deletedReason: String? = null
 }
