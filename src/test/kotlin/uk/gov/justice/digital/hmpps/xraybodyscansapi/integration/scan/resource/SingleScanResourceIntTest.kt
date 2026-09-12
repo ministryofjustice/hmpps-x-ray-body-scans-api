@@ -93,7 +93,6 @@ class SingleScanResourceIntTest(
       fun `endpoint is protected`() = endpointIsProtected(
         webTestClient.get()
           .uri("/scan/$scanId"),
-        readRole = ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO,
         afterEach = {
           verifyNoInteractions(scanService)
         },
@@ -183,7 +182,7 @@ class SingleScanResourceIntTest(
       fun `endpoint is protected`() = endpointIsProtected(
         webTestClient.delete()
           .uri("/scan/$scanId?reason=Recorded+in+error"),
-        readRole = ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__ADMIN,
+        unauthorisedRoles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO, ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW),
         afterEach = {
           verifyNoInteractions(scanService)
         },

@@ -218,7 +218,6 @@ class CaseNoteResourceIntTest(
       @TestFactory
       fun `endpoint is protected`() = endpointIsProtected(
         webTestClient.get().uri(uri),
-        readRole = ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RO,
         afterEach = { verifyNoInteractions(scanService) },
       )
     }
@@ -367,8 +366,7 @@ class CaseNoteResourceIntTest(
         webTestClient.post()
           .uri(uri)
           .bodyValue(CreateScanCaseNoteRequest(text = "some text", prisonId = "MDI")),
-        readRole = ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RO,
-        writeRole = ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RW,
+        unauthorisedRoles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RO),
         afterEach = { verifyNoInteractions(scanService) },
       )
     }
