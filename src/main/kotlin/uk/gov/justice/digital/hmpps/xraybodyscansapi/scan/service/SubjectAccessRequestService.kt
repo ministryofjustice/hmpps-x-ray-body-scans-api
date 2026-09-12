@@ -10,6 +10,7 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanReposit
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.filterByPrisonerNumber
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.filterFromScanDate
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.filterToScanDate
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.notDeleted
 import uk.gov.justice.hmpps.kotlin.sar.HmppsPrisonSubjectAccessRequestService
 import uk.gov.justice.hmpps.kotlin.sar.HmppsSubjectAccessRequestContent
 import java.time.LocalDate
@@ -26,7 +27,7 @@ class SubjectAccessRequestService(
     fromDate: LocalDate?,
     toDate: LocalDate?,
   ): HmppsSubjectAccessRequestContent? {
-    var spec = filterByPrisonerNumber(prn)
+    var spec = filterByPrisonerNumber(prn).and(notDeleted)
     fromDate?.let { spec = spec.and(filterFromScanDate(it)) }
     toDate?.let { spec = spec.and(filterToScanDate(it)) }
 
