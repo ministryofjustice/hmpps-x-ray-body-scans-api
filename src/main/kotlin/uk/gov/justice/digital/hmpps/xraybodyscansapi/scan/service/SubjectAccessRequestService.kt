@@ -33,12 +33,15 @@ class SubjectAccessRequestService(
 
     val scans = scanRepository.findAll(spec, Sort.by("scanDate").descending())
 
-    // We should replace this longer term with the case notes search endpoint by the XRBS type
-    val caseNotes = scans.filter { s -> s.caseNoteId != null }.map { s -> s.caseNoteId!! }
-      .map { caseNotesApiClient.getCaseNote(prn, it.toString()) }
+    // TODO: We should replace this longer term with the case notes search endpoint by the XRBS type
+    val caseNotes = scans.associate { scan ->
+      scan.caseNoteId to scan.caseNoteId?.let {
+        caseNotesApiClient.getCaseNote(prn, it.toString())
+      }
+    }
 
     val mappedScans = scans.map { scan ->
-      val caseNote = caseNotes.find { it.caseNoteId == scan.caseNoteId.toString() }
+      val caseNote = caseNotes[scan.caseNoteId]
       SarScanResponse(
         person = scan.prisonerNumber,
         date = scan.scanDate,
@@ -46,11 +49,7 @@ class SubjectAccessRequestService(
         outcome = scan.outcome.description,
         find = scan.typeOfFind?.description,
         establishment = scan.prisonId,
-        additionalDetails = if (caseNote != null) {
-          caseNoteToSarText(caseNote)
-        } else {
-          null
-        },
+        additionalDetails = caseNote?.let { caseNoteToSarText(it) },
       )
     }
 
