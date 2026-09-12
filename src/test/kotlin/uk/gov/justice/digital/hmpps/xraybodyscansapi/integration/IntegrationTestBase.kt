@@ -40,8 +40,7 @@ abstract class IntegrationTestBase {
   protected fun endpointIsProtected(
     /** This request should be successful given a properly authorised token (valid url and payload) */
     request: WebTestClient.RequestHeadersSpec<*>,
-    readRole: String,
-    writeRole: String? = null,
+    unauthorisedRoles: List<String> = emptyList(),
     afterEach: (() -> Unit)? = null,
   ): List<DynamicTest> = buildList {
     val request = request.header("Content-Type", "application/json")
@@ -66,21 +65,21 @@ abstract class IntegrationTestBase {
       },
     )
 
-    if (writeRole != null) {
+    add(
+      DynamicTest.dynamicTest("returns 403 given wrong role") {
+        request
+          .headers(setAuthorisation(roles = listOf("ROLE_PRISONER_SEARCH")))
+          .exchange()
+          .expectStatus().isForbidden
+        afterEach?.invoke()
+      },
+    )
+
+    unauthorisedRoles.forEach { unauthorisedRole ->
       add(
-        DynamicTest.dynamicTest("returns 403 given read-only role") {
+        DynamicTest.dynamicTest("returns 403 given insufficiently capable role $unauthorisedRole") {
           request
-            .headers(setAuthorisation(roles = listOf(readRole)))
-            .exchange()
-            .expectStatus().isForbidden
-          afterEach?.invoke()
-        },
-      )
-    } else {
-      add(
-        DynamicTest.dynamicTest("returns 403 given wrong role") {
-          request
-            .headers(setAuthorisation(roles = listOf("ROLE_PRISONER_SEARCH")))
+            .headers(setAuthorisation(roles = listOf(unauthorisedRole)))
             .exchange()
             .expectStatus().isForbidden
           afterEach?.invoke()

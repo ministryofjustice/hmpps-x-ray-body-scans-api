@@ -257,7 +257,6 @@ class ScanResourceIntTest(
       fun `endpoint is protected`() = endpointIsProtected(
         webTestClient.get()
           .uri("/prisoner/$prisonerNumber/scan"),
-        readRole = ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO,
         afterEach = {
           verifyNoInteractions(scanService)
         },
@@ -437,8 +436,7 @@ class ScanResourceIntTest(
         webTestClient.post()
           .uri("/prisoner/$prisonerNumber/scan")
           .bodyValue(createScanRequest(scanDate = scanDate)),
-        readRole = ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO,
-        writeRole = ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW,
+        unauthorisedRoles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO),
         afterEach = {
           verifyNoInteractions(scanService)
         },
@@ -654,7 +652,6 @@ class ScanResourceIntTest(
       fun `endpoint is protected`() = endpointIsProtected(
         webTestClient.get()
           .uri("/prisoner/$prisonerNumber/scan/summary"),
-        readRole = ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO,
         afterEach = {
           verifyNoInteractions(scanService)
         },
