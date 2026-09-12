@@ -14,50 +14,49 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.test.json.JsonCompareMode
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ADMIN_ROLE
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.DownstreamServiceException
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.NotFoundException
-import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RO
-import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RW
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.READ_CASE_NOTE_ROLE
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.WRITE_CASE_NOTE_ROLE
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScanCaseNoteRequest
-import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanCaseNoteAmendmentResponse
-import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanCaseNoteResponse
-import java.time.LocalDateTime
 
 @DisplayName("X-ray body scan case note resource")
 class CaseNoteResourceIntTest(
-  @Value("\${scan.annual-limit}") scanAnnualLimit: Int,
-  @Value("\${scan.nearing-limit-threshold}") nearingLimitThreshold: Int,
+  @Value($$"${scan.annual-limit}") scanAnnualLimit: Int,
+  @Value($$"${scan.nearing-limit-threshold}") nearingLimitThreshold: Int,
 ) : BaseScanResourceIntTest(scanAnnualLimit, nearingLimitThreshold) {
 
   private val uri = "/scan/$scanId/case-note"
-  private val caseNoteId = "341c845e-fadc-4ec8-9330-81c83968c1a8"
-  private val occurredAt = LocalDateTime.of(2026, 7, 26, 0, 0, 0, 0)
 
   @Nested
   @DisplayName("GET case note")
   inner class GetCaseNote {
+    @DisplayName("Endpoint is protected")
+    @TestFactory
+    fun `endpoint is protected`() = endpointIsProtected(
+      webTestClient.get().uri(uri),
+      authorisedRoles = setOf(READ_CASE_NOTE_ROLE, WRITE_CASE_NOTE_ROLE, ADMIN_ROLE),
+      setupSuccess = {
+        whenever(scanService.getScanCaseNote(any()))
+          .thenReturn(caseNoteResponse())
+      },
+      verifyFailure = {
+        verifyNoInteractions(scanService)
+      },
+    )
 
     @Nested
     @DisplayName("Happy paths")
     inner class HappyPath {
-
       @Test
       fun `returns 200 and case note details`() {
-        whenever(scanService.getScanCaseNote(eq(scanId))).thenReturn(
-          ScanCaseNoteResponse(
-            id = caseNoteId,
-            typeDescription = "General",
-            subTypeDescription = "X-ray body scan",
-            createdBy = "Bob Profileman",
-            createdAt = now,
-            occurredAt = occurredAt,
-            text = "some text",
-          ),
-        )
+        whenever(scanService.getScanCaseNote(eq(scanId)))
+          .thenReturn(caseNoteResponse())
 
         webTestClient.get()
           .uri(uri)
-          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RO)))
+          .headers(setAuthorisation(roles = listOf(READ_CASE_NOTE_ROLE)))
           .exchange()
           .expectStatus().isOk
           .expectBody()
@@ -83,33 +82,17 @@ class CaseNoteResourceIntTest(
 
       @Test
       fun `returns 200 and case note details with amendments`() {
-        whenever(scanService.getScanCaseNote(eq(scanId))).thenReturn(
-          ScanCaseNoteResponse(
-            id = caseNoteId,
-            typeDescription = "General",
-            subTypeDescription = "X-ray body scan",
-            createdBy = "Bob Profileman",
-            createdAt = now.minusHours(3),
-            occurredAt = occurredAt,
-            text = "some text",
-            amendments = listOf(
-              ScanCaseNoteAmendmentResponse(
-                text = "amendment 1",
-                createdBy = "Another User",
-                createdAt = now.minusHours(2),
-              ),
-              ScanCaseNoteAmendmentResponse(
-                text = "amendment 2",
-                createdBy = "Another User 2",
-                createdAt = now,
-              ),
+        whenever(scanService.getScanCaseNote(eq(scanId)))
+          .thenReturn(
+            caseNoteResponse(
+              createdAt = now.minusHours(3),
+              ammendmentDates = listOf(now.minusHours(2), now),
             ),
-          ),
-        )
+          )
 
         webTestClient.get()
           .uri(uri)
-          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RO)))
+          .headers(setAuthorisation(roles = listOf(READ_CASE_NOTE_ROLE)))
           .exchange()
           .expectStatus().isOk
           .expectBody()
@@ -127,7 +110,7 @@ class CaseNoteResourceIntTest(
               "amendments": [
                 {
                   "text": "amendment 1",
-                  "createdBy": "Another User",
+                  "createdBy": "Another User 1",
                   "createdAt": "2026-07-27T07:10:11.123"
                 },
                 {
@@ -143,27 +126,6 @@ class CaseNoteResourceIntTest(
 
         verify(scanService).getScanCaseNote(eq(scanId))
       }
-
-      @Test
-      fun `also permits RW role`() {
-        whenever(scanService.getScanCaseNote(eq(scanId))).thenReturn(
-          ScanCaseNoteResponse(
-            id = caseNoteId,
-            typeDescription = "General",
-            subTypeDescription = "X-ray body scan",
-            createdBy = "Bob Profileman",
-            createdAt = now,
-            occurredAt = occurredAt,
-            text = "some text",
-          ),
-        )
-
-        webTestClient.get()
-          .uri(uri)
-          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RW)))
-          .exchange()
-          .expectStatus().isOk
-      }
     }
 
     @Nested
@@ -177,7 +139,7 @@ class CaseNoteResourceIntTest(
 
         webTestClient.get()
           .uri(uri)
-          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RO)))
+          .headers(setAuthorisation(roles = listOf(READ_CASE_NOTE_ROLE)))
           .exchange()
           .expectErrorResponse(
             status = HttpStatus.NOT_FOUND,
@@ -193,7 +155,7 @@ class CaseNoteResourceIntTest(
 
         webTestClient.get()
           .uri(uri)
-          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RO)))
+          .headers(setAuthorisation(roles = listOf(READ_CASE_NOTE_ROLE)))
           .exchange()
           .expectErrorResponse(
             status = HttpStatus.NOT_FOUND,
@@ -209,23 +171,31 @@ class CaseNoteResourceIntTest(
 
         webTestClient.get()
           .uri(uri)
-          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RO)))
+          .headers(setAuthorisation(roles = listOf(READ_CASE_NOTE_ROLE)))
           .exchange()
           .expectStatus().is5xxServerError
       }
-
-      @DisplayName("endpoint is protected")
-      @TestFactory
-      fun `endpoint is protected`() = endpointIsProtected(
-        webTestClient.get().uri(uri),
-        afterEach = { verifyNoInteractions(scanService) },
-      )
     }
   }
 
   @Nested
   @DisplayName("POST case note")
   inner class CreateCaseNote {
+    @DisplayName("Endpoint is protected")
+    @TestFactory
+    fun `endpoint is protected`() = endpointIsProtected(
+      webTestClient.post()
+        .uri(uri)
+        .bodyValue(CreateScanCaseNoteRequest(text = "some text", prisonId = "MDI")),
+      authorisedRoles = setOf(WRITE_CASE_NOTE_ROLE, ADMIN_ROLE),
+      setupSuccess = {
+        whenever(scanService.createCaseNote(any(), any()))
+          .thenReturn(caseNoteResponse())
+      },
+      verifyFailure = {
+        verifyNoInteractions(scanService)
+      },
+    )
 
     @Nested
     @DisplayName("Happy paths")
@@ -233,21 +203,12 @@ class CaseNoteResourceIntTest(
 
       @Test
       fun `returns 201 when case note is created successfully`() {
-        whenever(scanService.createCaseNote(eq(scanId), any())).thenReturn(
-          ScanCaseNoteResponse(
-            id = caseNoteId,
-            typeDescription = "General",
-            subTypeDescription = "X-ray body scan",
-            text = "some text",
-            createdBy = "Bob Profileman",
-            createdAt = now,
-            occurredAt = occurredAt,
-          ),
-        )
+        whenever(scanService.createCaseNote(eq(scanId), any()))
+          .thenReturn(caseNoteResponse())
 
         webTestClient.post()
           .uri(uri)
-          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RW)))
+          .headers(setAuthorisation(roles = listOf(WRITE_CASE_NOTE_ROLE)))
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue(CreateScanCaseNoteRequest(text = "some text", prisonId = "MDI"))
           .exchange()
@@ -288,7 +249,7 @@ class CaseNoteResourceIntTest(
 
         webTestClient.post()
           .uri(uri)
-          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RW)))
+          .headers(setAuthorisation(roles = listOf(WRITE_CASE_NOTE_ROLE)))
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue(CreateScanCaseNoteRequest(text = "some text", prisonId = "MDI"))
           .exchange()
@@ -306,7 +267,7 @@ class CaseNoteResourceIntTest(
 
         webTestClient.post()
           .uri(uri)
-          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RW)))
+          .headers(setAuthorisation(roles = listOf(WRITE_CASE_NOTE_ROLE)))
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue(CreateScanCaseNoteRequest(text = "some text", prisonId = "MDI"))
           .exchange()
@@ -317,7 +278,7 @@ class CaseNoteResourceIntTest(
       fun `returns 400 when text is blank`() {
         webTestClient.post()
           .uri(uri)
-          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RW)))
+          .headers(setAuthorisation(roles = listOf(WRITE_CASE_NOTE_ROLE)))
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue(CreateScanCaseNoteRequest(text = "", prisonId = "MDI"))
           .exchange()
@@ -333,7 +294,7 @@ class CaseNoteResourceIntTest(
       fun `returns 400 when prison ID is blank`() {
         webTestClient.post()
           .uri(uri)
-          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RW)))
+          .headers(setAuthorisation(roles = listOf(WRITE_CASE_NOTE_ROLE)))
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue(CreateScanCaseNoteRequest(text = "some text", prisonId = ""))
           .exchange()
@@ -349,7 +310,7 @@ class CaseNoteResourceIntTest(
       fun `returns 400 when body is missing`() {
         webTestClient.post()
           .uri(uri)
-          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RW)))
+          .headers(setAuthorisation(roles = listOf(WRITE_CASE_NOTE_ROLE)))
           .contentType(MediaType.APPLICATION_JSON)
           .exchange()
           .expectErrorResponse(
@@ -359,16 +320,6 @@ class CaseNoteResourceIntTest(
 
         verifyNoInteractions(scanService)
       }
-
-      @DisplayName("endpoint is protected")
-      @TestFactory
-      fun `endpoint is protected`() = endpointIsProtected(
-        webTestClient.post()
-          .uri(uri)
-          .bodyValue(CreateScanCaseNoteRequest(text = "some text", prisonId = "MDI")),
-        unauthorisedRoles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RO),
-        afterEach = { verifyNoInteractions(scanService) },
-      )
     }
   }
 }

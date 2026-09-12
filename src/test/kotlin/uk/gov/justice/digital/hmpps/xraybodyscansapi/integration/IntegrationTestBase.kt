@@ -11,6 +11,11 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.web.reactive.server.WebTestClient
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ADMIN_ROLE
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.READ_CASE_NOTE_ROLE
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.READ_ROLE
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.WRITE_CASE_NOTE_ROLE
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.WRITE_ROLE
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.wiremock.HmppsAuthApiExtension
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.wiremock.HmppsAuthApiExtension.Companion.hmppsAuth
 import uk.gov.justice.hmpps.test.kotlin.auth.JwtAuthorisationHelper
@@ -40,18 +45,19 @@ abstract class IntegrationTestBase {
   protected fun endpointIsProtected(
     /** This request should be successful given a properly authorised token (valid url and payload) */
     request: WebTestClient.RequestHeadersSpec<*>,
-    unauthorisedRoles: List<String> = emptyList(),
-    afterEach: (() -> Unit)? = null,
+    authorisedRoles: Set<String>,
+    setupSuccess: (() -> Unit)? = null,
+    verifyFailure: (() -> Unit)? = null,
   ): List<DynamicTest> = buildList {
+    assertThat(authorisedRoles).isNotEmpty()
     val request = request.header("Content-Type", "application/json")
 
     add(
       DynamicTest.dynamicTest("returns 401 given no authority") {
         request
-          .header(HttpHeaders.AUTHORIZATION)
           .exchange()
           .expectStatus().isUnauthorized
-        afterEach?.invoke()
+        verifyFailure?.invoke()
       },
     )
 
@@ -61,7 +67,7 @@ abstract class IntegrationTestBase {
           .headers(setAuthorisation())
           .exchange()
           .expectStatus().isForbidden
-        afterEach?.invoke()
+        verifyFailure?.invoke()
       },
     )
 
@@ -71,18 +77,36 @@ abstract class IntegrationTestBase {
           .headers(setAuthorisation(roles = listOf("ROLE_PRISONER_SEARCH")))
           .exchange()
           .expectStatus().isForbidden
-        afterEach?.invoke()
+        verifyFailure?.invoke()
       },
     )
 
-    unauthorisedRoles.forEach { unauthorisedRole ->
+    setOf(
+      READ_ROLE,
+      WRITE_ROLE,
+      READ_CASE_NOTE_ROLE,
+      WRITE_CASE_NOTE_ROLE,
+      ADMIN_ROLE,
+    ).subtract(authorisedRoles).forEach { unauthorisedRole ->
       add(
         DynamicTest.dynamicTest("returns 403 given insufficiently capable role $unauthorisedRole") {
           request
             .headers(setAuthorisation(roles = listOf(unauthorisedRole)))
             .exchange()
             .expectStatus().isForbidden
-          afterEach?.invoke()
+          verifyFailure?.invoke()
+        },
+      )
+    }
+
+    authorisedRoles.forEach { authorisedRole ->
+      add(
+        DynamicTest.dynamicTest("permits role $authorisedRole") {
+          setupSuccess?.invoke()
+          request
+            .headers(setAuthorisation(roles = listOf(authorisedRole)))
+            .exchange()
+            .expectStatus().is2xxSuccessful
         },
       )
     }

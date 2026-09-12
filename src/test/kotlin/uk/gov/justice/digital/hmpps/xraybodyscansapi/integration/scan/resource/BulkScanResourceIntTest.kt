@@ -5,8 +5,6 @@ import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestFactory
-import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.ValueSource
 import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.verify
@@ -16,8 +14,9 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType
 import org.springframework.test.json.JsonCompareMode
 import org.springframework.test.web.reactive.server.expectBodyList
-import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO
-import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ADMIN_ROLE
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.READ_ROLE
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.WRITE_ROLE
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanSummaryResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.IncludeAlerts
 
@@ -30,6 +29,25 @@ class BulkScanResourceIntTest(
   @Nested
   @DisplayName("Bulk summary endpoint")
   inner class BulkSummariseScans {
+    @TestFactory
+    @DisplayName("Endpoint is protected")
+    fun `endpoint is protected`() = endpointIsProtected(
+      webTestClient.post()
+        .uri("/bulk/summary")
+        .bodyValue(
+          // language=json
+          """{"prisonerNumbers": ["A1234BC"]}""",
+        ),
+      authorisedRoles = setOf(READ_ROLE, WRITE_ROLE, ADMIN_ROLE),
+      setupSuccess = {
+        whenever(scanService.summariseScans(any<List<String>>(), any(), any()))
+          .thenReturn(emptyList())
+      },
+      verifyFailure = {
+        verifyNoInteractions(scanService)
+      },
+    )
+
     @Nested
     @DisplayName("Happy paths")
     inner class HappyPath {
@@ -44,7 +62,7 @@ class BulkScanResourceIntTest(
 
         val result = webTestClient.post()
           .uri("/bulk/summary")
-          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
+          .headers(setAuthorisation(roles = listOf(READ_ROLE)))
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue("""{"prisonerNumbers":["A1234BC","B5678DE"]}""")
           .exchange()
@@ -78,7 +96,7 @@ class BulkScanResourceIntTest(
 
         webTestClient.post()
           .uri("/bulk/summary")
-          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
+          .headers(setAuthorisation(roles = listOf(READ_ROLE)))
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue(
             // language=json
@@ -134,7 +152,7 @@ class BulkScanResourceIntTest(
 
         val result = webTestClient.post()
           .uri("/bulk/summary")
-          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
+          .headers(setAuthorisation(roles = listOf(READ_ROLE)))
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue(
             // language=json
@@ -150,49 +168,18 @@ class BulkScanResourceIntTest(
         assertThat(result).isEqualTo(listOf(response))
         verify(scanService).summariseScans(eq(listOf("A1234BC")), eq(false), eq(IncludeAlerts.WithUsername("AUTH_ADM")))
       }
-
-      @ParameterizedTest(name = "permits role {0}")
-      @ValueSource(
-        strings = [
-          ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO,
-          ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW,
-        ],
-      )
-      fun `permits role`(role: String) {
-        whenever(scanService.summariseScans(listOf("A1234BC")))
-          .thenReturn(listOf(summaryResponse(prisonerNumber = "A1234BC", nomisCount = 0, dpsCount = 0)))
-
-        webTestClient.post()
-          .uri("/bulk/summary")
-          .headers(setAuthorisation(roles = listOf(role)))
-          .contentType(MediaType.APPLICATION_JSON)
-          .bodyValue("""{"prisonerNumbers":["A1234BC"]}""")
-          .exchange()
-          .expectStatus().isOk
-      }
     }
 
     @Nested
     @DisplayName("Sad paths")
     inner class SadPath {
-      @TestFactory
-      @DisplayName("endpoint is protected")
-      fun `endpoint is protected`() = endpointIsProtected(
-        webTestClient.post()
-          .uri("/bulk/summary")
-          .bodyValue("""{"prisonerNumbers":["A1234BC"]}"""),
-        afterEach = {
-          verifyNoInteractions(scanService)
-        },
-      )
-
       @Test
       fun `returns 400 when prisonerNumbers is empty`() {
         webTestClient.post()
           .uri("/bulk/summary")
-          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
+          .headers(setAuthorisation(roles = listOf(READ_ROLE)))
           .contentType(MediaType.APPLICATION_JSON)
-          .bodyValue("""{"prisonerNumbers":[]}""")
+          .bodyValue("""{"prisonerNumbers": []}""")
           .exchange()
           .expectErrorResponse(
             userMessageContains = "Validation failure",
@@ -206,7 +193,7 @@ class BulkScanResourceIntTest(
       fun `returns 400 when body is missing`() {
         webTestClient.post()
           .uri("/bulk/summary")
-          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
+          .headers(setAuthorisation(roles = listOf(READ_ROLE)))
           .contentType(MediaType.APPLICATION_JSON)
           .exchange()
           .expectErrorResponse(

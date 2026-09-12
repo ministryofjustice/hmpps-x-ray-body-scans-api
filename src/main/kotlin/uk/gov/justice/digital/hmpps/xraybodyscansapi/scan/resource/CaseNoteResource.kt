@@ -15,10 +15,11 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
-import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RO
-import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RW
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ADMIN_ROLE
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.READ_CASE_NOTE_ROLE
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.RequireReadScanNoteRole
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.RequireWriteScanNoteRole
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.WRITE_CASE_NOTE_ROLE
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScanCaseNoteRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanCaseNoteResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.ScanService
@@ -54,7 +55,7 @@ class CaseNoteResource(
       ),
       ApiResponse(
         responseCode = "403",
-        description = "Forbidden. Token does not have the role $ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RO or $ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RW.",
+        description = "Forbidden. Token does not have the role $READ_CASE_NOTE_ROLE or $WRITE_CASE_NOTE_ROLE or $ADMIN_ROLE.",
         content = [Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = Schema(implementation = ErrorResponse::class))],
       ),
       ApiResponse(
@@ -96,7 +97,7 @@ class CaseNoteResource(
       ),
       ApiResponse(
         responseCode = "403",
-        description = "Forbidden. Token does not have the role $ROLE_X_RAY_BODY_SCANS_API__SCAN_CASE_NOTE__RW.",
+        description = "Forbidden. Token does not have the role $WRITE_CASE_NOTE_ROLE or $ADMIN_ROLE.",
         content = [Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = Schema(implementation = ErrorResponse::class))],
       ),
       ApiResponse(
