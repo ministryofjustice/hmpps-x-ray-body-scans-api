@@ -4,6 +4,8 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.CsvSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest
 import org.springframework.test.context.ActiveProfiles
@@ -60,10 +62,11 @@ class ScanRepositoryTest {
         scanEntity(prisonerNumber, outcome = "POSITIVE", typeOfFind = "NOT_KNOWN"),
         scanEntity(prisonerNumber, outcome = "NEGATIVE"),
         scanEntity(prisonerNumber, outcome = "POSITIVE", typeOfFind = "INORGANIC"),
+        scanEntity(prisonerNumber, deleted = LocalDateTime.now() to "Recorded in error"),
       ),
     ).map { it.id }
 
-    val scans = scanRepository.findByIdIn(scanIds)
+    val scans = scanRepository.findByDeletedAtIsNullAndIdIn(scanIds)
     assertThat(scans).hasSize(3)
     assertThat(scans).allMatch {
       it.prisonerNumber == prisonerNumber && it.justification.description == "Reasonable suspicion"
@@ -80,8 +83,15 @@ class ScanRepositoryTest {
       assertThat(latestScans).isEmpty()
     }
 
-    @Test
-    fun `get latest scans`() {
+    @ParameterizedTest(name = "get latest scans {0}")
+    @CsvSource(
+      value = [
+        "excluding deleted ones | false",
+        "including deleted ones | true",
+      ],
+      delimiter = '|',
+    )
+    fun `get latest scans`(scenario: String, includeDeleted: Boolean) {
       scanRepository.saveAll(
         listOf(
           // person with 1 scan in date range
@@ -112,12 +122,25 @@ class ScanRepositoryTest {
 
           // date not in range
           scanEntity("D4444DD", scanDate = startOfYear.minusDays(1)),
+
+          // requested, but deleted
+          scanEntity("E5555EE", deleted = LocalDateTime.now() to "Recorded in error"),
         ),
       )
 
-      val latestScans = scanRepository.latestScansForPrisoners(listOf("A1111AA", "B2222BB", "D4444DD"), startOfYear, today)
-        .associateBy { it.prisonerNumber }
-      assertThat(latestScans).hasSize(2)
+      val latestScans = scanRepository.latestScansForPrisoners(
+        listOf("A1111AA", "B2222BB", "D4444DD", "E5555EE"),
+        startOfYear,
+        today,
+        includeDeleted,
+      ).associateBy { it.prisonerNumber }
+
+      if (includeDeleted) {
+        assertThat(latestScans).hasSize(3)
+        assertThat(latestScans["E5555EE"]?.deletedReason).isEqualTo("Recorded in error")
+      } else {
+        assertThat(latestScans).hasSize(2)
+      }
       assertThat(latestScans["A1111AA"]?.justification?.description).isEqualTo("Intelligence-led")
       assertThat(latestScans["B2222BB"]?.outcome?.description).isEqualTo("Item detected")
     }
@@ -133,30 +156,58 @@ class ScanRepositoryTest {
       assertThat(summary).isEmpty()
     }
 
-    @Test
-    fun `summarise scans`() {
+    @ParameterizedTest(name = "summarise scans {0}")
+    @CsvSource(
+      value = [
+        "excluding deleted ones | false",
+        "including deleted ones | true",
+      ],
+      delimiter = '|',
+    )
+    fun `summarise scans`(scenario: String, includeDeleted: Boolean) {
       scanRepository.saveAll(
         listOf(
           scanEntity(prisonerNumber, outcome = "POSITIVE", typeOfFind = "NOT_KNOWN"),
           scanEntity("B2222BB", outcome = "INCONCLUSIVE"),
           scanEntity("C3333CC", outcome = "INCONCLUSIVE"),
           scanEntity(prisonerNumber, outcome = "NEGATIVE"),
+          scanEntity("B2222BB", outcome = "POSITIVE", deleted = LocalDateTime.now() to "Recorded in error"),
           scanEntity(prisonerNumber, outcome = "POSITIVE", typeOfFind = "INORGANIC"),
           scanEntity(prisonerNumber, scanDate = startOfYear.minusDays(1), outcome = "POSITIVE", typeOfFind = "INORGANIC"),
         ),
       )
 
-      val summary = scanRepository.scanSummaryRowsForPrisoners(listOf(prisonerNumber, "B2222BB"), startOfYear, today)
-        .groupOutcomes()
-      assertThat(summary).isEqualTo(
-        mapOf(
-          prisonerNumber to mapOf(
-            "POSITIVE" to 2,
-            "NEGATIVE" to 1,
+      val summary = scanRepository.scanSummaryRowsForPrisoners(
+        listOf(prisonerNumber, "B2222BB"),
+        startOfYear,
+        today,
+        includeDeleted,
+      ).groupOutcomes()
+
+      if (includeDeleted) {
+        assertThat(summary).isEqualTo(
+          mapOf(
+            prisonerNumber to mapOf(
+              "POSITIVE" to 2,
+              "NEGATIVE" to 1,
+            ),
+            "B2222BB" to mapOf(
+              "POSITIVE" to 1,
+              "INCONCLUSIVE" to 1,
+            ),
           ),
-          "B2222BB" to mapOf("INCONCLUSIVE" to 1),
-        ),
-      )
+        )
+      } else {
+        assertThat(summary).isEqualTo(
+          mapOf(
+            prisonerNumber to mapOf(
+              "POSITIVE" to 2,
+              "NEGATIVE" to 1,
+            ),
+            "B2222BB" to mapOf("INCONCLUSIVE" to 1),
+          ),
+        )
+      }
     }
   }
 
@@ -166,6 +217,7 @@ class ScanRepositoryTest {
     justification: String = "REASONABLE_SUSPICION",
     outcome: String = "NEGATIVE",
     typeOfFind: String? = null,
+    deleted: Pair<LocalDateTime, String>? = null,
   ) = ScanEntity(
     prisonerNumber = prisonerNumber,
     prisonId = "MDI",
@@ -176,5 +228,8 @@ class ScanRepositoryTest {
       codeRepository.findByDomainAndCode(ReferenceDataDomains.TYPE_OF_FIND, typeOfFind)!!
     },
     createdBy = "abc12a",
-  )
+  ).apply {
+    deletedAt = deleted?.first
+    deletedReason = deleted?.second
+  }
 }
