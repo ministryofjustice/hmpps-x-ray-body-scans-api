@@ -8,6 +8,8 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.FixedClockConfi
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.IntegrationTestBase
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.AlertResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.LegacyScanResponse
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanCaseNoteAmendmentResponse
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanCaseNoteResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanSummaryResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.UnifiedScanResponse
@@ -70,6 +72,29 @@ abstract class BaseScanResourceIntTest(
     prisonerNumber = prisonerNumber,
     scanDate = scanDate,
     scanDetails = scanDetails,
+  )
+
+  protected val caseNoteId = "341c845e-fadc-4ec8-9330-81c83968c1a8"
+  protected val scanForCaseNoteOccurredAt: LocalDateTime = scanDate.atStartOfDay()
+
+  protected fun caseNoteResponse(
+    createdAt: LocalDateTime = now,
+    ammendmentDates: List<LocalDateTime> = emptyList(),
+  ) = ScanCaseNoteResponse(
+    id = caseNoteId,
+    typeDescription = "General",
+    subTypeDescription = "X-ray body scan",
+    createdBy = "Bob Profileman",
+    createdAt = createdAt,
+    occurredAt = scanForCaseNoteOccurredAt,
+    text = "some text",
+    amendments = ammendmentDates.mapIndexed { index, createdAt ->
+      ScanCaseNoteAmendmentResponse(
+        text = "amendment ${index + 1}",
+        createdBy = "Another User ${index + 1}",
+        createdAt = createdAt,
+      )
+    },
   )
 
   protected fun summaryResponse(

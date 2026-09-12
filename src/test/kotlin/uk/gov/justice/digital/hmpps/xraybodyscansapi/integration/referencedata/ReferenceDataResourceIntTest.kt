@@ -6,36 +6,41 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.api.assertNotNull
 import org.springframework.http.MediaType
-import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO
+import org.springframework.test.web.reactive.server.expectBody
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ADMIN_ROLE
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.READ_ROLE
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.WRITE_ROLE
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.IntegrationTestBase
 
 @DisplayName("Reference data resource")
 class ReferenceDataResourceIntTest : IntegrationTestBase() {
-  @DisplayName("endpoint is protected")
+  @DisplayName("Endpoint is protected")
   @TestFactory
   fun `endpoint is protected`() = endpointIsProtected(
     webTestClient.get().uri("/reference-data"),
+    authorisedRoles = setOf(READ_ROLE, WRITE_ROLE, ADMIN_ROLE),
   )
 
   @Test
   fun `returns reference data map`() {
-    webTestClient.get()
+    val referenceData = webTestClient.get()
       .uri("/reference-data")
-      .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
+      .headers(setAuthorisation(roles = listOf(READ_ROLE)))
       .exchange()
       .expectStatus().isOk
       .expectHeader().contentType(MediaType.APPLICATION_JSON)
-      .expectBody()
-      .jsonPath("$").value<Map<String, Map<String, Any>>> { referenceData ->
-        assertThat(referenceData).hasSize(3)
-        val domain = referenceData["JUSTIFICATION"]
-        assertNotNull(domain)
-        assertThat(domain["code"]).isEqualTo("JUSTIFICATION")
-        val codes = domain["codes"] as List<*>
-        assertThat(codes).hasSize(2)
-        assertThat(codes).anyMatch { code ->
-          (code as Map<*, *>)["code"] == "INTELLIGENCE"
-        }
-      }
+      .expectBody<Map<String, Map<String, Any>>>()
+      .returnResult().responseBody
+
+    assertThat(referenceData).hasSize(3)
+    assertNotNull(referenceData)
+    val domain = referenceData["JUSTIFICATION"]
+    assertNotNull(domain)
+    assertThat(domain["code"]).isEqualTo("JUSTIFICATION")
+    val codes = domain["codes"] as List<*>
+    assertThat(codes).hasSize(2)
+    assertThat(codes).anyMatch { code ->
+      (code as Map<*, *>)["code"] == "INTELLIGENCE"
+    }
   }
 }

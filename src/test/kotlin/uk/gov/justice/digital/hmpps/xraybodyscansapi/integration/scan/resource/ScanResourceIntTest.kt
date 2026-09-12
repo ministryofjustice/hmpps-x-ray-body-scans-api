@@ -7,7 +7,6 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
-import org.junit.jupiter.params.provider.ValueSource
 import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.verify
@@ -19,8 +18,9 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.http.MediaType
 import org.springframework.test.json.JsonCompareMode
-import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO
-import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ADMIN_ROLE
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.READ_ROLE
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.WRITE_ROLE
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScanRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.ListScansRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.IncludeAlerts
@@ -38,6 +38,21 @@ class ScanResourceIntTest(
   @Nested
   @DisplayName("List scans endpoint")
   inner class ListScans {
+    @DisplayName("Endpoint is protected")
+    @TestFactory
+    fun `endpoint is protected`() = endpointIsProtected(
+      webTestClient.get()
+        .uri("/prisoner/$prisonerNumber/scan"),
+      authorisedRoles = setOf(READ_ROLE, WRITE_ROLE, ADMIN_ROLE),
+      setupSuccess = {
+        whenever(scanService.listScans(any(), any(), any()))
+          .thenReturn(PageImpl(emptyList()))
+      },
+      verifyFailure = {
+        verifyNoInteractions(scanService)
+      },
+    )
+
     @Nested
     @DisplayName("Happy paths")
     inner class HappyPath {
@@ -58,7 +73,7 @@ class ScanResourceIntTest(
 
         webTestClient.get()
           .uri("/prisoner/$prisonerNumber/scan")
-          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
+          .headers(setAuthorisation(roles = listOf(READ_ROLE)))
           .exchange()
           .expectStatus().isOk
           .expectHeader().contentType(MediaType.APPLICATION_JSON)
@@ -105,7 +120,7 @@ class ScanResourceIntTest(
 
         webTestClient.get()
           .uri("/prisoner/$prisonerNumber/scan")
-          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
+          .headers(setAuthorisation(roles = listOf(READ_ROLE)))
           .exchange()
           .expectStatus().isOk
           .expectHeader().contentType(MediaType.APPLICATION_JSON)
@@ -146,7 +161,7 @@ class ScanResourceIntTest(
 
         webTestClient.get()
           .uri("/prisoner/$prisonerNumber/scan")
-          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
+          .headers(setAuthorisation(roles = listOf(READ_ROLE)))
           .exchange()
           .expectStatus().isOk
           .expectHeader().contentType(MediaType.APPLICATION_JSON)
@@ -193,7 +208,7 @@ class ScanResourceIntTest(
 
         webTestClient.get()
           .uri("/prisoner/$prisonerNumber/scan?fromScanDate=2026-01-01&toScanDate=2026-06-26")
-          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
+          .headers(setAuthorisation(roles = listOf(READ_ROLE)))
           .exchange()
           .expectStatus().isOk
           .expectHeader().contentType(MediaType.APPLICATION_JSON)
@@ -227,7 +242,7 @@ class ScanResourceIntTest(
 
         webTestClient.get()
           .uri("/prisoner/$prisonerNumber/scan?fromScanDate=2025-01-01&toScanDate=2025-12-31&size=100&page=2&sort=id,ASC")
-          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
+          .headers(setAuthorisation(roles = listOf(READ_ROLE)))
           .exchange()
           .expectStatus().isOk
           .expectHeader().contentType(MediaType.APPLICATION_JSON)
@@ -252,16 +267,6 @@ class ScanResourceIntTest(
     @Nested
     @DisplayName("Sad paths")
     inner class SadPath {
-      @DisplayName("endpoint is protected")
-      @TestFactory
-      fun `endpoint is protected`() = endpointIsProtected(
-        webTestClient.get()
-          .uri("/prisoner/$prisonerNumber/scan"),
-        afterEach = {
-          verifyNoInteractions(scanService)
-        },
-      )
-
       @ParameterizedTest(name = "returns 400 for bad requests: {1}")
       @CsvSource(
         value = [
@@ -273,7 +278,7 @@ class ScanResourceIntTest(
       fun `returns 400 for bad requests`(queryParameters: String, expectedMessage: String) {
         webTestClient.get()
           .uri("/prisoner/$prisonerNumber/scan?$queryParameters")
-          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
+          .headers(setAuthorisation(roles = listOf(READ_ROLE)))
           .exchange()
           .expectErrorResponse(
             userMessageContains = "Validation failure",
@@ -288,6 +293,21 @@ class ScanResourceIntTest(
   @Nested
   @DisplayName("Create a scan endpoint")
   inner class CreateScan {
+    @DisplayName("Endpoint is protected")
+    @TestFactory
+    fun `endpoint is protected`() = endpointIsProtected(
+      webTestClient.post()
+        .uri("/prisoner/$prisonerNumber/scan")
+        .bodyValue(createScanRequest(scanDate = scanDate)),
+      authorisedRoles = setOf(WRITE_ROLE, ADMIN_ROLE),
+      setupSuccess = {
+        whenever(scanService.createScan(eq(prisonerNumber), any()))
+          .thenReturn(dpsScanResponse(prisonerNumber = prisonerNumber))
+      },
+      verifyFailure = {
+        verifyNoInteractions(scanService)
+      },
+    )
 
     @Nested
     @DisplayName("Happy paths")
@@ -307,7 +327,7 @@ class ScanResourceIntTest(
 
         webTestClient.post()
           .uri("/prisoner/$prisonerNumber/scan")
-          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW)))
+          .headers(setAuthorisation(roles = listOf(WRITE_ROLE)))
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue(request)
           .exchange()
@@ -335,7 +355,7 @@ class ScanResourceIntTest(
 
         webTestClient.post()
           .uri("/prisoner/$prisonerNumber/scan")
-          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW)))
+          .headers(setAuthorisation(roles = listOf(WRITE_ROLE)))
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue(request)
           .exchange()
@@ -355,7 +375,7 @@ class ScanResourceIntTest(
 
         webTestClient.post()
           .uri("/prisoner/$prisonerNumber/scan")
-          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW)))
+          .headers(setAuthorisation(roles = listOf(WRITE_ROLE)))
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue(createScanRequest(scanDate = futureDate))
           .exchange()
@@ -371,7 +391,7 @@ class ScanResourceIntTest(
       fun `returns 400 when the scanDate is malformed`() {
         webTestClient.post()
           .uri("/prisoner/$prisonerNumber/scan")
-          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW)))
+          .headers(setAuthorisation(roles = listOf(WRITE_ROLE)))
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue("""{"scanDate":"not-a-date"}""")
           .exchange()
@@ -387,7 +407,7 @@ class ScanResourceIntTest(
       fun `returns 400 when the scanDate is missing`() {
         webTestClient.post()
           .uri("/prisoner/$prisonerNumber/scan")
-          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW)))
+          .headers(setAuthorisation(roles = listOf(WRITE_ROLE)))
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue("{}")
           .exchange()
@@ -403,7 +423,7 @@ class ScanResourceIntTest(
       fun `returns 400 when the prisonerNumber is malformed or missing`() {
         webTestClient.post()
           .uri("/prisoner/RUBBISH/scan")
-          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW)))
+          .headers(setAuthorisation(roles = listOf(WRITE_ROLE)))
           .contentType(MediaType.APPLICATION_JSON)
           .bodyValue(createScanRequest(scanDate = scanDate))
           .exchange()
@@ -419,7 +439,7 @@ class ScanResourceIntTest(
       fun `returns 400 when the body is missing`() {
         webTestClient.post()
           .uri("/prisoner/$prisonerNumber/scan")
-          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW)))
+          .headers(setAuthorisation(roles = listOf(WRITE_ROLE)))
           .contentType(MediaType.APPLICATION_JSON)
           .exchange()
           .expectErrorResponse(
@@ -429,18 +449,6 @@ class ScanResourceIntTest(
 
         verifyNoInteractions(scanService)
       }
-
-      @DisplayName("endpoint is protected")
-      @TestFactory
-      fun `endpoint is protected`() = endpointIsProtected(
-        webTestClient.post()
-          .uri("/prisoner/$prisonerNumber/scan")
-          .bodyValue(createScanRequest(scanDate = scanDate)),
-        unauthorisedRoles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO),
-        afterEach = {
-          verifyNoInteractions(scanService)
-        },
-      )
     }
 
     private fun createScanRequest(
@@ -463,6 +471,27 @@ class ScanResourceIntTest(
   @Nested
   @DisplayName("Get scan summary endpoint")
   inner class SummariseScans {
+    @DisplayName("Endpoint is protected")
+    @TestFactory
+    fun `endpoint is protected`() = endpointIsProtected(
+      webTestClient.get()
+        .uri("/prisoner/$prisonerNumber/scan/summary"),
+      authorisedRoles = setOf(READ_ROLE, WRITE_ROLE, ADMIN_ROLE),
+      setupSuccess = {
+        whenever(scanService.summariseScans(any<String>(), any(), any()))
+          .thenReturn(
+            summaryResponse(
+              prisonerNumber = prisonerNumber,
+              nomisCount = 0,
+              dpsCount = 0,
+            ),
+          )
+      },
+      verifyFailure = {
+        verifyNoInteractions(scanService)
+      },
+    )
+
     @Nested
     @DisplayName("Happy paths")
     inner class HappyPath {
@@ -482,7 +511,7 @@ class ScanResourceIntTest(
 
         webTestClient.get()
           .uri("/prisoner/$prisonerNumber/scan/summary")
-          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
+          .headers(setAuthorisation(roles = listOf(READ_ROLE)))
           .exchange()
           .expectStatus().isOk
           .expectBody().json(
@@ -526,7 +555,7 @@ class ScanResourceIntTest(
 
         webTestClient.get()
           .uri("/prisoner/$prisonerNumber/scan/summary?includeLatestScan=true")
-          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
+          .headers(setAuthorisation(roles = listOf(READ_ROLE)))
           .exchange()
           .expectStatus().isOk
           .expectBody().json(
@@ -561,7 +590,7 @@ class ScanResourceIntTest(
 
         webTestClient.get()
           .uri("/prisoner/$prisonerNumber/scan/summary?includeLatestScan=true")
-          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
+          .headers(setAuthorisation(roles = listOf(READ_ROLE)))
           .exchange()
           .expectStatus().isOk
           .expectBody().json(
@@ -596,7 +625,7 @@ class ScanResourceIntTest(
 
         webTestClient.get()
           .uri("/prisoner/$prisonerNumber/scan/summary?includeAlerts=true")
-          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
+          .headers(setAuthorisation(roles = listOf(READ_ROLE)))
           .exchange()
           .expectStatus().isOk
           .expectBody().json(
@@ -617,51 +646,16 @@ class ScanResourceIntTest(
 
         verify(scanService).summariseScans(eq(prisonerNumber), eq(false), eq(IncludeAlerts.WithUsername("AUTH_ADM")))
       }
-
-      @ParameterizedTest(name = "permits role {0}")
-      @ValueSource(
-        strings = [
-          ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO,
-          ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW,
-        ],
-      )
-      fun `permits role`(role: String) {
-        whenever(scanService.summariseScans(prisonerNumber))
-          .thenReturn(
-            summaryResponse(
-              prisonerNumber = prisonerNumber,
-              nomisCount = 4,
-              dpsCount = 2,
-              negativeCount = 2,
-            ),
-          )
-
-        webTestClient.get()
-          .uri("/prisoner/$prisonerNumber/scan/summary")
-          .headers(setAuthorisation(roles = listOf(role)))
-          .exchange()
-          .expectStatus().isOk
-      }
     }
 
     @Nested
     @DisplayName("Sad paths")
     inner class SadPath {
-      @DisplayName("endpoint is protected")
-      @TestFactory
-      fun `endpoint is protected`() = endpointIsProtected(
-        webTestClient.get()
-          .uri("/prisoner/$prisonerNumber/scan/summary"),
-        afterEach = {
-          verifyNoInteractions(scanService)
-        },
-      )
-
       @Test
       fun `returns 400 when the prisonerNumber is malformed or missing`() {
         webTestClient.get()
           .uri("/prisoner/RUBBISH/scan/summary")
-          .headers(setAuthorisation(roles = listOf(ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO)))
+          .headers(setAuthorisation(roles = listOf(READ_ROLE)))
           .exchange()
           .expectErrorResponse(
             userMessageContains = "Validation failure",
