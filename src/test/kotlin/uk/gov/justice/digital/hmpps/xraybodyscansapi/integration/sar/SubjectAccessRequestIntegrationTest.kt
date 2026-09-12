@@ -42,6 +42,7 @@ class SubjectAccessRequestIntegrationTest :
   override fun getWebTestClientInstance(): WebTestClient = webTestClient
   override fun getDataSourceInstance(): DataSource = dataSource
   override fun getEntityManagerInstance(): EntityManager = entityManager
+
   override fun getPrn(): String = "A1234BC"
   override fun setupTestData() {
     hmppsAuth.stubGrantToken()
