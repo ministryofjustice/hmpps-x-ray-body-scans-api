@@ -12,9 +12,9 @@ import java.util.UUID
 interface ScanRepository :
   JpaRepository<ScanEntity, UUID>,
   JpaSpecificationExecutor<ScanEntity> {
-  /** Find scans by id and eagerly load reference data */
+  /** Find scans by id and eagerly load reference data, excluding deleted ones */
   @EntityGraph(attributePaths = ["justification", "outcome", "typeOfFind"])
-  fun findByIdIn(scanIds: List<UUID>): List<ScanEntity>
+  fun findByDeletedAtIsNullAndIdIn(scanIds: List<UUID>): List<ScanEntity>
 
   /** Find latest scans for given prisoners and time period */
   @Query(
@@ -24,6 +24,7 @@ interface ScanRepository :
     from body_scan
     where prisoner_number in :prisonerNumbers
       and scan_date between :fromScanDate and :toScanDate
+      and (deleted_at is null or :includeDeleted is true)
     order by prisoner_number, scan_date desc, id desc
     """,
     nativeQuery = true,
@@ -32,6 +33,7 @@ interface ScanRepository :
     prisonerNumbers: List<String>,
     fromScanDate: LocalDate,
     toScanDate: LocalDate,
+    includeDeleted: Boolean = false,
   ): List<ScanEntity>
 
   /** Summarise scan outcomes for given period and prisoners */
@@ -41,6 +43,7 @@ interface ScanRepository :
     from ScanEntity
     where prisonerNumber in :prisonerNumbers
       and scanDate between :fromScanDate and :toScanDate
+      and (deletedAt is null or :includeDeleted is true)
     group by prisonerNumber, outcome
     """,
   )
@@ -48,5 +51,6 @@ interface ScanRepository :
     prisonerNumbers: List<String>,
     fromScanDate: LocalDate,
     toScanDate: LocalDate,
+    includeDeleted: Boolean = false,
   ): List<ScanSummaryRow>
 }

@@ -2,8 +2,16 @@ package uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository
 
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.jpa.buildSpecForEqualTo
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.jpa.buildSpecForGreaterThanOrEqualTo
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.jpa.buildSpecForIn
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.jpa.buildSpecForIsNull
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.jpa.buildSpecForLessThan
 import java.time.LocalDate
+import java.util.UUID
+
+val notDeleted = ScanEntity::deletedAt.buildSpecForIsNull()
+
+fun filterById(id: UUID) = ScanEntity::id.buildSpecForEqualTo(id)
+fun filterByIds(ids: Collection<UUID>) = ScanEntity::id.buildSpecForIn(ids)
 
 fun filterByPrisonerNumber(prisonerNumber: String) = ScanEntity::prisonerNumber.buildSpecForEqualTo(prisonerNumber)
 

@@ -30,8 +30,11 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanSumma
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.UnifiedScanResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanEntity
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanRepository
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.filterById
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.filterByIds
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.filterByPrisonerNumber
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.groupOutcomes
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.notDeleted
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.sortableFields
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.util.UnifiedScanResponseComparator
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.util.UnifiedScanResponsePaginator
@@ -54,7 +57,7 @@ class ScanService(
   @Value($$"${scan.relevant-alert-codes:}") private val relevantAlertCodes: Set<String>,
 ) {
   @Transactional(readOnly = true)
-  fun getScans(ids: List<UUID>): List<ScanResponse> = scanRepository.findByIdIn(ids)
+  fun getScans(ids: List<UUID>): List<ScanResponse> = scanRepository.findByDeletedAtIsNullAndIdIn(ids)
     .map { it.toDto() }
 
   @Transactional(readOnly = true)
@@ -91,7 +94,7 @@ class ScanService(
     val pageableWithIdTiebreak = PageRequest.of(pageable.pageNumber, pageable.pageSize, sortWithIdTiebreak)
     val pageableWithSourceTiebreak = PageRequest.of(pageable.pageNumber, pageable.pageSize, sortWithSourceTiebreak)
 
-    var specification = filterByPrisonerNumber(prisonerNumber)
+    var specification = filterByPrisonerNumber(prisonerNumber).and(notDeleted)
     query?.let {
       specification = specification.and(query.toSpecification())
     }
@@ -162,7 +165,7 @@ class ScanService(
   }
 
   @Transactional
-  fun deleteScans(ids: List<UUID>, reason: String): List<ScanResponse> = scanRepository.findAllById(ids)
+  fun deleteScans(ids: List<UUID>, reason: String): List<ScanResponse> = scanRepository.findAll(filterByIds(ids).and(notDeleted))
     .map { scanEntity ->
       scanEntity.deletedAt = LocalDateTime.now(clock)
       scanEntity.deletedReason = reason
@@ -253,9 +256,7 @@ class ScanService(
 
   @Transactional
   fun createCaseNote(scanId: UUID, request: CreateScanCaseNoteRequest): ScanCaseNoteResponse {
-    val scan = scanRepository.findById(scanId).orElseThrow {
-      NotFoundException("Scan with id $scanId not found")
-    }
+    val scan = findExtantScan(scanId)
     val caseNote = caseNotesApiClient.createCaseNote(
       scan.prisonerNumber,
       CreateCaseNoteRequest(
@@ -273,13 +274,15 @@ class ScanService(
 
   @Transactional(readOnly = true)
   fun getScanCaseNote(scanId: UUID): ScanCaseNoteResponse {
-    val scan = scanRepository.findById(scanId).orElseThrow {
-      NotFoundException("Scan with id $scanId not found")
-    }
+    val scan = findExtantScan(scanId)
     val caseNoteId = scan.caseNoteId ?: throw NotFoundException("Scan with id $scanId has no associated case note")
     val caseNote = caseNotesApiClient.getCaseNote(scan.prisonerNumber, caseNoteId.toString())
     return ScanCaseNoteResponse(caseNote)
   }
+
+  private fun findExtantScan(scanId: UUID): ScanEntity = scanRepository.findAll(filterById(scanId).and(notDeleted))
+    .firstOrNull()
+    ?: throw NotFoundException("Scan with id $scanId not found")
 
   private fun calendarYear(): Pair<LocalDate, LocalDate> {
     val today = LocalDate.now(clock)
