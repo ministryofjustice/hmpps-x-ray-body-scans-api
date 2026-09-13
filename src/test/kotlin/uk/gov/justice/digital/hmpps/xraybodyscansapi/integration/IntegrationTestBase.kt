@@ -17,7 +17,6 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.READ_ROLE
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.WRITE_CASE_NOTE_ROLE
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.WRITE_ROLE
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.wiremock.HmppsAuthApiExtension
-import uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.wiremock.HmppsAuthApiExtension.Companion.hmppsAuth
 import uk.gov.justice.hmpps.test.kotlin.auth.JwtAuthorisationHelper
 
 @ExtendWith(HmppsAuthApiExtension::class)
@@ -32,18 +31,14 @@ abstract class IntegrationTestBase {
   @Autowired
   protected lateinit var jwtAuthHelper: JwtAuthorisationHelper
 
-  internal fun setAuthorisation(
+  protected fun setAuthorisation(
     username: String? = "AUTH_ADM",
     roles: List<String> = listOf(),
     scopes: List<String> = listOf("read"),
   ): (HttpHeaders) -> Unit = jwtAuthHelper.setAuthorisationHeader(username = username, scope = scopes, roles = roles)
 
-  protected fun stubPingWithResponse(status: Int) {
-    hmppsAuth.stubHealthPing(status)
-  }
-
   protected fun endpointIsProtected(
-    /** This request should be successful given a properly authorised token (valid url and payload) */
+    /** This request should be successful given a properly authorised token (valid url, method and payload) */
     request: WebTestClient.RequestHeadersSpec<*>,
     authorisedRoles: Set<String>,
     setupSuccess: (() -> Unit)? = null,

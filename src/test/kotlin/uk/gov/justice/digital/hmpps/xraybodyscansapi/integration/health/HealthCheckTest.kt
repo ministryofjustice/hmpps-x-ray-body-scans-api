@@ -2,12 +2,22 @@ package uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.health
 
 import org.junit.jupiter.api.Test
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.IntegrationTestBase
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.wiremock.AlertsApiExtension.Companion.alertsApi
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.wiremock.CaseNotesApiExtension.Companion.caseNotesApi
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.wiremock.HmppsAuthApiExtension.Companion.hmppsAuth
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.wiremock.PrisonApiExtension.Companion.prisonApi
 
 class HealthCheckTest : IntegrationTestBase() {
+  private fun stubHealthPing(status: Int = 200) {
+    hmppsAuth.stubHealthPing(status)
+    alertsApi.stubHealthPing(status)
+    caseNotesApi.stubHealthPing(status)
+    prisonApi.stubHealthPing(status)
+  }
 
   @Test
   fun `Health page reports ok`() {
-    stubPingWithResponse(200)
+    stubHealthPing()
 
     webTestClient.get()
       .uri("/health")
@@ -20,7 +30,8 @@ class HealthCheckTest : IntegrationTestBase() {
 
   @Test
   fun `Health page reports down`() {
-    stubPingWithResponse(503)
+    stubHealthPing()
+    hmppsAuth.stubHealthPing(503)
 
     webTestClient.get()
       .uri("/health")

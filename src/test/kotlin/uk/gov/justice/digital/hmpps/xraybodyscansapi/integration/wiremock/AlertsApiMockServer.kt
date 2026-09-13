@@ -9,38 +9,15 @@ import com.github.tomakehurst.wiremock.client.WireMock.havingExactly
 import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
-import org.junit.jupiter.api.extension.AfterAllCallback
-import org.junit.jupiter.api.extension.BeforeAllCallback
-import org.junit.jupiter.api.extension.BeforeEachCallback
-import org.junit.jupiter.api.extension.ExtensionContext
 
-class AlertsApiExtension :
-  BeforeAllCallback,
-  AfterAllCallback,
-  BeforeEachCallback {
+class AlertsApiExtension : MockServerExtension(alertsApi) {
   companion object {
     @JvmField
     val alertsApi = AlertsApiMockServer()
   }
-
-  override fun beforeAll(context: ExtensionContext) {
-    alertsApi.start()
-  }
-
-  override fun beforeEach(context: ExtensionContext) {
-    alertsApi.resetRequests()
-  }
-
-  override fun afterAll(context: ExtensionContext) {
-    alertsApi.stop()
-  }
 }
 
-class AlertsApiMockServer : WireMockServer(WIREMOCK_PORT) {
-  companion object {
-    private const val WIREMOCK_PORT = 8092
-  }
-
+class AlertsApiMockServer : WireMockServer(8092) {
   fun stubHealthPing(status: Int = 200): StubMapping = stubFor(
     get("/health/ping").willReturn(
       aResponse()

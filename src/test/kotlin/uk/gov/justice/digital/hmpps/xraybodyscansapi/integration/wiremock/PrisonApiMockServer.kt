@@ -5,43 +5,21 @@ import com.github.tomakehurst.wiremock.client.WireMock.aResponse
 import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
-import org.junit.jupiter.api.extension.AfterAllCallback
-import org.junit.jupiter.api.extension.BeforeAllCallback
-import org.junit.jupiter.api.extension.BeforeEachCallback
-import org.junit.jupiter.api.extension.ExtensionContext
 
-class PrisonApiExtension :
-  BeforeAllCallback,
-  AfterAllCallback,
-  BeforeEachCallback {
+class PrisonApiExtension : MockServerExtension(prisonApi) {
   companion object {
     @JvmField
     val prisonApi = PrisonApiMockServer()
   }
-
-  override fun beforeAll(context: ExtensionContext) {
-    prisonApi.start()
-  }
-
-  override fun beforeEach(context: ExtensionContext) {
-    prisonApi.resetRequests()
-  }
-
-  override fun afterAll(context: ExtensionContext) {
-    prisonApi.stop()
-  }
 }
 
-class PrisonApiMockServer : WireMockServer(WIREMOCK_PORT) {
-  companion object {
-    private const val WIREMOCK_PORT = 8091
-  }
-
+class PrisonApiMockServer : WireMockServer(8091) {
   fun stubHealthPing(status: Int = 200) {
     stubFor(
       get("/health/ping").willReturn(
         aResponse()
           .withHeader("Content-Type", "application/json")
+          // language=json
           .withBody(if (status == 200) """{"status":"UP"}""" else """{"status":"DOWN"}""")
           .withStatus(status),
       ),
