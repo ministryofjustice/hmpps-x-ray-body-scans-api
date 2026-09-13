@@ -160,7 +160,6 @@ data class ScanResponse(
     format = "uuid",
     requiredMode = Schema.RequiredMode.REQUIRED,
   )
-  @JsonInclude(JsonInclude.Include.NON_NULL)
   override val id: String = originalId.toString()
 
   @Schema(
