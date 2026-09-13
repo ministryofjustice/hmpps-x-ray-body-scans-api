@@ -47,6 +47,8 @@ class SubjectAccessRequestIntegrationTest :
   override fun setupTestData() {
     hmppsAuth.stubGrantToken()
     caseNotesApi.stubGetCaseNote(
+      getPrn(),
+      "01a067dc-332f-754e-b41f-d8fe1eaeba89",
       // language=json
       """
         {
@@ -69,8 +71,6 @@ class SubjectAccessRequestIntegrationTest :
           ]
         }
       """,
-      getPrn(),
-      "01a067dc-332f-754e-b41f-d8fe1eaeba89",
     )
   }
 

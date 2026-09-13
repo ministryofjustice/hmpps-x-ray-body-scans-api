@@ -34,4 +34,16 @@ class CaseNotesApiClient(
   } catch (e: Exception) {
     throw DownstreamServiceException("Case Notes API get case note request failed", e)
   }
+
+  fun getCaseNotes(caseNoteIds: Collection<String>): List<CaseNoteResponse> = try {
+    webClient
+      .post()
+      .uri("/search/case-notes/by-ids")
+      .bodyValue(caseNoteIds)
+      .retrieve()
+      .bodyToMono<List<CaseNoteResponse>>()
+      .block()!!
+  } catch (e: Exception) {
+    throw DownstreamServiceException("Case Notes API get case notes request failed", e)
+  }
 }
