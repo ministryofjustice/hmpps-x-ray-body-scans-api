@@ -55,8 +55,15 @@ class ScanRepositoryTest {
     assertThat(found.createdBy).isEqualTo("abc12a")
   }
 
-  @Test
-  fun `get scans by id`() {
+  @ParameterizedTest(name = "get scans by id {0}")
+  @CsvSource(
+    value = [
+      "excluding deleted ones | false",
+      "including deleted ones | true",
+    ],
+    delimiter = '|',
+  )
+  fun `get scans by id`(scenario: String, includeDeleted: Boolean) {
     val scanIds = scanRepository.saveAll(
       listOf(
         scanEntity(prisonerNumber, outcome = "POSITIVE", typeOfFind = "NOT_KNOWN"),
@@ -66,10 +73,20 @@ class ScanRepositoryTest {
       ),
     ).map { it.id }
 
-    val scans = scanRepository.findByDeletedAtIsNullAndIdIn(scanIds)
-    assertThat(scans).hasSize(3)
-    assertThat(scans).allMatch {
-      it.prisonerNumber == prisonerNumber && it.justification.description == "Reasonable suspicion"
+    if (includeDeleted) {
+      val scans = scanRepository.findByIdIn(scanIds)
+      assertThat(scans).hasSize(4)
+      assertThat(scans).allMatch {
+        it.prisonerNumber == prisonerNumber && it.justification.description == "Reasonable suspicion"
+      }
+      assertThat(scans.count { it.deletedAt != null }).isEqualTo(1)
+    } else {
+      val scans = scanRepository.findByDeletedAtIsNullAndIdIn(scanIds)
+      assertThat(scans).hasSize(3)
+      assertThat(scans).allMatch {
+        it.prisonerNumber == prisonerNumber && it.justification.description == "Reasonable suspicion"
+      }
+      assertThat(scans.count { it.deletedAt != null }).isEqualTo(0)
     }
   }
 

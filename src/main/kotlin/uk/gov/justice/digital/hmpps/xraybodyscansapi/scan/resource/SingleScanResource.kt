@@ -22,6 +22,7 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.WRITE_ROLE
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.DeleteScanRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.ScanResponse
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.ScanService
+import uk.gov.justice.hmpps.kotlin.auth.HmppsAuthenticationHolder
 import uk.gov.justice.hmpps.kotlin.common.ErrorResponse
 import java.util.UUID
 
@@ -35,12 +36,14 @@ import java.util.UUID
   produces = [MediaType.APPLICATION_JSON_VALUE],
 )
 class SingleScanResource(
+  private val authenticationHolder: HmppsAuthenticationHolder,
   private val scanService: ScanService,
 ) {
   @GetMapping
   @RequireReadRole
   @Operation(
     summary = "Retrieve an x-ray body scan recorded in DPS by id",
+    description = "NB: Includes deleted scans if admin role was used",
     responses = [
       ApiResponse(
         responseCode = "200",
@@ -71,7 +74,11 @@ class SingleScanResource(
   fun getScan(
     @PathVariable
     scanId: UUID,
-  ): ResponseEntity<ScanResponse> = ResponseEntity.ofNullable(scanService.getScans(listOf(scanId)).firstOrNull())
+  ): ResponseEntity<ScanResponse> {
+    val isAdmin = authenticationHolder.roles.any { it?.authority == ADMIN_ROLE }
+    val scan = scanService.getScans(listOf(scanId), includeDeleted = isAdmin)
+    return ResponseEntity.ofNullable(scan.firstOrNull())
+  }
 
   @DeleteMapping
   @RequireAdminRole

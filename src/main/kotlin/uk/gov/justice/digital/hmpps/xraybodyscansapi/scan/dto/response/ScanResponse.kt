@@ -138,18 +138,18 @@ data class ScanResponse(
   )
   val lastModifiedBy: String,
   @Schema(
-    description = "When the scan record was deleted (absent was scan was not deleted)",
+    description = "When the scan record was deleted (absent if scan was not deleted)",
     type = "string",
     format = "date-time",
-    requiredMode = Schema.RequiredMode.REQUIRED,
+    requiredMode = Schema.RequiredMode.NOT_REQUIRED,
   )
   @JsonInclude(JsonInclude.Include.NON_NULL)
   val deletedAt: LocalDateTime? = null,
   @Schema(
-    description = "Why the scan was deleted (absent was scan was not deleted)",
+    description = "Why the scan was deleted (absent if scan was not deleted)",
     example = "Recorded in error",
     type = "string",
-    requiredMode = Schema.RequiredMode.REQUIRED,
+    requiredMode = Schema.RequiredMode.NOT_REQUIRED,
   )
   @JsonInclude(JsonInclude.Include.NON_NULL)
   val deletedReason: String? = null,
@@ -171,4 +171,12 @@ data class ScanResponse(
     requiredMode = Schema.RequiredMode.REQUIRED,
   )
   override val source: Source = Source.DPS
+
+  @get:Schema(
+    description = "True if this scan record was deleted (absent if scan was not deleted)",
+    requiredMode = Schema.RequiredMode.NOT_REQUIRED,
+  )
+  @get:JsonInclude(JsonInclude.Include.NON_DEFAULT)
+  val isDeleted: Boolean
+    get() = deletedAt != null
 }

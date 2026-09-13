@@ -29,7 +29,7 @@ class SingleScanResourceIntTest(
         .uri("/scan/$scanId"),
       authorisedRoles = setOf(READ_ROLE, WRITE_ROLE, ADMIN_ROLE),
       setupSuccess = {
-        whenever(scanService.getScans(any()))
+        whenever(scanService.getScans(any(), any()))
           .thenReturn(listOf(dpsScanResponse(scanId, "A1234BC")))
       },
       verifyFailure = {
@@ -42,7 +42,7 @@ class SingleScanResourceIntTest(
     inner class HappyPath {
       @Test
       fun `returns a scan when one is found`() {
-        whenever(scanService.getScans(listOf(scanId)))
+        whenever(scanService.getScans(listOf(scanId), false))
           .thenReturn(listOf(dpsScanResponse(scanId, "A1234BC")))
 
         webTestClient.get()
@@ -79,6 +79,57 @@ class SingleScanResourceIntTest(
             JsonCompareMode.STRICT,
           )
       }
+
+      @Test
+      fun `returns a deleted scan to admins`() {
+        whenever(scanService.getScans(listOf(scanId), true))
+          .thenReturn(
+            listOf(
+              dpsScanResponse(
+                scanId,
+                "A1234BC",
+                deleted = now to "Recorded in error",
+              ),
+            ),
+          )
+
+        webTestClient.get()
+          .uri("/scan/$scanId")
+          .headers(setAuthorisation(roles = listOf(ADMIN_ROLE)))
+          .exchange()
+          .expectStatus().isOk
+          .expectHeader().contentType(MediaType.APPLICATION_JSON)
+          .expectBody()
+          .json(
+            // language=json
+            """
+            {
+              "id": "$scanId",
+              "source": "DPS",
+              "prisonerNumber": "A1234BC",
+              "prisonId": "MDI",
+              "scanDate": "2026-07-26",
+              "justification": "INTELLIGENCE",
+              "justificationDescription": "INTELLIGENCE",
+              "outcome": "NEGATIVE",
+              "outcomeDescription": "NEGATIVE",
+              "typeOfFind": null,
+              "typeOfFindDescription": null,
+              "caseNoteId": null,
+              "mergedFromPrisonerNumber": null,
+              "mergedAt": null,
+              "createdAt": "2026-07-27T09:10:11.123",
+              "createdBy": "abc12ab",
+              "lastModifiedAt": "2026-07-27T09:10:11.123",
+              "lastModifiedBy": "abc12ab",
+              "deletedAt": "2026-07-27T09:10:11.123",
+              "deletedReason": "Recorded in error",
+              "isDeleted": true
+            }
+            """,
+            JsonCompareMode.STRICT,
+          )
+      }
     }
 
     @Nested
@@ -99,7 +150,7 @@ class SingleScanResourceIntTest(
 
       @Test
       fun `returns 404 when no scan is found`() {
-        whenever(scanService.getScans(listOf(scanId)))
+        whenever(scanService.getScans(listOf(scanId), false))
           .thenReturn(emptyList())
 
         webTestClient.get()
@@ -167,7 +218,8 @@ class SingleScanResourceIntTest(
               "lastModifiedAt": "2026-07-27T09:10:11.123",
               "lastModifiedBy": "abc12ab",
               "deletedAt": "2026-07-27T09:10:11.123",
-              "deletedReason": "Recorded in error"
+              "deletedReason": "Recorded in error",
+              "isDeleted": true
             }
             """,
             JsonCompareMode.STRICT,

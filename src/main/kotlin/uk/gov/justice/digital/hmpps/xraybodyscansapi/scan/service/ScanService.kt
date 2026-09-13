@@ -57,7 +57,11 @@ class ScanService(
   @Value($$"${scan.relevant-alert-codes:}") private val relevantAlertCodes: Set<String>,
 ) {
   @Transactional(readOnly = true)
-  fun getScans(ids: List<UUID>): List<ScanResponse> = scanRepository.findByDeletedAtIsNullAndIdIn(ids)
+  fun getScans(ids: List<UUID>, includeDeleted: Boolean = false): List<ScanResponse> = if (includeDeleted) {
+    scanRepository.findByIdIn(ids)
+  } else {
+    scanRepository.findByDeletedAtIsNullAndIdIn(ids)
+  }
     .map { it.toDto() }
 
   @Transactional(readOnly = true)

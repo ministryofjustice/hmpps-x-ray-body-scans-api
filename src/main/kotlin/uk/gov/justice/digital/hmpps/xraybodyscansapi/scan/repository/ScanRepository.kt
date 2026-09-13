@@ -16,6 +16,10 @@ interface ScanRepository :
   @EntityGraph(attributePaths = ["justification", "outcome", "typeOfFind"])
   fun findByDeletedAtIsNullAndIdIn(scanIds: List<UUID>): List<ScanEntity>
 
+  /** Find scans by id and eagerly load reference data, *including* deleted ones */
+  @EntityGraph(attributePaths = ["justification", "outcome", "typeOfFind"])
+  fun findByIdIn(scanIds: List<UUID>): List<ScanEntity>
+
   /** Find latest scans for given prisoners and time period */
   @Query(
     // NB: This is postgres-specific SQL, see PR for alternative if it’s ever needed

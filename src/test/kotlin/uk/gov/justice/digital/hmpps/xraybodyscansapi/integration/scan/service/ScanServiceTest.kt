@@ -52,6 +52,7 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanSummary
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.IncludeAlerts
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.ScanService
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.util.UUID
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.AlertResponse as AlertResponseDto
 
@@ -90,6 +91,7 @@ class ScanServiceTest {
       val scans = scanService.getScans(ids)
       assertThat(scans).isEmpty()
       verifyNoInteractions(prisonApiClient)
+      verify(scanRepository, never()).findByIdIn(any())
     }
 
     @Test
@@ -109,6 +111,32 @@ class ScanServiceTest {
         "B2222BB" to Source.DPS,
       )
       verifyNoInteractions(prisonApiClient)
+      verify(scanRepository, never()).findByIdIn(any())
+    }
+
+    @Test
+    fun `returns list of scans including deleted if requested`() {
+      whenever(scanRepository.findByIdIn(ids))
+        .thenReturn(
+          listOf(
+            scanEntity("A1111AA"),
+            scanEntity(
+              "B2222BB",
+              scanDate = now.minusWeeks(1).toLocalDate(),
+              deleted = now.minusWeeks(1) to "Recorded for wrong person",
+            ),
+          ),
+        )
+
+      val scans = scanService.getScans(ids, includeDeleted = true)
+      assertThat(scans).hasSize(2)
+      assertThat(scans.map { it.prisonerNumber to it.source }).containsExactly(
+        "A1111AA" to Source.DPS,
+        "B2222BB" to Source.DPS,
+      )
+      assertThat(scans.count { it.deletedAt != null }).isEqualTo(1)
+      verifyNoInteractions(prisonApiClient)
+      verify(scanRepository, never()).findByDeletedAtIsNullAndIdIn(any())
     }
   }
 
@@ -1099,6 +1127,7 @@ class ScanServiceTest {
     outcome: String = "NEGATIVE",
     typeOfFind: String? = null,
     createdBy: String = "abc12ab",
+    deleted: Pair<LocalDateTime, String>? = null,
   ) = ScanEntity(
     prisonerNumber = prisonerNumber,
     prisonId = prisonId,
@@ -1110,6 +1139,9 @@ class ScanServiceTest {
   ).apply {
     // updates to entity that would be done by jpa/hibernate
     id = UUID.randomUUID()
+
+    deletedAt = deleted?.first
+    deletedReason = deleted?.second
   }
 
   private fun mockSavingScanEntity() = whenever(scanRepository.save(any<ScanEntity>())).thenAnswer { invocation ->
