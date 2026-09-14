@@ -13,11 +13,11 @@ interface ScanRepository :
   JpaRepository<ScanEntity, UUID>,
   JpaSpecificationExecutor<ScanEntity> {
   /** Find scans by id and eagerly load reference data, excluding deleted ones */
-  @EntityGraph(attributePaths = ["justification", "outcome", "typeOfFind"])
+  @EntityGraph(attributePaths = ["justification", "outcome"])
   fun findByDeletedAtIsNullAndIdIn(scanIds: List<UUID>): List<ScanEntity>
 
   /** Find scans by id and eagerly load reference data, *including* deleted ones */
-  @EntityGraph(attributePaths = ["justification", "outcome", "typeOfFind"])
+  @EntityGraph(attributePaths = ["justification", "outcome"])
   fun findByIdIn(scanIds: List<UUID>): List<ScanEntity>
 
   /** Find latest scans for given prisoners and time period */

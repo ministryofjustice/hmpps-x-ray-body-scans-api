@@ -33,9 +33,6 @@ class ScanEntity(
   @ManyToOne(fetch = FetchType.LAZY, optional = false)
   @JoinColumn(name = "outcome", nullable = false)
   val outcome: ReferenceDataCodeEntity,
-  @ManyToOne(fetch = FetchType.LAZY)
-  @JoinColumn(name = "type_of_find")
-  val typeOfFind: ReferenceDataCodeEntity? = null,
 
   @Column(name = "created_by", length = 120, nullable = false, updatable = false)
   val createdBy: String,

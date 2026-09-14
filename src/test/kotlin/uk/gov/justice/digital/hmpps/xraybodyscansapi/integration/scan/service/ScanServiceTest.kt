@@ -406,7 +406,6 @@ class ScanServiceTest {
       assertThat(response.scanDate).isEqualTo(scanDate)
       assertThat(response.justification).isEqualTo("INTELLIGENCE")
       assertThat(response.outcome).isEqualTo("NEGATIVE")
-      assertThat(response.typeOfFind).isNull()
       assertThat(response.lastModifiedBy).isEqualTo("abc12a")
     }
 
@@ -419,29 +418,11 @@ class ScanServiceTest {
         prisonId = "MDI",
         justification = if (domain == ReferenceDataDomains.JUSTIFICATION) "INVALID" else "INTELLIGENCE",
         outcome = if (domain == ReferenceDataDomains.OUTCOME) "INVALID" else "POSITIVE",
-        typeOfFind = if (domain == ReferenceDataDomains.TYPE_OF_FIND) "INVALID" else "INORGANIC",
         createdBy = "abc12a",
       )
       assertThatThrownBy {
         scanService.createScan(prisonerNumber, request)
       }.hasMessage("Reference data with domain ${domain.name} and code INVALID not found")
-      verifyNoInteractions(scanRepository)
-    }
-
-    @Test
-    fun `throws validation error when outcome is positive but no type of find is provided`() {
-      makeReferenceDataWheneverNeeded()
-      val request = CreateScanRequest(
-        scanDate = scanDate,
-        prisonId = "MDI",
-        justification = "INTELLIGENCE",
-        outcome = "POSITIVE",
-        typeOfFind = null,
-        createdBy = "abc12a",
-      )
-      assertThatThrownBy {
-        scanService.createScan(prisonerNumber, request)
-      }.hasMessage("typeOfFind is required for positive outcomes")
       verifyNoInteractions(scanRepository)
     }
   }
@@ -1125,7 +1106,6 @@ class ScanServiceTest {
     prisonId: String = "MDI",
     justification: String = "INTELLIGENCE",
     outcome: String = "NEGATIVE",
-    typeOfFind: String? = null,
     createdBy: String = "abc12ab",
     deleted: Pair<LocalDateTime, String>? = null,
   ) = ScanEntity(
@@ -1134,7 +1114,6 @@ class ScanServiceTest {
     scanDate = scanDate,
     justification = referenceData(ReferenceDataDomains.JUSTIFICATION, justification),
     outcome = referenceData(ReferenceDataDomains.OUTCOME, outcome),
-    typeOfFind = typeOfFind?.let { referenceData(ReferenceDataDomains.TYPE_OF_FIND, typeOfFind) },
     createdBy = createdBy,
   ).apply {
     // updates to entity that would be done by jpa/hibernate

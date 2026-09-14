@@ -81,7 +81,7 @@ class ScanResourceIntTest(
           .jsonPath("content").value<List<Map<String, Any>>> { scans ->
             assertThat(scans).hasSize(1)
             val scan = scans[0]
-            assertThat(scan).hasSize(18)
+            assertThat(scan).hasSize(16)
             assertThat(scan["source"]).isEqualTo("DPS")
             assertThat(scan["id"]).isEqualTo(scanId.toString())
             assertThat(scan["prisonerNumber"]).isEqualTo(prisonerNumber)
@@ -91,8 +91,6 @@ class ScanResourceIntTest(
             assertThat(scan["justificationDescription"]).isEqualTo("INTELLIGENCE")
             assertThat(scan["outcome"]).isEqualTo("NEGATIVE")
             assertThat(scan["outcomeDescription"]).isEqualTo("NEGATIVE")
-            assertThat(scan["typeOfFind"]).isNull()
-            assertThat(scan["typeOfFindDescription"]).isNull()
             assertThat(scan["caseNoteId"]).isNull()
             assertThat(scan["mergedAt"]).isNull()
             assertThat(scan["mergedFromPrisonerNumber"]).isNull()
@@ -456,14 +454,12 @@ class ScanResourceIntTest(
       prisonId: String = "MDI",
       justification: String = "INTELLIGENCE",
       outcome: String = "NEGATIVE",
-      typeOfFind: String? = null,
       createdBy: String = "abc12ab",
     ) = CreateScanRequest(
       scanDate = scanDate,
       prisonId = prisonId,
       justification = justification,
       outcome = outcome,
-      typeOfFind = typeOfFind,
       createdBy = createdBy,
     )
   }
