@@ -2,7 +2,6 @@ package uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request
 
 import io.swagger.v3.oas.annotations.media.Schema
 import jakarta.validation.constraints.NotBlank
-import jakarta.validation.constraints.NotNull
 import jakarta.validation.constraints.PastOrPresent
 import org.springframework.format.annotation.DateTimeFormat
 import java.time.LocalDate
@@ -12,7 +11,6 @@ import java.time.LocalDate
   accessMode = Schema.AccessMode.WRITE_ONLY,
 )
 data class CreateScanRequest(
-  @NotNull
   @PastOrPresent(message = "scanDate must be today or in the past")
   @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
   @Schema(
@@ -39,6 +37,7 @@ data class CreateScanRequest(
     requiredMode = Schema.RequiredMode.REQUIRED,
   )
   val justification: String,
+
   @NotBlank
   @Schema(
     description = "What the outcome of the scan was",
@@ -46,13 +45,6 @@ data class CreateScanRequest(
     requiredMode = Schema.RequiredMode.REQUIRED,
   )
   val outcome: String,
-  @Schema(
-    description = "What type of item was detected, if any (required for POSITIVE outcomes)",
-    example = "INORGANIC",
-    requiredMode = Schema.RequiredMode.NOT_REQUIRED,
-    nullable = true,
-  )
-  val typeOfFind: String? = null,
 
   @Schema(
     description = "Who created the scan record",

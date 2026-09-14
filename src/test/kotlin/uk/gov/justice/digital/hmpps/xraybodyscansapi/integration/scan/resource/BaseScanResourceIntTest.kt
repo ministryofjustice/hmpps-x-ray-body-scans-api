@@ -38,7 +38,6 @@ abstract class BaseScanResourceIntTest(
     scanDate: LocalDate = this.scanDate,
     justification: String = "INTELLIGENCE",
     outcome: String = "NEGATIVE",
-    typeOfFind: String? = null,
     createdBy: String = "abc12ab",
     deleted: Pair<LocalDateTime, String>? = null,
   ) = ScanResponse(
@@ -50,8 +49,6 @@ abstract class BaseScanResourceIntTest(
     justificationDescription = justification,
     outcome = outcome,
     outcomeDescription = outcome,
-    typeOfFind = typeOfFind,
-    typeOfFindDescription = typeOfFind,
     createdAt = now,
     createdBy = createdBy,
     lastModifiedAt = now,

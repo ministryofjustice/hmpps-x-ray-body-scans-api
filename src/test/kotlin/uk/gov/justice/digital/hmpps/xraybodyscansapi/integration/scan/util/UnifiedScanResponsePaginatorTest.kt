@@ -255,8 +255,6 @@ class UnifiedScanResponsePaginatorTest {
     justificationDescription = "Intelligence",
     outcome = "NEGATIVE",
     outcomeDescription = "Negative",
-    typeOfFind = null,
-    typeOfFindDescription = null,
     createdAt = now,
     createdBy = "abc12ab",
     lastModifiedAt = now,

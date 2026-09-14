@@ -32,7 +32,7 @@ class ReferenceDataResourceIntTest : IntegrationTestBase() {
       .expectBody<Map<String, Map<String, Any>>>()
       .returnResult().responseBody
 
-    assertThat(referenceData).hasSize(3)
+    assertThat(referenceData).hasSize(2)
     assertNotNull(referenceData)
     val domain = referenceData["JUSTIFICATION"]
     assertNotNull(domain)

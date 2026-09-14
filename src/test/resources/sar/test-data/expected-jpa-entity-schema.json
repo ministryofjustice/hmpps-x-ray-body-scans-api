@@ -39,7 +39,6 @@
     "outcome": "ReferenceDataCodeEntity",
     "prisonId": "String",
     "prisonerNumber": "String",
-    "scanDate": "LocalDate",
-    "typeOfFind": "ReferenceDataCodeEntity"
+    "scanDate": "LocalDate"
   }
 }

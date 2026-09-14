@@ -47,7 +47,6 @@ class SubjectAccessRequestService(
         date = scan.scanDate,
         justification = scan.justification.description,
         outcome = scan.outcome.description,
-        find = scan.typeOfFind?.description,
         establishment = scan.prisonId,
         additionalDetails = additionalDetails,
       )

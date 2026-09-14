@@ -51,7 +51,6 @@ class ScanRepositoryTest {
     assertThat(found.scanDate).isEqualTo(scanDate)
     assertThat(found.justification.code).isEqualTo("REASONABLE_SUSPICION")
     assertThat(found.outcome.code).isEqualTo("NEGATIVE")
-    assertThat(found.typeOfFind).isNull()
     assertThat(found.createdBy).isEqualTo("abc12a")
   }
 
@@ -66,9 +65,9 @@ class ScanRepositoryTest {
   fun `get scans by id`(scenario: String, includeDeleted: Boolean) {
     val scanIds = scanRepository.saveAll(
       listOf(
-        scanEntity(prisonerNumber, outcome = "POSITIVE", typeOfFind = "NOT_KNOWN"),
+        scanEntity(prisonerNumber, outcome = "POSITIVE"),
         scanEntity(prisonerNumber, outcome = "NEGATIVE"),
-        scanEntity(prisonerNumber, outcome = "POSITIVE", typeOfFind = "INORGANIC"),
+        scanEntity(prisonerNumber, outcome = "POSITIVE"),
         scanEntity(prisonerNumber, deleted = LocalDateTime.now() to "Recorded in error"),
       ),
     ).map { it.id }
@@ -184,13 +183,13 @@ class ScanRepositoryTest {
     fun `summarise scans`(scenario: String, includeDeleted: Boolean) {
       scanRepository.saveAll(
         listOf(
-          scanEntity(prisonerNumber, outcome = "POSITIVE", typeOfFind = "NOT_KNOWN"),
+          scanEntity(prisonerNumber, outcome = "POSITIVE"),
           scanEntity("B2222BB", outcome = "INCONCLUSIVE"),
           scanEntity("C3333CC", outcome = "INCONCLUSIVE"),
           scanEntity(prisonerNumber, outcome = "NEGATIVE"),
           scanEntity("B2222BB", outcome = "POSITIVE", deleted = LocalDateTime.now() to "Recorded in error"),
-          scanEntity(prisonerNumber, outcome = "POSITIVE", typeOfFind = "INORGANIC"),
-          scanEntity(prisonerNumber, scanDate = startOfYear.minusDays(1), outcome = "POSITIVE", typeOfFind = "INORGANIC"),
+          scanEntity(prisonerNumber, outcome = "POSITIVE"),
+          scanEntity(prisonerNumber, scanDate = startOfYear.minusDays(1), outcome = "POSITIVE"),
         ),
       )
 
@@ -233,7 +232,6 @@ class ScanRepositoryTest {
     scanDate: LocalDate = this.scanDate,
     justification: String = "REASONABLE_SUSPICION",
     outcome: String = "NEGATIVE",
-    typeOfFind: String? = null,
     deleted: Pair<LocalDateTime, String>? = null,
   ) = ScanEntity(
     prisonerNumber = prisonerNumber,
@@ -241,9 +239,6 @@ class ScanRepositoryTest {
     scanDate = scanDate,
     justification = codeRepository.findByDomainAndCode(ReferenceDataDomains.JUSTIFICATION, justification)!!,
     outcome = codeRepository.findByDomainAndCode(ReferenceDataDomains.OUTCOME, outcome)!!,
-    typeOfFind = typeOfFind?.let {
-      codeRepository.findByDomainAndCode(ReferenceDataDomains.TYPE_OF_FIND, typeOfFind)!!
-    },
     createdBy = "abc12a",
   ).apply {
     deletedAt = deleted?.first

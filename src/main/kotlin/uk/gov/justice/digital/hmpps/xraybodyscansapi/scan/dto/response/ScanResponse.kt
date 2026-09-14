@@ -69,23 +69,6 @@ data class ScanResponse(
   val outcomeDescription: String,
 
   @Schema(
-    description = "What type of item was detected, if any (as a code)",
-    example = "INORGANIC",
-    type = "string",
-    nullable = true,
-    requiredMode = Schema.RequiredMode.REQUIRED,
-  )
-  val typeOfFind: String? = null,
-  @Schema(
-    description = "What type of item was detected, if any (as a human-readable description)",
-    example = "Inorganic",
-    type = "string",
-    nullable = true,
-    requiredMode = Schema.RequiredMode.REQUIRED,
-  )
-  val typeOfFindDescription: String? = null,
-
-  @Schema(
     description = "Reference to associated case note, if any",
     type = "string",
     format = "uuid",

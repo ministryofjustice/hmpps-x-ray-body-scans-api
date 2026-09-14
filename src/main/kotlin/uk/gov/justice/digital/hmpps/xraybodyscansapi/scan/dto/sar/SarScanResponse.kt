@@ -7,7 +7,6 @@ data class SarScanResponse(
   val date: LocalDate,
   val justification: String,
   val outcome: String,
-  val find: String?,
   val establishment: String,
   val additionalDetails: String?,
 )
