@@ -22,10 +22,11 @@ import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
-import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO
-import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ADMIN_ROLE
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.READ_ROLE
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.RequireReadRole
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.RequireWriteRole
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.WRITE_ROLE
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScanRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.ListScansRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.ScanSummaryRequest
@@ -74,7 +75,7 @@ class ScanResource(
       ),
       ApiResponse(
         responseCode = "403",
-        description = "Forbidden. Token does not have the role $ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO or $ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW.",
+        description = "Forbidden. Token does not have the role $READ_ROLE or $WRITE_ROLE or $ADMIN_ROLE.",
         content = [Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = Schema(implementation = ErrorResponse::class))],
       ),
       ApiResponse(
@@ -132,7 +133,7 @@ class ScanResource(
       ),
       ApiResponse(
         responseCode = "403",
-        description = "Forbidden. Token does not have the role $ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW.",
+        description = "Forbidden. Token does not have the role $WRITE_ROLE or $ADMIN_ROLE.",
         content = [
           Content(
             mediaType = MediaType.APPLICATION_JSON_VALUE,
@@ -190,7 +191,7 @@ class ScanResource(
       ),
       ApiResponse(
         responseCode = "403",
-        description = "Forbidden. Token does not have the role $ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RO or $ROLE_X_RAY_BODY_SCANS_API__SCAN_DATA__RW.",
+        description = "Forbidden. Token does not have the role $READ_ROLE or $WRITE_ROLE or $ADMIN_ROLE.",
         content = [Content(mediaType = MediaType.APPLICATION_JSON_VALUE, schema = Schema(implementation = ErrorResponse::class))],
       ),
       ApiResponse(

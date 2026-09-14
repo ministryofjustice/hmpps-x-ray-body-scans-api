@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response
 
 import com.fasterxml.jackson.annotation.JsonIgnore
+import com.fasterxml.jackson.annotation.JsonInclude
 import io.swagger.v3.oas.annotations.media.Schema
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.Source
 import java.time.LocalDate
@@ -136,6 +137,22 @@ data class ScanResponse(
     requiredMode = Schema.RequiredMode.REQUIRED,
   )
   val lastModifiedBy: String,
+  @Schema(
+    description = "When the scan record was deleted (absent if scan was not deleted)",
+    type = "string",
+    format = "date-time",
+    requiredMode = Schema.RequiredMode.NOT_REQUIRED,
+  )
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  val deletedAt: LocalDateTime? = null,
+  @Schema(
+    description = "Why the scan was deleted (absent if scan was not deleted)",
+    example = "Recorded in error",
+    type = "string",
+    requiredMode = Schema.RequiredMode.NOT_REQUIRED,
+  )
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  val deletedReason: String? = null,
 ) : UnifiedScanResponse {
   @Schema(
     description = "Unique DPS identifier for the scan as a UUIDv7",
@@ -153,4 +170,12 @@ data class ScanResponse(
     requiredMode = Schema.RequiredMode.REQUIRED,
   )
   override val source: Source = Source.DPS
+
+  @get:Schema(
+    description = "True if this scan record was deleted (absent if scan was not deleted)",
+    requiredMode = Schema.RequiredMode.NOT_REQUIRED,
+  )
+  @get:JsonInclude(JsonInclude.Include.NON_DEFAULT)
+  val isDeleted: Boolean
+    get() = deletedAt != null
 }

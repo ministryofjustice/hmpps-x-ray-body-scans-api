@@ -52,6 +52,7 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanSummary
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.IncludeAlerts
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.service.ScanService
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.util.UUID
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.response.AlertResponse as AlertResponseDto
 
@@ -84,17 +85,18 @@ class ScanServiceTest {
 
     @Test
     fun `returns empty list when no scans are found`() {
-      whenever(scanRepository.findByIdIn(ids))
+      whenever(scanRepository.findByDeletedAtIsNullAndIdIn(ids))
         .thenReturn(emptyList())
 
       val scans = scanService.getScans(ids)
       assertThat(scans).isEmpty()
       verifyNoInteractions(prisonApiClient)
+      verify(scanRepository, never()).findByIdIn(any())
     }
 
     @Test
     fun `returns list of scans`() {
-      whenever(scanRepository.findByIdIn(ids))
+      whenever(scanRepository.findByDeletedAtIsNullAndIdIn(ids))
         .thenReturn(
           listOf(
             scanEntity("A1111AA"),
@@ -109,6 +111,32 @@ class ScanServiceTest {
         "B2222BB" to Source.DPS,
       )
       verifyNoInteractions(prisonApiClient)
+      verify(scanRepository, never()).findByIdIn(any())
+    }
+
+    @Test
+    fun `returns list of scans including deleted if requested`() {
+      whenever(scanRepository.findByIdIn(ids))
+        .thenReturn(
+          listOf(
+            scanEntity("A1111AA"),
+            scanEntity(
+              "B2222BB",
+              scanDate = now.minusWeeks(1).toLocalDate(),
+              deleted = now.minusWeeks(1) to "Recorded for wrong person",
+            ),
+          ),
+        )
+
+      val scans = scanService.getScans(ids, includeDeleted = true)
+      assertThat(scans).hasSize(2)
+      assertThat(scans.map { it.prisonerNumber to it.source }).containsExactly(
+        "A1111AA" to Source.DPS,
+        "B2222BB" to Source.DPS,
+      )
+      assertThat(scans.count { it.deletedAt != null }).isEqualTo(1)
+      verifyNoInteractions(prisonApiClient)
+      verify(scanRepository, never()).findByDeletedAtIsNullAndIdIn(any())
     }
   }
 
@@ -356,10 +384,7 @@ class ScanServiceTest {
     @Test
     fun `persists a scan entity built from the request and returns response built from the saved entity`() {
       makeReferenceDataWheneverNeeded()
-      whenever(scanRepository.save(any<ScanEntity>())).thenAnswer { invocation ->
-        val scanEntity = invocation.getArgument<ScanEntity>(0)
-        scanEntity.apply { id = UUID.randomUUID() }
-      }
+      mockSavingScanEntity()
 
       val response = scanService.createScan(
         prisonerNumber,
@@ -432,7 +457,8 @@ class ScanServiceTest {
     fun `creates case note and saves its id to the scan`() {
       val scan = scanEntity(prisonerNumber).apply { id = scanId }
       val occurredAt = scan.scanDate.atStartOfDay()
-      whenever(scanRepository.findById(scanId)).thenReturn(java.util.Optional.of(scan))
+      whenever(scanRepository.findAll(any<Specification<ScanEntity>>()))
+        .thenReturn(listOf(scan))
       whenever(caseNotesApiClient.createCaseNote(eq(prisonerNumber), any<CreateCaseNoteRequest>()))
         .thenReturn(
           CaseNoteResponse(
@@ -449,7 +475,7 @@ class ScanServiceTest {
             amendments = emptyList(),
           ),
         )
-      whenever(scanRepository.save(any<ScanEntity>())).thenAnswer { it.getArgument(0) }
+      mockSavingScanEntity()
 
       val response = scanService.createCaseNote(
         scanId,
@@ -483,7 +509,8 @@ class ScanServiceTest {
 
     @Test
     fun `throws entity not found exception when scan is not found`() {
-      whenever(scanRepository.findById(scanId)).thenReturn(java.util.Optional.empty())
+      whenever(scanRepository.findAll(any<Specification<ScanEntity>>()))
+        .thenReturn(emptyList())
 
       assertThatThrownBy {
         scanService.createCaseNote(
@@ -496,6 +523,41 @@ class ScanServiceTest {
       }.hasMessage("Scan with id $scanId not found")
 
       verifyNoInteractions(caseNotesApiClient)
+    }
+  }
+
+  @DisplayName("Deleting scans")
+  @Nested
+  inner class Delete {
+    private val ids = MutableList(3) { UUID.randomUUID() }
+
+    @Test
+    fun `returns empty list when no scans found`() {
+      whenever(scanRepository.findAll(any<Specification<ScanEntity>>()))
+        .thenReturn(emptyList())
+
+      val scans = scanService.deleteScans(ids, "Recorded in error")
+      assertThat(scans).isEmpty()
+      verifyNoInteractions(prisonApiClient)
+    }
+
+    @Test
+    fun `deletes list of scans`() {
+      whenever(scanRepository.findAll(any<Specification<ScanEntity>>()))
+        .thenReturn(
+          listOf(
+            scanEntity("A1111AA"),
+            scanEntity("B2222BB"),
+          ),
+        )
+      mockSavingScanEntity()
+
+      val deletedScans = scanService.deleteScans(ids, "Recorded in error")
+      assertThat(deletedScans).hasSize(2)
+      assertThat(deletedScans.map { it.prisonerNumber to listOf(it.source, it.deletedAt, it.deletedReason) }).containsExactly(
+        "A1111AA" to listOf(Source.DPS, now, "Recorded in error"),
+        "B2222BB" to listOf(Source.DPS, now, "Recorded in error"),
+      )
     }
   }
 
@@ -523,7 +585,7 @@ class ScanServiceTest {
             ),
           ),
         )
-      whenever(scanRepository.scanSummaryRowsForPrisoners(prisonerNumbers, yearStart, today))
+      whenever(scanRepository.scanSummaryRowsForPrisoners(prisonerNumbers, yearStart, today, false))
         .thenReturn(
           listOf(
             scanSummaryRow("B1234AC"),
@@ -570,7 +632,7 @@ class ScanServiceTest {
         ),
       )
       verifyNoInteractions(alertsApiClient)
-      verify(scanRepository, never()).latestScansForPrisoners(any(), any(), any())
+      verify(scanRepository, never()).latestScansForPrisoners(any(), any(), any(), any())
     }
 
     @Test
@@ -586,7 +648,7 @@ class ScanServiceTest {
             ),
           ),
         )
-      whenever(scanRepository.scanSummaryRowsForPrisoners(listOf(prisonerNumber), yearStart, today))
+      whenever(scanRepository.scanSummaryRowsForPrisoners(listOf(prisonerNumber), yearStart, today, false))
         .thenReturn(listOf(scanSummaryRow("A1234BC", count = 3)))
 
       val result = scanService.summariseScans(prisonerNumber)
@@ -611,7 +673,7 @@ class ScanServiceTest {
         ),
       )
       verifyNoInteractions(alertsApiClient)
-      verify(scanRepository, never()).latestScansForPrisoners(any(), any(), any())
+      verify(scanRepository, never()).latestScansForPrisoners(any(), any(), any(), any())
     }
 
     @Test
@@ -632,7 +694,7 @@ class ScanServiceTest {
             ),
           ),
         )
-      whenever(scanRepository.scanSummaryRowsForPrisoners(prisonerNumbers, yearStart, today))
+      whenever(scanRepository.scanSummaryRowsForPrisoners(prisonerNumbers, yearStart, today, false))
         .thenReturn(listOf(scanSummaryRow("B1234AC", count = 2)))
 
       val result = scanService.summariseScans(prisonerNumbers)
@@ -691,7 +753,7 @@ class ScanServiceTest {
         ),
       )
       verifyNoInteractions(alertsApiClient)
-      verify(scanRepository, never()).latestScansForPrisoners(any(), any(), any())
+      verify(scanRepository, never()).latestScansForPrisoners(any(), any(), any(), any())
     }
 
     @Test
@@ -700,7 +762,7 @@ class ScanServiceTest {
 
       whenever(prisonApiClient.getScanCareNeeds(listOf(prisonerNumber)))
         .thenReturn(listOf(PersonalCareNeedsResponse(offenderNo = prisonerNumber)))
-      whenever(scanRepository.scanSummaryRowsForPrisoners(listOf(prisonerNumber), yearStart, today))
+      whenever(scanRepository.scanSummaryRowsForPrisoners(listOf(prisonerNumber), yearStart, today, false))
         .thenReturn(
           listOf(
             scanSummaryRow(prisonerNumber, outcome = "POSITIVE"),
@@ -723,7 +785,7 @@ class ScanServiceTest {
 
       whenever(prisonApiClient.getScanCareNeeds(listOf(prisonerNumber)))
         .thenReturn(listOf(PersonalCareNeedsResponse(offenderNo = prisonerNumber)))
-      whenever(scanRepository.scanSummaryRowsForPrisoners(listOf(prisonerNumber), yearStart, today))
+      whenever(scanRepository.scanSummaryRowsForPrisoners(listOf(prisonerNumber), yearStart, today, false))
         .thenReturn(listOf(scanSummaryRow(prisonerNumber, count = 5)))
 
       val result = scanService.summariseScans(prisonerNumber)
@@ -759,7 +821,7 @@ class ScanServiceTest {
           ),
         )
 
-      whenever(scanRepository.scanSummaryRowsForPrisoners(prisonerNumbers, yearStart, today))
+      whenever(scanRepository.scanSummaryRowsForPrisoners(prisonerNumbers, yearStart, today, false))
         .thenReturn(
           listOf(
             // A1234BC has 67 dps scans
@@ -814,9 +876,9 @@ class ScanServiceTest {
       fun `returns null latest scan when requested`() {
         whenever(prisonApiClient.getScanCareNeeds(prisonerNumbers))
           .thenReturn(emptyList())
-        whenever(scanRepository.latestScansForPrisoners(prisonerNumbers, yearStart, today))
+        whenever(scanRepository.latestScansForPrisoners(prisonerNumbers, yearStart, today, false))
           .thenReturn(emptyList())
-        whenever(scanRepository.scanSummaryRowsForPrisoners(prisonerNumbers, yearStart, today))
+        whenever(scanRepository.scanSummaryRowsForPrisoners(prisonerNumbers, yearStart, today, false))
           .thenReturn(emptyList())
 
         val result = scanService.summariseScans(prisonerNumbers, includeLatestScans = true)
@@ -834,9 +896,9 @@ class ScanServiceTest {
       fun `returns latest DPS scan when requested`() {
         whenever(prisonApiClient.getScanCareNeeds(prisonerNumbers))
           .thenReturn(emptyList())
-        whenever(scanRepository.latestScansForPrisoners(prisonerNumbers, yearStart, today))
+        whenever(scanRepository.latestScansForPrisoners(prisonerNumbers, yearStart, today, false))
           .thenReturn(listOf(scanEntity("A1234AA", today.minusDays(2))))
-        whenever(scanRepository.scanSummaryRowsForPrisoners(prisonerNumbers, yearStart, today))
+        whenever(scanRepository.scanSummaryRowsForPrisoners(prisonerNumbers, yearStart, today, false))
           .thenReturn(emptyList()) // inconsistent with latest scan, but ignored for this test
 
         val result = scanService.summariseScans(prisonerNumbers, includeLatestScans = true)
@@ -853,9 +915,9 @@ class ScanServiceTest {
       fun `returns latest NOMIS scan when requested`() {
         whenever(prisonApiClient.getScanCareNeeds(prisonerNumbers))
           .thenReturn(listOf(personalCareNeeds("A1234AA", bscan(today.minusDays(2)), bscan(today.minusDays(1)))))
-        whenever(scanRepository.latestScansForPrisoners(prisonerNumbers, yearStart, today))
+        whenever(scanRepository.latestScansForPrisoners(prisonerNumbers, yearStart, today, false))
           .thenReturn(emptyList())
-        whenever(scanRepository.scanSummaryRowsForPrisoners(prisonerNumbers, yearStart, today))
+        whenever(scanRepository.scanSummaryRowsForPrisoners(prisonerNumbers, yearStart, today, false))
           .thenReturn(emptyList())
 
         val result = scanService.summariseScans(prisonerNumbers, includeLatestScans = true)
@@ -872,9 +934,9 @@ class ScanServiceTest {
       fun `returns latest NOMIS scan (when older DPS scans exist) when requested`() {
         whenever(prisonApiClient.getScanCareNeeds(prisonerNumbers))
           .thenReturn(listOf(personalCareNeeds("A1234AA", bscan(today.minusDays(3)), bscan(today.minusDays(1)))))
-        whenever(scanRepository.latestScansForPrisoners(prisonerNumbers, yearStart, today))
+        whenever(scanRepository.latestScansForPrisoners(prisonerNumbers, yearStart, today, false))
           .thenReturn(listOf(scanEntity("A1234AA", today.minusDays(2))))
-        whenever(scanRepository.scanSummaryRowsForPrisoners(prisonerNumbers, yearStart, today))
+        whenever(scanRepository.scanSummaryRowsForPrisoners(prisonerNumbers, yearStart, today, false))
           .thenReturn(emptyList()) // inconsistent with latest scans, but ignored for this test
 
         val result = scanService.summariseScans(prisonerNumbers, includeLatestScans = true)
@@ -891,9 +953,9 @@ class ScanServiceTest {
       fun `returns latest DPS scan (when older NOMIS scans exist) when requested`() {
         whenever(prisonApiClient.getScanCareNeeds(prisonerNumbers))
           .thenReturn(listOf(personalCareNeeds("A1234AA", bscan(today.minusDays(3)), bscan(today.minusDays(3)))))
-        whenever(scanRepository.latestScansForPrisoners(prisonerNumbers, yearStart, today))
+        whenever(scanRepository.latestScansForPrisoners(prisonerNumbers, yearStart, today, false))
           .thenReturn(listOf(scanEntity("A1234AA", today.minusDays(2))))
-        whenever(scanRepository.scanSummaryRowsForPrisoners(prisonerNumbers, yearStart, today))
+        whenever(scanRepository.scanSummaryRowsForPrisoners(prisonerNumbers, yearStart, today, false))
           .thenReturn(emptyList()) // inconsistent with latest scans, but ignored for this test
 
         val result = scanService.summariseScans(prisonerNumbers, includeLatestScans = true)
@@ -917,7 +979,7 @@ class ScanServiceTest {
         // alerts do not interact with actual scan data, so can say there were none
         whenever(prisonApiClient.getScanCareNeeds(prisonerNumbers))
           .thenReturn(emptyList())
-        whenever(scanRepository.scanSummaryRowsForPrisoners(prisonerNumbers, yearStart, today))
+        whenever(scanRepository.scanSummaryRowsForPrisoners(prisonerNumbers, yearStart, today, false))
           .thenReturn(emptyList())
       }
 
@@ -1033,8 +1095,8 @@ class ScanServiceTest {
 
   private fun makeReferenceDataWheneverNeeded(missingCodes: Set<Pair<String, String>> = emptySet()) {
     whenever(codeRepository.findByDomainAndCode(any<ReferenceDataDomains>(), any<String>())).thenAnswer { invocation ->
-      val domain = invocation.getArgument(0) as ReferenceDataDomains
-      val code = invocation.getArgument(1) as String
+      val domain = invocation.getArgument<ReferenceDataDomains>(0)
+      val code = invocation.getArgument<String>(1)
       if (missingCodes.contains(domain.name to code)) {
         null
       } else {
@@ -1065,6 +1127,7 @@ class ScanServiceTest {
     outcome: String = "NEGATIVE",
     typeOfFind: String? = null,
     createdBy: String = "abc12ab",
+    deleted: Pair<LocalDateTime, String>? = null,
   ) = ScanEntity(
     prisonerNumber = prisonerNumber,
     prisonId = prisonId,
@@ -1076,6 +1139,14 @@ class ScanServiceTest {
   ).apply {
     // updates to entity that would be done by jpa/hibernate
     id = UUID.randomUUID()
+
+    deletedAt = deleted?.first
+    deletedReason = deleted?.second
+  }
+
+  private fun mockSavingScanEntity() = whenever(scanRepository.save(any<ScanEntity>())).thenAnswer { invocation ->
+    val scanEntity = invocation.getArgument<ScanEntity>(0)
+    scanEntity.apply { id = UUID.randomUUID() }
   }
 
   private fun scanSummaryRow(

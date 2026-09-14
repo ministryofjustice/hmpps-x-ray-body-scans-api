@@ -7,40 +7,17 @@ import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.github.tomakehurst.wiremock.client.WireMock.urlEqualTo
 import com.github.tomakehurst.wiremock.http.HttpHeader
 import com.github.tomakehurst.wiremock.http.HttpHeaders
-import org.junit.jupiter.api.extension.AfterAllCallback
-import org.junit.jupiter.api.extension.BeforeAllCallback
-import org.junit.jupiter.api.extension.BeforeEachCallback
-import org.junit.jupiter.api.extension.ExtensionContext
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 
-class HmppsAuthApiExtension :
-  BeforeAllCallback,
-  AfterAllCallback,
-  BeforeEachCallback {
+class HmppsAuthApiExtension : MockServerExtension(hmppsAuth) {
   companion object {
     @JvmField
     val hmppsAuth = HmppsAuthMockServer()
   }
-
-  override fun beforeAll(context: ExtensionContext) {
-    hmppsAuth.start()
-  }
-
-  override fun beforeEach(context: ExtensionContext) {
-    hmppsAuth.resetRequests()
-  }
-
-  override fun afterAll(context: ExtensionContext) {
-    hmppsAuth.stop()
-  }
 }
 
-class HmppsAuthMockServer : WireMockServer(WIREMOCK_PORT) {
-  companion object {
-    private const val WIREMOCK_PORT = 8090
-  }
-
+class HmppsAuthMockServer : WireMockServer(8090) {
   fun stubGrantToken() {
     stubFor(
       post(urlEqualTo("/auth/oauth/token"))
@@ -48,13 +25,14 @@ class HmppsAuthMockServer : WireMockServer(WIREMOCK_PORT) {
           aResponse()
             .withHeaders(HttpHeaders(HttpHeader("Content-Type", "application/json")))
             .withBody(
+              // language=json
               """
                 {
                   "token_type": "bearer",
                   "access_token": "ABCDE",
                   "expires_in": ${LocalDateTime.now().plusHours(2).toEpochSecond(ZoneOffset.UTC)}
                 }
-              """.trimIndent(),
+              """,
             ),
         ),
     )
@@ -65,6 +43,7 @@ class HmppsAuthMockServer : WireMockServer(WIREMOCK_PORT) {
       get("/auth/health/ping").willReturn(
         aResponse()
           .withHeader("Content-Type", "application/json")
+          // language=json
           .withBody(if (status == 200) """{"status":"UP"}""" else """{"status":"DOWN"}""")
           .withStatus(status),
       ),
