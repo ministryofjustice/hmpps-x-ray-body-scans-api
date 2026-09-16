@@ -1,0 +1,52 @@
+asyncapi: 3.0.0
+info:
+  title: X-ray body scans service
+  description: Publishes events relating to x-ray body scans and associated case notes
+  version: 1.0.0
+
+servers:
+  development:
+    host: hmpps-domain-events-dev.live-1.cloud-platform.service.justice.gov.uk
+    protocol: sqs
+    description: Development environment
+  preproduction:
+    host: hmpps-domain-events-preprod.live-1.cloud-platform.service.justice.gov.uk
+    protocol: sqs
+    description: Pre-production environment
+  production:
+    host: hmpps-domain-events-prod.live-1.cloud-platform.service.justice.gov.uk
+    protocol: sqs
+    description: Production environment
+
+components:
+  messages:
+    xraybodyscans.scan.created:
+      $ref: https://raw.githubusercontent.com/ministryofjustice/hmpps-domain-events/main/spec/schemas/x-ray-body-scans/scan-created.yml
+    xraybodyscans.scan.deleted:
+      $ref: https://raw.githubusercontent.com/ministryofjustice/hmpps-domain-events/main/spec/schemas/x-ray-body-scans/scan-deleted.yml
+    xraybodyscans.casenote.added:
+      $ref: https://raw.githubusercontent.com/ministryofjustice/hmpps-domain-events/main/spec/schemas/x-ray-body-scans/case-note-added.yml
+
+channels:
+  hmpps-domain-events:
+    description: HMPPS domain events SNS topic
+    bindings:
+      sns:
+        name: domainevents
+    messages:
+      xraybodyscans.scan.created:
+        $ref: '#/components/messages/xraybodyscans.scan.created'
+      xraybodyscans.scan.deleted:
+        $ref: '#/components/messages/xraybodyscans.scan.deleted'
+      xraybodyscans.casenote.added:
+        $ref: '#/components/messages/xraybodyscans.casenote.added'
+
+operations:
+  publish-event:
+    action: send
+    channel:
+      $ref: '#/channels/hmpps-domain-events'
+    messages:
+      - $ref: '#/channels/hmpps-domain-events/messages/xraybodyscans.scan.created'
+      - $ref: '#/channels/hmpps-domain-events/messages/xraybodyscans.scan.deleted'
+      - $ref: '#/channels/hmpps-domain-events/messages/xraybodyscans.casenote.added'

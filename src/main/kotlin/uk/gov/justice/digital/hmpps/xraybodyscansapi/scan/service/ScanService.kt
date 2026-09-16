@@ -19,6 +19,9 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.NotFoundException
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.dto.response.ReferenceDataDomains
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.repository.ReferenceDataCodeEntity
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.repository.ReferenceDataCodeRepository
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.event.CaseNoteAddedEvent
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.event.ScanCreatedEvent
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.event.ScanDeletedEvent
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScanCaseNoteRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.CreateScanRequest
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.dto.request.ListScansRequest
@@ -48,6 +51,7 @@ import java.util.UUID
 class ScanService(
   private val clock: Clock,
   private val codeRepository: ReferenceDataCodeRepository,
+  private val eventService: EventService,
   private val scanRepository: ScanRepository,
   private val prisonApiClient: PrisonApiClient,
   private val alertsApiClient: AlertsApiClient,
@@ -158,7 +162,9 @@ class ScanService(
       ),
     )
 
-    return saved.toDto()
+    return saved.toDto().also {
+      eventService.track(ScanCreatedEvent(it))
+    }
   }
 
   @Transactional
@@ -166,7 +172,9 @@ class ScanService(
     .map { scanEntity ->
       scanEntity.deletedAt = LocalDateTime.now(clock)
       scanEntity.deletedReason = reason
-      scanRepository.save(scanEntity).toDto()
+      scanRepository.save(scanEntity).toDto().also {
+        eventService.track(ScanDeletedEvent(it))
+      }
     }
 
   @Transactional(readOnly = true)
@@ -265,8 +273,10 @@ class ScanService(
       ),
     )
     scan.caseNoteId = UUID.fromString(caseNote.caseNoteId)
-    scanRepository.save(scan)
-    return ScanCaseNoteResponse(caseNote)
+    val scanResponse = scanRepository.save(scan).toDto()
+    return ScanCaseNoteResponse(caseNote).also {
+      eventService.track(CaseNoteAddedEvent(scanResponse, it))
+    }
   }
 
   @Transactional(readOnly = true)
