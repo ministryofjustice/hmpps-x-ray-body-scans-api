@@ -1,5 +1,6 @@
 package uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.scan.repository
 
+import jakarta.persistence.EntityManager
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
@@ -9,6 +10,7 @@ import org.junit.jupiter.params.provider.CsvSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest
 import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.context.transaction.TestTransaction
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.dto.response.ReferenceDataDomains
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.referencedata.repository.ReferenceDataCodeRepository
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository.ScanEntity
@@ -26,6 +28,9 @@ class ScanRepositoryTest {
 
   @Autowired
   private lateinit var scanRepository: ScanRepository
+
+  @Autowired
+  private lateinit var entityManager: EntityManager
 
   private val prisonerNumber = "A1111AA"
 
@@ -224,6 +229,49 @@ class ScanRepositoryTest {
           ),
         )
       }
+    }
+  }
+
+  @DisplayName("Scan merges")
+  @Nested
+  inner class ScanMerges {
+    @Test
+    fun `no scans`() {
+      val updated = scanRepository.mergeScans(from = "B2222BB", to = prisonerNumber, LocalDateTime.now())
+      assertThat(updated).isEqualTo(0)
+    }
+
+    @Test
+    fun `scans to merge`() {
+      val toMerge = "B2222BB"
+      scanRepository.saveAll(
+        listOf(
+          scanEntity(prisonerNumber),
+          scanEntity(toMerge),
+          scanEntity(toMerge),
+          scanEntity("C3333CC"),
+        ),
+      )
+
+      TestTransaction.flagForCommit()
+      TestTransaction.end()
+      TestTransaction.start()
+
+      val updated = scanRepository.mergeScans(
+        from = toMerge,
+        to = prisonerNumber,
+        mergedAt = LocalDateTime.now(),
+      )
+
+      TestTransaction.flagForCommit()
+      TestTransaction.end()
+      TestTransaction.start()
+
+      assertThat(updated).isEqualTo(2)
+      assertThat(scanRepository.findAllByPrisonerNumber(toMerge)).isEmpty()
+      val mergedScans = scanRepository.findAllByPrisonerNumber(prisonerNumber)
+      assertThat(mergedScans).hasSize(3)
+      assertThat(mergedScans.filter { it.mergedFromPrisonerNumber == toMerge }.size).isEqualTo(2)
     }
   }
 

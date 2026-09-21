@@ -19,7 +19,7 @@ import java.util.UUID
 @Table(name = "body_scan")
 class ScanEntity(
   @Column(name = "prisoner_number", length = 7, nullable = false)
-  val prisonerNumber: String,
+  var prisonerNumber: String,
 
   @Column(name = "prison_id", length = 10, nullable = false)
   val prisonId: String,
