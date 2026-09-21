@@ -11,6 +11,9 @@ dependencies {
   implementation("org.springframework.boot:spring-boot-starter-webflux")
   implementation("org.springframework.boot:spring-boot-starter-webclient")
 
+  // AWS
+  implementation("uk.gov.justice.service.hmpps:hmpps-sqs-spring-boot-starter:7.4.1")
+
   // Monitoring
   implementation("io.sentry:sentry-spring-boot-4:8.57.0")
 
@@ -29,6 +32,8 @@ dependencies {
   implementation("com.h2database:h2") // Here in case you want to run locally using h2
   testImplementation("com.h2database:h2") // Tests use h2
   testImplementation("org.springframework.boot:spring-boot-starter-data-jpa-test")
+  testImplementation("org.testcontainers:localstack:1.21.4") // For SQS
+  testImplementation("org.awaitility:awaitility-kotlin:4.3.0")
 
   testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:3.0.1")
   testImplementation("org.springframework.boot:spring-boot-starter-webflux-test")

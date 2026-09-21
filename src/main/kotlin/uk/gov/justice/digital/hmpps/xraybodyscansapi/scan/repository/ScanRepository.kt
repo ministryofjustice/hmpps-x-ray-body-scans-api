@@ -3,9 +3,11 @@ package uk.gov.justice.digital.hmpps.xraybodyscansapi.scan.repository
 import org.springframework.data.jpa.repository.EntityGraph
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor
+import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.stereotype.Repository
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.util.UUID
 
 @Repository
@@ -57,4 +59,16 @@ interface ScanRepository :
     toScanDate: LocalDate,
     includeDeleted: Boolean = false,
   ): List<ScanSummaryRow>
+
+  @Modifying
+  @Query(
+    """
+      update ScanEntity 
+      set prisonerNumber = :to, mergedFromPrisonerNumber = :from, mergedAt = :mergedAt
+      where prisonerNumber = :from
+    """,
+  )
+  fun mergeScans(from: String, to: String, mergedAt: LocalDateTime): Int
+
+  fun findAllByPrisonerNumber(prisonerNumber: String): MutableList<ScanEntity>
 }

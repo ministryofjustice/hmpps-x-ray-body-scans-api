@@ -277,6 +277,11 @@ class ScanService(
     return ScanCaseNoteResponse(caseNote)
   }
 
+  @Transactional
+  fun mergeScans(from: String, to: String) {
+    scanRepository.mergeScans(from, to, LocalDateTime.now(clock))
+  }
+
   private fun findExtantScan(scanId: UUID): ScanEntity = scanRepository.findAll(filterById(scanId).and(notDeleted))
     .firstOrNull()
     ?: throw NotFoundException("Scan with id $scanId not found")

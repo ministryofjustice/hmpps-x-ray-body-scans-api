@@ -1,6 +1,7 @@
 package uk.gov.justice.digital.hmpps.xraybodyscansapi.integration
 
 import org.assertj.core.api.Assertions.assertThat
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.extension.ExtendWith
 import org.springframework.beans.factory.annotation.Autowired
@@ -10,13 +11,27 @@ import org.springframework.boot.webtestclient.autoconfigure.AutoConfigureWebTest
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.test.context.ActiveProfiles
+import org.springframework.test.context.DynamicPropertyRegistry
+import org.springframework.test.context.DynamicPropertySource
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean
 import org.springframework.test.web.reactive.server.WebTestClient
+import software.amazon.awssdk.services.sqs.model.PurgeQueueRequest
+import tools.jackson.databind.json.JsonMapper
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.ADMIN_ROLE
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.READ_CASE_NOTE_ROLE
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.READ_ROLE
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.WRITE_CASE_NOTE_ROLE
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.config.WRITE_ROLE
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.event.HmppsDomainEvent
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.testcontainers.LocalStackContainer
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.testcontainers.LocalStackContainer.setLocalStackProperties
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.wiremock.HmppsAuthApiExtension
+import uk.gov.justice.hmpps.sqs.HmppsQueue
+import uk.gov.justice.hmpps.sqs.HmppsQueueService
+import uk.gov.justice.hmpps.sqs.MissingQueueException
+import uk.gov.justice.hmpps.sqs.MissingTopicException
+import uk.gov.justice.hmpps.sqs.countAllMessagesOnQueue
+import uk.gov.justice.hmpps.sqs.publish
 import uk.gov.justice.hmpps.test.kotlin.auth.JwtAuthorisationHelper
 
 @ExtendWith(HmppsAuthApiExtension::class)
@@ -24,14 +39,42 @@ import uk.gov.justice.hmpps.test.kotlin.auth.JwtAuthorisationHelper
 @ActiveProfiles("test")
 @AutoConfigureWebTestClient
 abstract class IntegrationTestBase {
-
   @Autowired
   protected lateinit var webTestClient: WebTestClient
 
   @Autowired
   protected lateinit var jwtAuthHelper: JwtAuthorisationHelper
 
-  protected fun setAuthorisation(
+  @Autowired
+  lateinit var jsonMapper: JsonMapper
+
+  @MockitoSpyBean
+  lateinit var hmppsQueueService: HmppsQueueService
+
+  @BeforeEach
+  fun `clear queues`() {
+    hmppsDomainEventsQueue.sqsClient.purgeQueue(
+      PurgeQueueRequest.builder().queueUrl(hmppsDomainEventsQueue.queueUrl).build(),
+    ).get()
+  }
+
+  val domainEventsTopic by lazy {
+    hmppsQueueService.findByTopicId("hmppseventtopic")
+      ?: throw MissingTopicException("hmppseventtopic not found")
+  }
+
+  internal val hmppsDomainEventsQueue by lazy {
+    hmppsQueueService.findByQueueId("hmppsdomaineventsqueue")
+      ?: throw MissingQueueException("hmppsdomaineventsqueue queue not found")
+  }
+
+  internal fun sendDomainEvent(event: HmppsDomainEvent) {
+    domainEventsTopic.publish(event.eventType, jsonMapper.writeValueAsString(event))
+  }
+
+  internal fun HmppsQueue.countAllMessagesOnQueue() = sqsClient.countAllMessagesOnQueue(queueUrl).get()
+
+  internal fun setAuthorisation(
     username: String? = "AUTH_ADM",
     roles: List<String> = listOf(),
     scopes: List<String> = listOf("read"),
@@ -123,5 +166,16 @@ abstract class IntegrationTestBase {
       .jsonPath("developerMessage").value<String> {
         assertThat(it).contains(developerMessageContains)
       }
+  }
+
+  companion object {
+    private val localStackContainer = LocalStackContainer.instance
+
+    @JvmStatic
+    @DynamicPropertySource
+    fun properties(registry: DynamicPropertyRegistry) {
+      System.setProperty("aws.region", "eu-west-2")
+      localStackContainer?.also { setLocalStackProperties(it, registry) }
+    }
   }
 }

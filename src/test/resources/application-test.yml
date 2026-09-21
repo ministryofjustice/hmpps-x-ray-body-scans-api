@@ -24,6 +24,23 @@ hmpps:
       expected-render-result.path: /sar/test-data/expected-render-result.html
       expected-flyway-schema-version: "7"
       expected-jpa-entity-schema.path: /sar/test-data/expected-jpa-entity-schema.json
+  sqs:
+    enabled: true
+    provider: localstack
+    queues:
+      hmppsdomaineventsqueue:
+        queueName: ${random.uuid}
+        dlqName: ${random.uuid}
+        subscribeTopicId: hmppseventtopic
+        subscribeFilter: >
+          {
+            "eventType": [
+              "prison-offender-events.prisoner.merged"
+            ]
+          }
+    topics:
+      hmppseventtopic:
+        arn: arn:aws:sns:eu-west-2:000000000000:${random.uuid}
 
 spring:
   datasource:

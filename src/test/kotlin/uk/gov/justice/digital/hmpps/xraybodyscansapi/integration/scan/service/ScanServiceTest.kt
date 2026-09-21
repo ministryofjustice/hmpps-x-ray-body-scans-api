@@ -535,7 +535,15 @@ class ScanServiceTest {
 
       val deletedScans = scanService.deleteScans(ids, "Recorded in error")
       assertThat(deletedScans).hasSize(2)
-      assertThat(deletedScans.map { it.prisonerNumber to listOf(it.source, it.deletedAt, it.deletedReason) }).containsExactly(
+      assertThat(
+        deletedScans.map {
+          it.prisonerNumber to listOf(
+            it.source,
+            it.deletedAt,
+            it.deletedReason,
+          )
+        },
+      ).containsExactly(
         "A1111AA" to listOf(Source.DPS, now, "Recorded in error"),
         "B2222BB" to listOf(Source.DPS, now, "Recorded in error"),
       )
@@ -1055,6 +1063,21 @@ class ScanServiceTest {
         ),
         description = "",
       )
+    }
+  }
+
+  @DisplayName("Merging scans")
+  @Nested
+  inner class Merge {
+    @Test
+    fun `merges scans for given prisoner numbers`() {
+      val from = "A1111AA"
+      val to = "B1111BB"
+
+      whenever(scanRepository.mergeScans(from, to, now)).thenReturn(5)
+
+      scanService.mergeScans(from, to)
+      verify(scanRepository).mergeScans(from, to, now)
     }
   }
 
