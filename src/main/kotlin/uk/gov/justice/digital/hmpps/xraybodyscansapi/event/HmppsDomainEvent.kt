@@ -41,6 +41,4 @@ data class HmppsAdditionalInformation(private val mutableMap: MutableMap<String,
   MutableMap<String, Any?> by mutableMap
 
 val HmppsAdditionalInformation.nomsNumber get() = get("nomsNumber") as String
-val HmppsAdditionalInformation.categoriesChanged
-  get() = (get("categoriesChanged") as List<*>).filterIsInstance<String>().toSet()
 val HmppsAdditionalInformation.removedNomsNumber get() = get("removedNomsNumber") as String
