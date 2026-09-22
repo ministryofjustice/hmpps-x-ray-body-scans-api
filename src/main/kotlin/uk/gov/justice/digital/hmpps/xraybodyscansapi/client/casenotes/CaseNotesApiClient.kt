@@ -37,6 +37,9 @@ class CaseNotesApiClient(
   }
 
   fun getCaseNotes(caseNoteIds: Collection<String>): List<CaseNoteResponse> = try {
+    if (caseNoteIds.isEmpty()) {
+      return emptyList()
+    }
     webClient
       .post()
       .uri("/search/case-notes/by-ids")
