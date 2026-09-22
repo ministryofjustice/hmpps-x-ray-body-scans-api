@@ -158,4 +158,10 @@ class CaseNotesApiClientTest {
       .extracting { (it as WebClientResponseException).statusCode.value() }
       .isEqualTo(500)
   }
+
+  @Test
+  fun `getCaseNotes does not call api when empty list is requested`() {
+    caseNotesApi.stubGetCaseNotes(500)
+    assertThat(client.getCaseNotes(emptyList())).isEmpty()
+  }
 }
