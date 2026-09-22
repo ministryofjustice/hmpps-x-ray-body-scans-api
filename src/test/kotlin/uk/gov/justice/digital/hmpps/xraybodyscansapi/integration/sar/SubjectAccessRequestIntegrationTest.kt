@@ -49,6 +49,12 @@ class SubjectAccessRequestIntegrationTest :
     caseNotesApi.stubGetCaseNotes(
       // language=json
       """
+      {
+        "ids": ["01a067dc-332f-754e-b41f-d8fe1eaeba89"]
+      }
+      """,
+      // language=json
+      """
       [
         {
           "caseNoteId": "01a067dc-332f-754e-b41f-d8fe1eaeba89",
