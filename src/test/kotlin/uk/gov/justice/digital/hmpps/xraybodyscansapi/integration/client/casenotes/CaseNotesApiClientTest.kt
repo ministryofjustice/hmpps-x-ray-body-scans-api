@@ -52,6 +52,12 @@ class CaseNotesApiClientTest {
     caseNotesApi.stubGetCaseNotes(
       // language=json
       """
+      {
+        "ids": ["341c845e-fadc-4ec8-9330-81c83968c1a8", "eb1393f6-3db2-400f-bd37-2635111ddb69", "2ec4f3da-c8a4-43cc-bb06-fd9f67e92c37"]
+      }
+      """,
+      // language=json
+      """
       [
         $caseNoteResponse,
         {
