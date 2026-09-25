@@ -1,6 +1,5 @@
 package uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.scan.repository
 
-import jakarta.persistence.EntityManager
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.DisplayName
 import org.junit.jupiter.api.Nested
@@ -28,9 +27,6 @@ class ScanRepositoryTest {
 
   @Autowired
   private lateinit var scanRepository: ScanRepository
-
-  @Autowired
-  private lateinit var entityManager: EntityManager
 
   private val prisonerNumber = "A1111AA"
 
