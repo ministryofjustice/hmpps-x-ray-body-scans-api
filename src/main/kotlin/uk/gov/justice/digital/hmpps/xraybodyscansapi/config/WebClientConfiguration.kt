@@ -3,19 +3,14 @@ package uk.gov.justice.digital.hmpps.xraybodyscansapi.config
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import org.springframework.security.core.context.SecurityContextHolder
-import org.springframework.security.oauth2.client.AuthorizedClientServiceOAuth2AuthorizedClientManager
-import org.springframework.security.oauth2.client.InMemoryOAuth2AuthorizedClientService
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClientManager
-import org.springframework.security.oauth2.client.OAuth2AuthorizedClientProviderBuilder
 import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService
-import org.springframework.security.oauth2.client.endpoint.RestClientClientCredentialsTokenResponseClient
 import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository
 import org.springframework.web.context.annotation.RequestScope
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.WebClient.Builder
 import uk.gov.justice.hmpps.kotlin.auth.authorisedWebClient
 import uk.gov.justice.hmpps.kotlin.auth.healthWebClient
+import uk.gov.justice.hmpps.kotlin.auth.usernameAwareTokenRequestOAuth2AuthorizedClientManager
 import java.time.Duration
 
 @Configuration
@@ -48,17 +43,13 @@ class WebClientConfiguration(
   fun alertsApiHealthWebClient(builder: Builder): WebClient = builder.healthWebClient(alertsApiBaseUri, alertsApiHealthTimeout)
 
   @Bean
-  fun authorizedClientService(clients: ClientRegistrationRepository): OAuth2AuthorizedClientService =
-    InMemoryOAuth2AuthorizedClientService(clients)
-
-  @Bean
   @RequestScope
   fun prisonApiWebClient(
     clientRegistrationRepository: ClientRegistrationRepository,
-    authorizedClientService: OAuth2AuthorizedClientService,
+    oAuth2AuthorizedClientService: OAuth2AuthorizedClientService,
     builder: Builder,
   ) = builder.authorisedWebClient(
-    authorizedClientManagerUserEnhanced(clientRegistrationRepository, authorizedClientService),
+    usernameAwareTokenRequestOAuth2AuthorizedClientManager(clientRegistrationRepository, oAuth2AuthorizedClientService),
     "hmpps-x-ray-body-scans-api",
     prisonApiBaseUri,
     prisonApiTimeout,
@@ -68,10 +59,10 @@ class WebClientConfiguration(
   @RequestScope
   fun alertsApiWebClient(
     clientRegistrationRepository: ClientRegistrationRepository,
-    authorizedClientService: OAuth2AuthorizedClientService,
+    oAuth2AuthorizedClientService: OAuth2AuthorizedClientService,
     builder: Builder,
   ) = builder.authorisedWebClient(
-    authorizedClientManagerUserEnhanced(clientRegistrationRepository, authorizedClientService),
+    usernameAwareTokenRequestOAuth2AuthorizedClientManager(clientRegistrationRepository, oAuth2AuthorizedClientService),
     "hmpps-x-ray-body-scans-api",
     alertsApiBaseUri,
     alertsApiTimeout,
@@ -81,38 +72,12 @@ class WebClientConfiguration(
   @RequestScope
   fun caseNotesApiWebClient(
     clientRegistrationRepository: ClientRegistrationRepository,
-    authorizedClientService: OAuth2AuthorizedClientService,
+    oAuth2AuthorizedClientService: OAuth2AuthorizedClientService,
     builder: Builder,
   ) = builder.authorisedWebClient(
-    authorizedClientManagerUserEnhanced(clientRegistrationRepository, authorizedClientService),
+    usernameAwareTokenRequestOAuth2AuthorizedClientManager(clientRegistrationRepository, oAuth2AuthorizedClientService),
     "hmpps-x-ray-body-scans-api",
     caseNotesApiBaseUri,
     caseNotesApiTimeout,
   )
-
-  private fun authorizedClientManagerUserEnhanced(
-    clients: ClientRegistrationRepository,
-    service: OAuth2AuthorizedClientService,
-  ): OAuth2AuthorizedClientManager {
-    val manager = AuthorizedClientServiceOAuth2AuthorizedClientManager(clients, service)
-    val restClientTokenResponseClient = RestClientClientCredentialsTokenResponseClient()
-    val authentication = SecurityContextHolder.getContext().authentication
-
-    restClientTokenResponseClient.setParametersCustomizer { parameters ->
-      authentication?.name?.let { username ->
-        parameters.add("username", username)
-      }
-    }
-
-    val authorizedClientProvider = OAuth2AuthorizedClientProviderBuilder.builder()
-      .clientCredentials { clientCredentialsGrantBuilder: OAuth2AuthorizedClientProviderBuilder.ClientCredentialsGrantBuilder ->
-        clientCredentialsGrantBuilder.accessTokenResponseClient(
-          restClientTokenResponseClient,
-        )
-      }
-      .build()
-
-    manager.setAuthorizedClientProvider(authorizedClientProvider)
-    return manager
-  }
 }
