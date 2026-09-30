@@ -103,7 +103,7 @@ class ScanService(
       specification = specification.and(query.toSpecification())
     }
     val dpsScanSequence = getDpsScanSequence(specification, pageableWithIdTiebreak)
-    val nomisScanSequence = getNomisScanSequence(prisonerNumber, pageableWithIdTiebreak)
+    val nomisScanSequence = getNomisScanSequence(prisonerNumber, query, pageableWithIdTiebreak)
     return dpsScanSequence.paginateWith(nomisScanSequence, pageableWithSourceTiebreak)
   }
 
@@ -129,12 +129,26 @@ class ScanService(
 
   private fun getNomisScanSequence(
     prisonerNumber: String,
+    query: ListScansRequest?,
     pageable: Pageable,
   ): UnifiedScanResponsePaginator<LegacyScanResponse> {
-    // get all care needs and sort
+    // get all body scan care needs…
     val nomisScans = prisonApiClient.getScanCareNeeds(listOf(prisonerNumber)).firstOrNull()
       ?.personalCareNeeds?.toMutableList()
       ?: mutableListOf()
+
+    // …filter them…
+    val fromScanDate = query?.fromScanDate
+    val toScanDate = query?.toScanDate
+    if (fromScanDate != null || toScanDate != null) {
+      nomisScans.retainAll { nomisScan ->
+        nomisScan.startDate != null &&
+          (fromScanDate == null || !nomisScan.startDate.isBefore(fromScanDate)) &&
+          (toScanDate == null || !nomisScan.startDate.isAfter(toScanDate))
+      }
+    }
+
+    // …and sort
     nomisScans.sortWith(PersonalCareNeedComparator(pageable.sort))
 
     val sequence = nomisScans.asSequence()
@@ -302,7 +316,9 @@ class ScanService(
       .getScanCareNeeds(prisonerNumbers)
       .associate { res ->
         val personalCareNeeds = res.personalCareNeeds.filter { personalCareNeed ->
-          personalCareNeed.startDate != null && !personalCareNeed.startDate.isBefore(fromScanDate) && !personalCareNeed.startDate.isAfter(toScanDate)
+          personalCareNeed.startDate != null &&
+            !personalCareNeed.startDate.isBefore(fromScanDate) &&
+            !personalCareNeed.startDate.isAfter(toScanDate)
         }.sortedWith(personalCareNeedComparator)
         val nomisScanCount = personalCareNeeds.size
         val latestPersonalCareNeed = personalCareNeeds.firstOrNull()

@@ -314,6 +314,41 @@ class ScanServiceTest {
       assertThat(nomisScan.scanDetails).isEqualTo("notes")
     }
 
+    @DisplayName("filters NOMIS scans by requested date range")
+    @TestFactory
+    fun `filters NOMIS scans by requested date range`() = listOf(
+      Triple("unrestricted", ListScansRequest(), ["6", "5", "4", "3", "2", "1", "7"]),
+      Triple("with start date", ListScansRequest(fromScanDate = yearStart), ["6", "5", "4", "3", "2"]),
+      Triple("with end date", ListScansRequest(toScanDate = today), ["5", "4", "3", "2", "1"]),
+      Triple("closed range", ListScansRequest(fromScanDate = yearStart, toScanDate = today), ["5", "4", "3", "2"]),
+    ).map { (scenario, query, expectedIds) ->
+      DynamicTest.dynamicTest(scenario) {
+        whenever(
+          scanRepository.findAll(any<Specification<ScanEntity>>(), any<Pageable>()),
+        ).thenReturn(PageImpl(emptyList()))
+        whenever(prisonApiClient.getScanCareNeeds(listOf(prisonerNumber)))
+          .thenReturn(
+            listOf(
+              PersonalCareNeedsResponse(
+                offenderNo = prisonerNumber,
+                personalCareNeeds = listOf(
+                  bscan(id = 1, startDate = yearStart.minusDays(1)),
+                  bscan(id = 2, startDate = yearStart),
+                  bscan(id = 3, startDate = yearStart.plusMonths(2)),
+                  bscan(id = 4, startDate = today.minusDays(3)),
+                  bscan(id = 5, startDate = today),
+                  bscan(id = 6, startDate = today.plusDays(1)),
+                  bscan(id = 7, startDate = null),
+                ),
+              ),
+            ),
+          )
+
+        val scans = scanService.listScans(prisonerNumber, query)
+        assertThat(scans.content.map { it.id }).isEqualTo(expectedIds)
+      }
+    }
+
     @DisplayName("allows huge page sizes when date filters span a year or less")
     @TestFactory
     fun `allows huge page sizes when date filters span a year or less`() = listOf(
@@ -322,8 +357,7 @@ class ScanServiceTest {
         fromScanDate = yearStart.minusYears(1),
         toScanDate = yearStart,
       ),
-    ).map {
-      val (scenario, query) = it
+    ).map { (scenario, query) ->
       DynamicTest.dynamicTest(scenario) {
         whenever(
           scanRepository.findAll(any<Specification<ScanEntity>>(), any<Pageable>()),
@@ -344,8 +378,7 @@ class ScanServiceTest {
       "with no date filters" to ListScansRequest(),
       "with open-ended date filters" to ListScansRequest(toScanDate = today.minusDays(1)),
       "with date filters spanning more than a year" to ListScansRequest(fromScanDate = yearStart.minusMonths(8)),
-    ).map {
-      val (scenario, query) = it
+    ).map { (scenario, query) ->
       DynamicTest.dynamicTest(scenario) {
         assertThatThrownBy {
           scanService.listScans(prisonerNumber, query, PageRequest.of(0, 201, Sort.by("scanDate")))
@@ -1087,8 +1120,8 @@ class ScanServiceTest {
   )
 
   private fun bscan(startDate: String) = bscan(LocalDate.parse(startDate))
-  private fun bscan(startDate: LocalDate) = PersonalCareNeed(
-    personalCareNeedId = 1,
+  private fun bscan(startDate: LocalDate?, id: Long = 1) = PersonalCareNeed(
+    personalCareNeedId = id,
     problemType = "BSCAN",
     problemCode = "BSC6.0",
     problemStatus = "ON",
