@@ -48,6 +48,13 @@ generic-service:
       DATABASE_USERNAME: "database_username"
       DATABASE_PASSWORD: "database_password"
 
+    hmpps-domain-events-topic:
+      HMPPS_SQS_TOPICS_HMPPSEVENTTOPIC_ARN: "topic_arn"
+    sqs-domain-events-secret:
+      HMPPS_SQS_QUEUES_HMPPSDOMAINEVENTSQUEUE_QUEUE_NAME: "queue_name"
+    sqs-domain-events-dlq-secret:
+      HMPPS_SQS_QUEUES_HMPPSDOMAINEVENTSQUEUE_DLQ_NAME: "queue_name"
+
   allowlist:
     groups:
       - digital_staff_and_mojo
