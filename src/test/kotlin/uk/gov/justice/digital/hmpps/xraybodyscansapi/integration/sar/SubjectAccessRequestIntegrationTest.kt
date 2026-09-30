@@ -63,7 +63,7 @@ class SubjectAccessRequestIntegrationTest :
           "typeDescription": "General",
           "subType": "XRBS",
           "subTypeDescription": "X-Ray Body Scan",
-          "text": "The outcome was Item detected and further actions were taken.",
+          "text": "The outcome was Positive and further actions were taken.",
           "creationDateTime": "2026-01-01T00:00:00",
           "occurrenceDateTime": "2026-01-01T00:00:00",
           "authorName": "Author",

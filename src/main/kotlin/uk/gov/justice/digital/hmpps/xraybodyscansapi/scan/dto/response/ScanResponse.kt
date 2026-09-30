@@ -62,7 +62,7 @@ data class ScanResponse(
   val outcome: String,
   @Schema(
     description = "What the outcome of the scan was (as a human-readable description)",
-    example = "No item detected",
+    example = "Negative",
     type = "string",
     requiredMode = Schema.RequiredMode.REQUIRED,
   )

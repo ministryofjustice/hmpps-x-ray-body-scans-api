@@ -158,8 +158,8 @@ class ScanRepositoryTest {
       } else {
         assertThat(latestScans).hasSize(2)
       }
-      assertThat(latestScans["A1111AA"]?.justification?.description).isEqualTo("Intelligence-led")
-      assertThat(latestScans["B2222BB"]?.outcome?.description).isEqualTo("Item detected")
+      assertThat(latestScans["A1111AA"]?.justification?.description).isEqualTo("Intelligence-led cohort")
+      assertThat(latestScans["B2222BB"]?.outcome?.description).isEqualTo("Positive")
     }
   }
 

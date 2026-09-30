@@ -2,8 +2,8 @@
   {
     "person": "A1234BC",
     "date": "2026-08-13",
-    "justification": "Intelligence-led",
-    "outcome": "No item detected",
+    "justification": "Intelligence-led cohort",
+    "outcome": "Negative",
     "establishment": "LEI",
     "additionalDetails": null
   },
@@ -11,8 +11,8 @@
     "person": "A1234BC",
     "date": "2026-08-12",
     "justification": "Reasonable suspicion",
-    "outcome": "Item detected",
+    "outcome": "Positive",
     "establishment": "LEI",
-    "additionalDetails": "The outcome was Item detected and further actions were taken.\n\nMore details added:\n\nFollow up actions have been taken against this person"
+    "additionalDetails": "The outcome was Positive and further actions were taken.\n\nMore details added:\n\nFollow up actions have been taken against this person"
   }
 ]
