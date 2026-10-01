@@ -46,10 +46,10 @@ abstract class IntegrationTestBase {
   protected lateinit var jwtAuthHelper: JwtAuthorisationHelper
 
   @Autowired
-  lateinit var jsonMapper: JsonMapper
+  protected lateinit var jsonMapper: JsonMapper
 
   @MockitoSpyBean
-  lateinit var hmppsQueueService: HmppsQueueService
+  protected lateinit var hmppsQueueService: HmppsQueueService
 
   @BeforeEach
   fun `clear queues`() {
@@ -58,23 +58,23 @@ abstract class IntegrationTestBase {
     ).get()
   }
 
-  val domainEventsTopic by lazy {
+  protected val domainEventsTopic by lazy {
     hmppsQueueService.findByTopicId("hmppseventtopic")
       ?: throw MissingTopicException("hmppseventtopic not found")
   }
 
-  internal val hmppsDomainEventsQueue by lazy {
+  protected val hmppsDomainEventsQueue by lazy {
     hmppsQueueService.findByQueueId("hmppsdomaineventsqueue")
       ?: throw MissingQueueException("hmppsdomaineventsqueue queue not found")
   }
 
-  internal fun sendDomainEvent(event: HmppsDomainEvent) {
+  protected fun sendDomainEvent(event: HmppsDomainEvent) {
     domainEventsTopic.publish(event.eventType, jsonMapper.writeValueAsString(event))
   }
 
-  internal fun HmppsQueue.countAllMessagesOnQueue() = sqsClient.countAllMessagesOnQueue(queueUrl).get()
+  protected fun HmppsQueue.countAllMessagesOnQueue(): Int = sqsClient.countAllMessagesOnQueue(queueUrl).get()
 
-  internal fun setAuthorisation(
+  protected fun setAuthorisation(
     username: String? = "AUTH_ADM",
     roles: List<String> = listOf(),
     scopes: List<String> = listOf("read"),

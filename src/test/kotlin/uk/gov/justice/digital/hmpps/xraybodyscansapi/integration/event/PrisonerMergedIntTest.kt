@@ -1,6 +1,5 @@
 package uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.event
 
-import jakarta.persistence.EntityManager
 import org.assertj.core.api.Assertions.assertThat
 import org.awaitility.kotlin.await
 import org.awaitility.kotlin.matches
@@ -25,9 +24,6 @@ class PrisonerMergedIntTest : IntegrationTestBase() {
 
   @Autowired
   lateinit var scanRepository: ScanRepository
-
-  @Autowired
-  lateinit var entityManager: EntityManager
 
   @Test
   @Sql("classpath:/events/test-data/reset.sql")

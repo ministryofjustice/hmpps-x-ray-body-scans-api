@@ -252,7 +252,7 @@ class UnifiedScanResponsePaginatorTest {
     prisonId = "MDI",
     scanDate = scanDate,
     justification = "INTELLIGENCE",
-    justificationDescription = "Intelligence",
+    justificationDescription = "Intelligence-led cohort",
     outcome = "NEGATIVE",
     outcomeDescription = "Negative",
     createdAt = now,
