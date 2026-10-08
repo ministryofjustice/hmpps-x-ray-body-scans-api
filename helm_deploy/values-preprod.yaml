@@ -16,6 +16,7 @@ generic-service:
     API_ALERTS_API_BASE_URL: "https://alerts-api-preprod.hmpps.service.justice.gov.uk"
     API_CASE_NOTES_API_BASE_URL: "https://preprod.offender-case-notes.service.justice.gov.uk"
     HMPPS_SQS_ENABLED: "true"
+    SERVICE_ACTIVE_AGENCIES: "LCI,WDI"
 
   scheduledDowntime:
     enabled: true
