@@ -15,7 +15,7 @@ dependencies {
   implementation("uk.gov.justice.service.hmpps:hmpps-sqs-spring-boot-starter:7.4.1")
 
   // Monitoring
-  implementation("io.sentry:sentry-spring-boot-4:8.59.0")
+  implementation("io.sentry:sentry-spring-boot-4:8.60.0")
 
   // OpenAPI
   implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1")
@@ -27,7 +27,7 @@ dependencies {
   implementation("org.springframework.boot:spring-boot-starter-data-jpa")
   implementation("com.fasterxml.uuid:java-uuid-generator:5.2.0")
   runtimeOnly("org.flywaydb:flyway-database-postgresql")
-  runtimeOnly("org.postgresql:postgresql:42.7.13")
+  runtimeOnly("org.postgresql:postgresql:42.7.14")
   implementation("org.springframework.boot:spring-boot-starter-flyway")
   implementation("com.h2database:h2") // Here in case you want to run locally using h2
   testImplementation("com.h2database:h2") // Tests use h2
