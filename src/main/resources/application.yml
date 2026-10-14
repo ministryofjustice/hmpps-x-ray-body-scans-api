@@ -1,6 +1,6 @@
 hmpps:
   sqs:
-    enabled: false # Disabled until cloud infra is setup
+    enabled: true
   sar:
     template:
       enabled: true
