@@ -4,7 +4,7 @@ import uk.gov.justice.digital.hmpps.xraybodyscansapi.jpa.buildSpecForEqualTo
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.jpa.buildSpecForGreaterThanOrEqualTo
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.jpa.buildSpecForIn
 import uk.gov.justice.digital.hmpps.xraybodyscansapi.jpa.buildSpecForIsNull
-import uk.gov.justice.digital.hmpps.xraybodyscansapi.jpa.buildSpecForLessThan
+import uk.gov.justice.digital.hmpps.xraybodyscansapi.jpa.buildSpecForLessThanOrEqualTo
 import java.time.LocalDate
 import java.util.UUID
 
@@ -17,6 +17,6 @@ fun filterByPrisonerNumber(prisonerNumber: String) = ScanEntity::prisonerNumber.
 
 fun filterFromScanDate(fromScanDate: LocalDate) = ScanEntity::scanDate.buildSpecForGreaterThanOrEqualTo(fromScanDate)
 
-fun filterToScanDate(toScanDate: LocalDate) = ScanEntity::scanDate.buildSpecForLessThan(toScanDate)
+fun filterToScanDate(toScanDate: LocalDate) = ScanEntity::scanDate.buildSpecForLessThanOrEqualTo(toScanDate)
 
 val sortableFields = listOf("scanDate")
