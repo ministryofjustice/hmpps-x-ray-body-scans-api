@@ -2,8 +2,8 @@
 
 plugins {
   id("uk.gov.justice.hmpps.gradle-spring-boot") version "11.0.12"
-  kotlin("plugin.spring") version "2.4.20"
-  kotlin("plugin.jpa") version "2.4.20"
+  kotlin("plugin.spring") version "2.4.21"
+  kotlin("plugin.jpa") version "2.4.21"
 }
 
 dependencies {
@@ -21,7 +21,7 @@ dependencies {
   implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.1.1")
 
   // Subject Access Request (SAR)
-  testImplementation("uk.gov.justice.service.hmpps:hmpps-subject-access-request-test-support:2.8.4")
+  testImplementation("uk.gov.justice.service.hmpps:hmpps-subject-access-request-test-support:2.8.5")
 
   // Persistence
   implementation("org.springframework.boot:spring-boot-starter-data-jpa")
