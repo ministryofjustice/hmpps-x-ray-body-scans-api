@@ -21,7 +21,7 @@ dependencies {
   implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.2.0")
 
   // Subject Access Request (SAR)
-  testImplementation("uk.gov.justice.service.hmpps:hmpps-subject-access-request-test-support:2.8.5")
+  testImplementation("uk.gov.justice.service.hmpps:hmpps-subject-access-request-test-support:2.8.6")
 
   // Persistence
   implementation("org.springframework.boot:spring-boot-starter-data-jpa")
