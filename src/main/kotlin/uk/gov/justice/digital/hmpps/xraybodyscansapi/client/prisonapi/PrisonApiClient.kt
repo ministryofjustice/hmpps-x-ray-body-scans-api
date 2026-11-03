@@ -15,15 +15,17 @@ class PrisonApiClient(
 
   /**
    * Returns a list of bscan PersonalCareNeedsResponses, one for each prisoner number given.
+   * Includes those with an end date by default.
    * Requires ROLE_VIEW_PRISONER_DATA or ROLE_GLOBAL_SEARCH.
    */
-  fun getScanCareNeeds(offenderNos: List<String>): List<PersonalCareNeedsResponse> = try {
+  fun getScanCareNeeds(offenderNos: List<String>, showAll: Boolean = true): List<PersonalCareNeedsResponse> = try {
     webClient
       .post()
       .uri { uriBuilder: UriBuilder ->
         uriBuilder
           .path("/api/bookings/offenderNo/personal-care-needs")
           .queryParam("type", "BSCAN")
+          .queryParam("showAll", showAll)
           .build()
       }
       .bodyValue(offenderNos)

@@ -31,6 +31,10 @@ class PrisonApiClientTest {
     prisonApi.stubGetScanCareNeeds(
       // language=json
       """
+      ["A1234AA", "B1234BB"]
+      """,
+      // language=json
+      """
       [
         {
           "offenderNo": "A1234AA",

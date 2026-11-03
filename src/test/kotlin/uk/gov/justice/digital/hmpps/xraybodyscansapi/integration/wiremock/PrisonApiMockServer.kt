@@ -2,6 +2,8 @@ package uk.gov.justice.digital.hmpps.xraybodyscansapi.integration.wiremock
 
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.client.WireMock.aResponse
+import com.github.tomakehurst.wiremock.client.WireMock.equalTo
+import com.github.tomakehurst.wiremock.client.WireMock.equalToJson
 import com.github.tomakehurst.wiremock.client.WireMock.get
 import com.github.tomakehurst.wiremock.client.WireMock.post
 import com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo
@@ -26,14 +28,21 @@ class PrisonApiMockServer : WireMockServer(8091) {
     )
   }
 
-  fun stubGetScanCareNeeds(body: String) {
+  fun stubGetScanCareNeeds(request: String, response: String) {
     stubFor(
       post(urlPathEqualTo("/api/bookings/offenderNo/personal-care-needs"))
+        .withQueryParams(
+          mapOf(
+            "type" to equalTo("BSCAN"),
+            "showAll" to equalTo("true"),
+          ),
+        )
+        .withRequestBody(equalToJson(request))
         .willReturn(
           aResponse()
             .withHeader("Content-Type", "application/json")
             .withStatus(200)
-            .withBody(body),
+            .withBody(response),
         ),
     )
   }
