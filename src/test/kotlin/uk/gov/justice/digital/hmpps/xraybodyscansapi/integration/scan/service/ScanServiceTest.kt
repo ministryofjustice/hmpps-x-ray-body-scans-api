@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.EnumSource
+import org.junit.jupiter.params.provider.ValueSource
 import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.eq
@@ -192,8 +193,9 @@ class ScanServiceTest {
       }
     }
 
-    @Test
-    fun `returns a page of 20 NOMIS scans for a prisoner`() {
+    @ParameterizedTest
+    @ValueSource(booleans = [false, true])
+    fun `returns a page of 20 NOMIS scans for a prisoner`(ended: Boolean) {
       whenever(
         scanRepository.findAll(
           any<Specification<ScanEntity>>(),
@@ -209,13 +211,14 @@ class ScanServiceTest {
       whenever(prisonApiClient.getScanCareNeeds(listOf(prisonerNumber)))
         .thenReturn(
           listOf(
-            PersonalCareNeedsResponse(
-              offenderNo = prisonerNumber,
-              personalCareNeeds = listOf(
-                bscan(today),
-                bscan(today.minusDays(4)),
-                bscan(today.minusMonths(1)),
-                bscan(today.minusMonths(2)),
+            personalCareNeeds(
+              prisonerNumber,
+              bscan(today),
+              bscan(today.minusDays(4)),
+              bscan(today.minusMonths(1)),
+              bscan(
+                startDate = today.minusMonths(2),
+                endDate = today.minusMonths(1).takeIf { ended },
               ),
             ),
           ),
@@ -299,9 +302,9 @@ class ScanServiceTest {
       whenever(prisonApiClient.getScanCareNeeds(listOf(prisonerNumber)))
         .thenReturn(
           listOf(
-            PersonalCareNeedsResponse(
-              offenderNo = prisonerNumber,
-              personalCareNeeds = listOf(bscan(today.minusWeeks(2))),
+            personalCareNeeds(
+              prisonerNumber,
+              bscan(today.minusWeeks(2)),
             ),
           ),
         )
@@ -329,17 +332,15 @@ class ScanServiceTest {
         whenever(prisonApiClient.getScanCareNeeds(listOf(prisonerNumber)))
           .thenReturn(
             listOf(
-              PersonalCareNeedsResponse(
-                offenderNo = prisonerNumber,
-                personalCareNeeds = listOf(
-                  bscan(id = 1, startDate = yearStart.minusDays(1)),
-                  bscan(id = 2, startDate = yearStart),
-                  bscan(id = 3, startDate = yearStart.plusMonths(2)),
-                  bscan(id = 4, startDate = today.minusDays(3)),
-                  bscan(id = 5, startDate = today),
-                  bscan(id = 6, startDate = today.plusDays(1)),
-                  bscan(id = 7, startDate = null),
-                ),
+              personalCareNeeds(
+                prisonerNumber,
+                bscan(id = 1, startDate = yearStart.minusDays(1)),
+                bscan(id = 2, startDate = yearStart),
+                bscan(id = 3, startDate = yearStart.plusMonths(2)),
+                bscan(id = 4, startDate = today.minusDays(3)),
+                bscan(id = 5, startDate = today),
+                bscan(id = 6, startDate = today.plusDays(1)),
+                bscan(id = 7, startDate = null),
               ),
             ),
           )
@@ -363,7 +364,7 @@ class ScanServiceTest {
           scanRepository.findAll(any<Specification<ScanEntity>>(), any<Pageable>()),
         ).thenReturn(PageImpl(emptyList()))
         whenever(
-          prisonApiClient.getScanCareNeeds(any()),
+          prisonApiClient.getScanCareNeeds(any(), any()),
         ).thenReturn(emptyList())
 
         val scans = scanService.listScans(prisonerNumber, query, PageRequest.of(0, 10_000, Sort.by("scanDate")))
@@ -593,17 +594,15 @@ class ScanServiceTest {
       whenever(prisonApiClient.getScanCareNeeds(prisonerNumbers))
         .thenReturn(
           listOf(
-            PersonalCareNeedsResponse(
-              offenderNo = "A1234BC",
-              personalCareNeeds = listOf(
-                bscan("2026-01-01"),
-                bscan("2026-01-02"),
-                bscan("2025-12-31"),
-              ),
+            personalCareNeeds(
+              "A1234BC",
+              bscan("2026-01-01"),
+              bscan("2026-01-02"),
+              bscan("2025-12-31"),
             ),
-            PersonalCareNeedsResponse(
-              offenderNo = "B1234AC",
-              personalCareNeeds = listOf(bscan("2026-01-03")),
+            personalCareNeeds(
+              "B1234AC",
+              bscan("2026-01-03"),
             ),
           ),
         )
@@ -664,9 +663,10 @@ class ScanServiceTest {
       whenever(prisonApiClient.getScanCareNeeds(listOf(prisonerNumber)))
         .thenReturn(
           listOf(
-            PersonalCareNeedsResponse(
-              offenderNo = "A1234BC",
-              personalCareNeeds = listOf(bscan("2026-01-01"), bscan("2026-01-02")),
+            personalCareNeeds(
+              "A1234BC",
+              bscan("2026-01-01"),
+              bscan("2026-01-02"),
             ),
           ),
         )
@@ -699,20 +699,60 @@ class ScanServiceTest {
     }
 
     @Test
+    fun `counts NOMIS scans with end date`() {
+      val prisonerNumber = "A1234BC"
+
+      whenever(prisonApiClient.getScanCareNeeds(listOf(prisonerNumber)))
+        .thenReturn(
+          listOf(
+            personalCareNeeds(
+              "A1234BC",
+              bscan(startDate = "2026-01-01", endDate = "2026-01-02"),
+              bscan(startDate = "2026-01-02"),
+            ),
+          ),
+        )
+      whenever(scanRepository.scanSummaryRowsForPrisoners(listOf(prisonerNumber), yearStart, today, false))
+        .thenReturn(emptyList())
+
+      val result = scanService.summariseScans(prisonerNumber)
+
+      assertThat(result).isEqualTo(
+        ScanSummaryResponse(
+          prisonerNumber = "A1234BC",
+          nomisCount = 2,
+          dpsCount = 0,
+          totalCount = 2,
+          positiveCount = 0,
+          negativeCount = 0,
+          inconclusiveCount = 0,
+          annualLimit = 116,
+          remainingScans = 114,
+          nearingScanLimit = false,
+          atScanLimit = false,
+          latestScan = null,
+          relevantAlerts = null,
+          fromScanDate = yearStart,
+          toScanDate = today,
+        ),
+      )
+      verifyNoInteractions(alertsApiClient)
+      verify(scanRepository, never()).latestScansForPrisoners(any(), any(), any(), any())
+    }
+
+    @Test
     fun `defaults missing counts to zero`() {
       val prisonerNumbers = listOf("A1234BC", "B1234AC", "C1234AB")
 
       whenever(prisonApiClient.getScanCareNeeds(prisonerNumbers))
         .thenReturn(
           listOf(
-            PersonalCareNeedsResponse(
-              offenderNo = "A1234BC",
-              personalCareNeeds = listOf(
-                bscan("2026-01-10"),
-                bscan("2026-01-02"),
-                bscan("2026-01-03"),
-                bscan("2026-01-04"),
-              ),
+            personalCareNeeds(
+              "A1234BC",
+              bscan("2026-01-10"),
+              bscan("2026-01-02"),
+              bscan("2026-01-03"),
+              bscan("2026-01-04"),
             ),
           ),
         )
@@ -783,7 +823,7 @@ class ScanServiceTest {
       val prisonerNumber = "A1234BC"
 
       whenever(prisonApiClient.getScanCareNeeds(listOf(prisonerNumber)))
-        .thenReturn(listOf(PersonalCareNeedsResponse(offenderNo = prisonerNumber)))
+        .thenReturn(listOf(personalCareNeeds(prisonerNumber)))
       whenever(scanRepository.scanSummaryRowsForPrisoners(listOf(prisonerNumber), yearStart, today, false))
         .thenReturn(
           listOf(
@@ -806,7 +846,7 @@ class ScanServiceTest {
       val prisonerNumber = "A1234BC"
 
       whenever(prisonApiClient.getScanCareNeeds(listOf(prisonerNumber)))
-        .thenReturn(listOf(PersonalCareNeedsResponse(offenderNo = prisonerNumber)))
+        .thenReturn(listOf(personalCareNeeds(prisonerNumber)))
       whenever(scanRepository.scanSummaryRowsForPrisoners(listOf(prisonerNumber), yearStart, today, false))
         .thenReturn(listOf(scanSummaryRow(prisonerNumber, count = 5)))
 
@@ -836,9 +876,9 @@ class ScanServiceTest {
               },
             ),
             // B1234AC, C1234AB and D1234FG have 0 nomis scans
-            PersonalCareNeedsResponse(offenderNo = "B1234AC"),
-            PersonalCareNeedsResponse(offenderNo = "C1234AB"),
-            PersonalCareNeedsResponse(offenderNo = "D1234FG"),
+            personalCareNeeds("B1234AC"),
+            personalCareNeeds("C1234AB"),
+            personalCareNeeds("D1234FG"),
             // E1234HI has no nomis scans
           ),
         )
@@ -1119,8 +1159,11 @@ class ScanServiceTest {
     personalCareNeeds = careNeeds.toList(),
   )
 
-  private fun bscan(startDate: String) = bscan(LocalDate.parse(startDate))
-  private fun bscan(startDate: LocalDate?, id: Long = 1) = PersonalCareNeed(
+  private fun bscan(startDate: String, endDate: String? = null) = bscan(
+    startDate = LocalDate.parse(startDate),
+    endDate = endDate?.let { LocalDate.parse(it) },
+  )
+  private fun bscan(startDate: LocalDate?, endDate: LocalDate? = null, id: Long = 1) = PersonalCareNeed(
     personalCareNeedId = id,
     problemType = "BSCAN",
     problemCode = "BSC6.0",
@@ -1128,6 +1171,7 @@ class ScanServiceTest {
     problemDescription = "Body Scan (6.0 µSv)",
     commentText = "notes",
     startDate = startDate,
+    endDate = endDate,
   )
 
   private fun makeReferenceDataWheneverNeeded(missingCodes: Set<Pair<String, String>> = emptySet()) {
