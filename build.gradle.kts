@@ -15,7 +15,7 @@ dependencies {
   implementation("uk.gov.justice.service.hmpps:hmpps-sqs-spring-boot-starter:7.6.0")
 
   // Monitoring
-  implementation("io.sentry:sentry-spring-boot-4:8.63.0")
+  implementation("io.sentry:sentry-spring-boot-4:8.64.0")
 
   // OpenAPI
   implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.2.0")
