@@ -1,7 +1,7 @@
 @file:Suppress("UnstableApiUsage")
 
 plugins {
-  id("uk.gov.justice.hmpps.gradle-spring-boot") version "11.1.0"
+  id("uk.gov.justice.hmpps.gradle-spring-boot") version "11.1.2"
   kotlin("plugin.spring") version "2.4.21"
   kotlin("plugin.jpa") version "2.4.21"
 }
@@ -15,7 +15,7 @@ dependencies {
   implementation("uk.gov.justice.service.hmpps:hmpps-sqs-spring-boot-starter:7.6.0")
 
   // Monitoring
-  implementation("io.sentry:sentry-spring-boot-4:8.64.0")
+  implementation("io.sentry:sentry-spring-boot-4:8.65.0")
 
   // OpenAPI
   implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.2.0")
@@ -38,7 +38,7 @@ dependencies {
   testImplementation("uk.gov.justice.service.hmpps:hmpps-kotlin-spring-boot-starter-test:3.1.0")
   testImplementation("org.springframework.boot:spring-boot-starter-webflux-test")
   testImplementation("org.wiremock:wiremock-standalone:3.13.2")
-  testImplementation("io.swagger.parser.v3:swagger-parser:2.1.48") {
+  testImplementation("io.swagger.parser.v3:swagger-parser:2.1.49") {
     exclude(group = "io.swagger.core.v3")
   }
 }
